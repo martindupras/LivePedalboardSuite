@@ -1,0 +1,846 @@
+// martinTreeEditor.scd
+
+// v1.1 20250916-0847 - fixed 'tree'/'~tree' mismatch. All
+// 20250818-1431
+// allows editing of the tree step by step.
+
+/*
+Loads JSON tree from /Users/martindupras/CommandTreeSavefiles/myTree.json
+Displays the tree in the console
+Adds branches interactively
+Saves the updated tree back to the same file
+*/
+
+//using circular
+(
+// Setup versioned saver
+var saveFolder, savePrefix;
+
+saveFolder = "/Users/martindupras/CommandTreeSavefiles";
+savePrefix = "myTree";
+
+~saver = CircularFileSave.new(savePrefix, saveFolder, 10);
+"🗂 CircularFileSave initialized.".postln;
+)
+
+//load latest version:
+(
+// Load latest saved version
+var json;
+
+json = ~saver.latestVersion;
+if (json.notNil) {
+    ~tree = MDCommandTree.new;
+    ~tree.importJSON(json);
+    "✅ Latest version loaded.".postln;
+    ~tree.printTreePretty;
+} {
+    "⚠️ No saved version found.".postln;
+};
+)
+
+
+
+///// STEP 1 - LOAD
+(
+// Load tree from JSON file
+var path;
+
+path = "/Users/martindupras/CommandTreeSavefiles/myTree.json";
+~tree = MDCommandTree.new;
+~tree.importJSONFile(path);
+"JSON Tree loaded from file.".postln;
+)
+
+///// STEP 2 - PRINT
+(
+// Print the tree structure
+~tree.printTreePretty;
+)
+
+
+///// STEP 3 - ADD NODES
+(
+// Add a node
+var parentId = 8;
+var nodeName = "bob";
+var fret = 11;
+var newNode = ~tree.addNode(parentId, nodeName, fret);
+
+if (newNode.notNil) {
+    ("✅ Added node '" ++ nodeName ++ "' under parent ID " ++ parentId).postln;
+    ~tree.printTreePretty;
+} {
+    "⚠️ Failed to add node.".postln;
+};
+)
+
+(
+// Remove the node
+var nodeIdToRemove = 24;
+var removed = ~tree.removeNode(nodeIdToRemove);
+
+if (removed.notNil) {
+    ("🗑 Node " ++ nodeIdToRemove ++ " removed.").postln;
+} {
+    ("⚠️ Failed to remove node " ++ nodeIdToRemove).postln;
+};
+
+// Always reprint after change
+~tree.printTreePretty;
+)
+
+
+// using circular
+(
+// Save tree to versioned file
+if (~tree.notNil) {
+    var json = ~tree.asJSON;
+    ~saver.saveVersion(json);
+    "💾 Tree saved to versioned file.".postln;
+} {
+    "⚠️ No tree to save.".postln;
+};
+)
+
+// list saved versions:
+(
+// List saved versions
+~saver.listVersions;
+)
+
+
+
+
+
+// (
+// // Save tree to JSON file
+// var savePath;
+//
+// savePath = "/Users/martindupras/CommandTreeSavefiles/UpdatedTree.json";
+// ~tree.exportJSONFile(savePath);
+// ("Tree saved to:" + savePath).postln;
+// savePath.postln;
+// )
+
+
+
+
+// TEST save and reload
+(
+// Save and reload test
+var savePath, reloadedTree;
+
+savePath = "/Users/martindupras/CommandTreeSavefiles/testTree.json";
+
+// Save current tree
+~tree.exportJSONFile(savePath);
+"Tree saved.".postln;
+
+// Reload into a new tree instance
+reloadedTree = MDCommandTree.new;
+if (reloadedTree.importJSONFile(savePath)) {
+    "Tree reloaded successfully.".postln;
+    reloadedTree.printTreePretty;
+} {
+    "Failed to reload tree.".postln;
+};
+)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+~tree;
+
+(
+// Load the tree from JSON
+var filePath;
+filePath = "/Users/martindupras/CommandTreeSavefiles/myTree.json";
+
+~tree = MDCommandTree.new;
+if (~tree.importJSONFile(filePath)) {
+    "✅ Tree loaded successfully.".postln;
+    ~tree.printTreePretty;
+} {
+    "❌ Failed to load tree.".postln;
+};
+)
+// === Add branches interactively ===
+// Example: Add a branch to node named "A"
+var parentNode = ~tree.findNodeByName("A");
+if (parentNode.notNil) {
+    var newNode = ~tree.addNode(parentNode.id, "A_newBranch", 7);
+    ("✅ Added branch to 'A': " ++ newNode.name ++ " (ID: " ++ newNode.id ++ ")").postln;
+    ~tree.printTreePretty;
+} {
+    "⚠️ Parent node 'A' not found.".postln;
+};
+
+// === Save the updated tree ===
+~tree.exportJSONFile(filePath);
+"💾 Tree saved to file.".postln;
+)
+// MDCommandBuilderTest.scd
+// MD 20250801
+
+// FOR THIS TO WORK: we need to rund MDCommandNodeTest (version 20250731) because we need a populated tree ("tree")
+
+
+/*// run this for debugging messages
+(~mdDebug = true;
+
++Object {
+    debug { |msg|
+        if (~mdDebug == true) {
+            msg.postln;
+        };
+    }
+}
+)*/
+
+
+
+// Setup
+~builder = MDCommandBuilder.new(~tree);
+~queue = MDCommandQueue.new;
+
+// Explore
+~builder.listChildren;
+~builder.navigateToChild(3); // e.g. Branch A
+~builder.listChildren;
+~builder.navigateToChild(7); // e.g. Twig A1b
+~builder.printCurrentPath;
+
+~builder.getCurrentCommand;
+// Add to queue
+~queue.addCommand(~builder.getCurrentCommand);
+
+~builder.reset; // we need this to start at root again
+
+// Explore
+~builder.listChildren;
+~builder.navigateToChild(5); // e.g. Branch A
+~builder.listChildren;
+~builder.navigateToChild(11); // e.g. Twig A1b
+~builder.printCurrentPath;
+
+~builder.getCurrentCommand;
+// Add to queue
+~queue.addCommand(~builder.getCurrentCommand);
+
+// Export
+~queue.queue.postln; // To inspect queue contents directly
+~queue.exportToEnv;
+
+~commandToSend;
+
+(
+// Set a fixed random seed for reproducibility
+thisThread.randSeed = 12345;
+
+// Global node counter and limit
+~nodeLimit = 50;
+~nodeCount = 1;
+~fixedChildren = 3;
+
+// Create root node
+~root = MDCommandNode.new("root", 0);
+
+// Breadth-first queue
+~nodeQueue = List[~root];
+
+// Build tree
+while {
+    (~nodeQueue.notEmpty and: { ~nodeCount < ~nodeLimit })
+} {
+    var parent = ~nodeQueue.removeAt(0);
+    ("Adding " ++ ~fixedChildren ++ " children to " ++ parent.name).postln;
+
+    ~fixedChildren.do {
+        if (~nodeCount < ~nodeLimit) {
+            var childName = parent.name ++ "_" ++ ~nodeCount;
+            var child = MDCommandNode.new(childName, ~nodeCount);
+            parent.addChild(child);
+            ~nodeQueue.add(child);
+            ("Created node: " ++ child.name ++ " | Total nodes: " ++ ~nodeCount).postln;
+            ~nodeCount = ~nodeCount + 1;
+        };
+    };
+};
+
+// Print tree
+"Generated Tree Structure:".postln;
+~root.printTreePretty("", true);
+
+// Check integrity
+"Running integrity check...".postln;
+~root.checkIntegrity;
+
+// Count total nodes
+~countNodes = { |node|
+    var count = 1;
+    node.children.do { |c|
+        count = count + ~countNodes.(c);
+    };
+    ^count;
+};
+
+("✅ Total nodes in tree: " ++ ~countNodes.(~root)).postln;
+"Tree printed.".postln;
+"end".postln;
+)
+
+
+b = MDCommandTree("root", 0);
+(
+// Build a tree for testing
+var tree, root;
+var node1, node2, node3, node4;
+var leaf1A, leaf1B, leaf2A, leaf2B, leaf3A, leaf3B, leaf4A, leaf4B, leaf4C, leaf4D;
+var testNodeMethods, printTreeSummary;
+
+// Create tree
+tree = MDCommandTree.new("root", 0, 50);
+root = tree.root;
+
+// Add intermediate nodes to root
+node1 = tree.addNode(tree.getNodeByName("root").id, "audio", 3);
+ leaf1A = tree.addNode(tree.getNodeByName("audio").id, "noise", 7);
+leaf1B = tree.addNode(tree.getNodeByName("audio").id, "oscillators", 9);
+//
+node2 = tree.addNode(tree.getNodeByName("root").id, "control", 5);
+ leaf2A = tree.addNode(tree.getNodeByName("control").id, "LFO", 7);
+ leaf2B = tree.addNode(tree.getNodeByName("control").id, "gate", 9);
+//
+node3 = tree.addNode(tree.getNodeByName("root").id, "names", 3);
+ leaf3A = tree.addNode(tree.getNodeByName("names").id, "sends", 11);
+ leaf4A = tree.addNode(tree.getNodeByName("names").id, "receive", 7);
+//
+node4 = tree.addNode(tree.getNodeByName("root").id, "values", 5);
+ leaf4A = tree.addNode(tree.getNodeByName("values").id, "10", 9);
+ leaf4B = tree.addNode(tree.getNodeByName("values").id, "100", 11);
+ leaf4C = tree.addNode(tree.getNodeByName("values").id, "10", 9);
+ leaf4D = tree.addNode(tree.getNodeByName("values").id, "100", 11);
+
+
+// Tag all nodes with depth
+tree.root.tagByDepth(0);
+
+// 📋 Node Testing Function
+testNodeMethods = { |node, label|
+    var isLeafVal, descCount, leafCount, depth, depthTag;
+    isLeafVal = node.isLeaf();
+    descCount = node.countDescendants();
+    leafCount = node.countLeavesOnly();
+    depth = node.getDepth();      // computed recursively
+    depthTag = node.depthTag;    // stored via tagByDepth
+
+    (label ++ " →").postln;
+    ("  isLeaf:           " ++ isLeafVal).postln;
+    ("  countDescendants: " ++ descCount).postln;
+    ("  countLeavesOnly:  " ++ leafCount).postln;
+    ("  getDepth:         " ++ depth).postln;
+    ("  depthTag:         " ++ depthTag).postln;
+    "---".postln;
+};
+
+// Tree Summary Function
+printTreeSummary = {
+    tree.nodeMap.values.do { |node|
+        testNodeMethods.(node, node.name);
+    };
+};
+
+// Run tests
+printTreeSummary.();
+"-----".postln;
+tree.printTreePretty;
+"-----".postln;
+
+~tree = tree;
+
+)
+
+
+
+/////////////////////
+/// BUILD A TREE - older version.
+/////////////////////
+
+(
+// Setup
+var tree, root, lvl1A, lvl1B, lvl2A, lvl2B, lvl3A, lvl3B, lvl3C;
+var printSummary;
+
+// 🌱 Initialize tree and root
+tree = MDCommandTree.new("root", 0, 1);
+root = tree.root;
+
+// 🧩 Level 1
+lvl1A = tree.addNode(root.id, "Branch A", 2);
+lvl1B = tree.addNode(root.id, "Branch B", 3);
+
+// 🧩 Level 2
+lvl2A = tree.addNode(lvl1A.id, "SubBranch A1", 4);
+lvl2B = tree.addNode(lvl1B.id, "SubBranch B1", 5);
+
+// 🧩 Level 3
+lvl3A = tree.addNode(lvl2A.id, "Twig A1a", 6);
+lvl3B = tree.addNode(lvl2A.id, "Twig A1b", 7);
+lvl3C = tree.addNode(lvl2B.id, "Twig B1a", 8);
+
+// 🏷️ Tag depth from root
+tree.root.tagByDepth(0);
+
+// 📋 Node Summary
+printSummary = {
+    tree.nodeMap.values.do { |node|
+        (node.name ++ " → depthTag: " ++ node.depthTag ++ ", getDepth: " ++ node.getDepth).postln;
+    };
+};
+
+// 🖼️ Print results
+printSummary.();
+tree.printTreePretty;
+
+tree.getNodeByName("Twig A1b").printPathToRoot;
+
+)
+// MDCommandQueue.sc
+// MD 20250801
+
+MDCommandQueue{
+
+	var <> queue;
+
+	*new{
+		^super.new.init();
+	}
+
+	init{
+		this.queue = List.new(8);
+		^this
+	}
+
+
+} // end of class MDCommandQueue// MDCommandSystemTest20250804.scd
+// MD 20250804
+
+// This is the testing code to test various aspects of the tree. This is just for testing, it does not do anything really useful yet other than invoke most methods.
+
+////////////////////////////////////////////////////////////////////
+// [1] Run this block to create a tree structure with data in it
+///////////////////////////////////////////////////////////////////
+
+(
+// Build a tree for testing
+var tree, root;
+var node1, node2, node3, node4;
+var leaf1A, leaf1B, leaf2A, leaf2B, leaf3A, leaf3B, leaf4A, leaf4B, leaf4C, leaf4D;
+var testNodeMethods, printTreeSummary;
+
+// Create tree
+tree = MDCommandTree.new("root", 0, 50);
+root = tree.root;
+
+// Add intermediate nodes to root
+node1 = tree.addNode(tree.getNodeByName("root").id, "audio", 3);
+ leaf1A = tree.addNode(tree.getNodeByName("audio").id, "noise", 7);
+leaf1B = tree.addNode(tree.getNodeByName("audio").id, "oscillators", 9);
+//
+node2 = tree.addNode(tree.getNodeByName("root").id, "control", 5);
+ leaf2A = tree.addNode(tree.getNodeByName("control").id, "LFO", 7);
+ leaf2B = tree.addNode(tree.getNodeByName("control").id, "gate", 9);
+//
+node3 = tree.addNode(tree.getNodeByName("root").id, "names", 7);
+ leaf3A = tree.addNode(tree.getNodeByName("names").id, "sends", 2);
+ leaf4A = tree.addNode(tree.getNodeByName("names").id, "receive", 4);
+//
+node4 = tree.addNode(tree.getNodeByName("root").id, "values", 9);
+ leaf4A = tree.addNode(tree.getNodeByName("values").id, "10", 9);
+ leaf4B = tree.addNode(tree.getNodeByName("values").id, "100", 10);
+ leaf4C = tree.addNode(tree.getNodeByName("values").id, "10", 11);
+ leaf4D = tree.addNode(tree.getNodeByName("values").id, "100", 12);
+
+// Tag all nodes with depth
+tree.root.tagByDepth(0);
+
+// 📋 Node Testing Function
+testNodeMethods = { |node, label|
+    var isLeafVal, descCount, leafCount, depth, depthTag;
+    isLeafVal = node.isLeaf();
+    descCount = node.countDescendants();
+    leafCount = node.countLeavesOnly();
+    depth = node.getDepth();      // computed recursively
+    depthTag = node.depthTag;    // stored via tagByDepth
+
+    (label ++ " →").postln;
+    ("  isLeaf:           " ++ isLeafVal).postln;
+    ("  countDescendants: " ++ descCount).postln;
+    ("  countLeavesOnly:  " ++ leafCount).postln;
+    ("  getDepth:         " ++ depth).postln;
+    ("  depthTag:         " ++ depthTag).postln;
+    "---".postln;
+};
+
+// Tree Summary Function
+printTreeSummary = {
+    tree.nodeMap.values.do { |node|
+        testNodeMethods.(node, node.name);
+    };
+};
+
+// Run tests
+printTreeSummary.();
+"-----".postln;
+tree.printTreePretty;
+"-----".postln;
+
+~tree = tree;
+
+
+// Export
+tree.exportJSONFile("~/Command Tree savefiles/myTree.json".standardizePath);
+
+// Import
+tree.importJSONFile("~/Command Tree savefiles/myTree.json".standardizePath);
+
+)
+
+////////////////////////////////////////////////////////////////////
+// [2] Now run these line and watch the console
+///////////////////////////////////////////////////////////////////
+
+// Setup
+~builder = MDCommandBuilder.new(~tree);
+~queue = MDCommandQueue.new;
+
+// Explore
+~builder.listChildren;
+~builder.navigateToChild(3); // e.g. Branch A
+~builder.listChildren;
+~builder.navigateToChild(7); // e.g. Twig A1b
+~builder.printCurrentPath;
+
+~builder.getCurrentCommand;
+// Add to queue
+~queue.addCommand(~builder.getCurrentCommand);
+
+~builder.reset; // we need this to start at root again
+
+// Explore
+~builder.listChildren;
+~builder.navigateToChild(9); // e.g. Branch A
+~builder.listChildren;
+~builder.navigateToChild(12); // e.g. Twig A1b
+~builder.printCurrentPath;
+
+~builder.getCurrentCommand;
+// Add to queue
+~queue.addCommand(~builder.getCurrentCommand);
+
+// Export
+~queue.queue.postln; // To inspect queue contents directly
+~queue.exportToEnv;
+
+~commandToSend;
+~commandToSend = nil;
+
+// MDCommandSystemTest20250804.scd
+// update 20250811
+// addiing changing |fret| to |string, fret| in navigateToChild methods
+
+// MD 20250804
+
+// This is the testing code to test various aspects of the tree. This is just for testing, it does not do anything really useful yet other than invoke most methods.
+
+////////////////////////////////////////////////////////////////////
+// [1] Run this block to create a tree structure with data in it
+///////////////////////////////////////////////////////////////////
+
+(
+// Build a tree for testing
+var tree, root;
+var node1, node2, node3, node4;
+var leaf1A, leaf1B, leaf2A, leaf2B, leaf3A, leaf3B, leaf4A, leaf4B, leaf4C, leaf4D;
+var testNodeMethods, printTreeSummary;
+
+// Create tree
+tree = MDCommandTree.new("root", 0, 50);
+root = tree.root;
+
+// Add intermediate nodes to root
+node1 = tree.addNode(tree.getNodeByName("root").id, "audio", 3);
+ leaf1A = tree.addNode(tree.getNodeByName("audio").id, "noise", 7);
+leaf1B = tree.addNode(tree.getNodeByName("audio").id, "oscillators", 9);
+//
+node2 = tree.addNode(tree.getNodeByName("root").id, "control", 5);
+ leaf2A = tree.addNode(tree.getNodeByName("control").id, "LFO", 7);
+ leaf2B = tree.addNode(tree.getNodeByName("control").id, "gate", 9);
+//
+node3 = tree.addNode(tree.getNodeByName("root").id, "names", 7);
+ leaf3A = tree.addNode(tree.getNodeByName("names").id, "sends", 2);
+ leaf4A = tree.addNode(tree.getNodeByName("names").id, "receive", 4);
+//
+node4 = tree.addNode(tree.getNodeByName("root").id, "values", 9);
+ leaf4A = tree.addNode(tree.getNodeByName("values").id, "10", 9);
+ leaf4B = tree.addNode(tree.getNodeByName("values").id, "100", 10);
+ leaf4C = tree.addNode(tree.getNodeByName("values").id, "10", 11);
+ leaf4D = tree.addNode(tree.getNodeByName("values").id, "100", 12);
+
+// Tag all nodes with depth
+tree.root.tagByDepth(0);
+"----- Depth:".postln;
+tree.root.depthTag;
+"-----".postln;
+
+// 📋 Node Testing Function
+testNodeMethods = { |node, label|
+    var isLeafVal, descCount, leafCount, depth, depthTag;
+    isLeafVal = node.isLeaf();
+    descCount = node.countDescendants();
+    leafCount = node.countLeavesOnly();
+    depth = node.getDepth();      // computed recursively
+    depthTag = node.depthTag;    // stored via tagByDepth
+
+    (label ++ " →").postln;
+    ("  isLeaf:           " ++ isLeafVal).postln;
+    ("  countDescendants: " ++ descCount).postln;
+    ("  countLeavesOnly:  " ++ leafCount).postln;
+    ("  getDepth:         " ++ depth).postln;
+    ("  depthTag:         " ++ depthTag).postln;
+    "---".postln;
+};
+
+// Tree Summary Function
+printTreeSummary = {
+    tree.nodeMap.values.do { |node|
+        testNodeMethods.(node, node.name);
+    };
+};
+
+// Run tests
+printTreeSummary.();
+"-----".postln;
+tree.printTreePretty;
+"-----".postln;
+
+~tree = tree;
+
+
+// Export
+tree.exportJSONFile("~/Command Tree savefiles/myTree.json".standardizePath);
+
+// Import
+tree.importJSONFile("~/Command Tree savefiles/myTree.json".standardizePath);
+
+)
+
+////////////////////////////////////////////////////////////////////
+// [2] Now run these line and watch the console
+///////////////////////////////////////////////////////////////////
+
+// Setup
+~builder = MDCommandBuilder.new(~tree);
+~queue = MDCommandQueue.new;
+
+// Explore
+~builder.listChildren;
+~builder.currentNode.getDepth;
+// what is the string
+~builder.navigateToChild(6,3); // string 6 fret 3, branch A
+~builder.listChildren;
+~builder.currentNode.getDepth;
+~builder.navigateToChild(5,7); // e.g. Twig A1b
+~builder.printCurrentPath;
+
+~builder.getCurrentCommand;
+// Add to queue
+~queue.addCommand(~builder.getCurrentCommand);
+
+~builder.reset; // we need this to start at root again
+
+// Explore
+~builder.listChildren;
+~builder.navigateToChild(6,9); // e.g. Branch A
+~builder.listChildren;
+~builder.navigateToChild(5,12); // e.g. Twig A1b
+~builder.printCurrentPath;
+
+~builder.getCurrentCommand;
+// Add to queue
+~queue.addCommand(~builder.getCurrentCommand);
+
+// Export
+~queue.queue.postln; // To inspect queue contents directly
+~queue.exportToEnv;
+
+~commandToSend;
+~commandToSend = nil;
+
+// test_circularSaves20250826.scd
+// MD
+
+
+
+(
+// Step 1: Load the latest saved tree version
+~tree = MDCommandTree.new("root");
+~loaded = ~tree.loadLatestVersion;
+
+if (~loaded) {
+    "Latest tree loaded.".postln;
+    "Tree before modification:".postln;
+    ~tree.printTreePretty;
+} {
+    "⚠️ No saved tree found. Starting with empty tree.".postln;
+};
+)
+
+(
+// Step 2: Save current version for comparison
+~originalJSON = ~tree.saver.latestVersion;
+)
+
+(
+// Step 3: Modify the tree
+~newNode = ~tree.addNode(0, "NewNode", 99);
+
+if (~newNode.notNil) {
+    "New node added.".postln;
+    ~tree.printTreePretty;
+} {
+    "⚠️ Failed to add new node.".postln;
+};
+)
+
+(
+// Step 4: Save the modified tree as a new version
+~tree.saveVersioned;
+)
+
+(
+// Step 5: Compare original and new JSON
+~newJSON = ~tree.saver.latestVersion;
+
+if (~originalJSON != ~newJSON) {
+    "Change confirmed: tree content has been updated.".postln;
+} {
+    "⚠️ No change detected between versions.".postln;
+};
+)
+
+
+
+
+
+
+
+
+
+
+
+
+
+// (
+// // Step 1: Create a new tree
+// ~tree = MDCommandTree.new("root");
+//
+// // Step 2: Add some nodes
+// ~tree.addNode(0, "A", 1);
+// ~tree.addNode(1, "B", 2);
+// ~tree.addNode(2, "C", 3);
+// "✅ Nodes added.".postln;
+// ~tree.printTreePretty;
+// )
+//
+// (
+// // Step 3: Save the tree using CircularFileSave
+// ~tree.saveVersioned;
+// )
+//
+// (
+// // Step 4: List saved versions
+// ~tree.listSavedVersions;
+// )
+//
+// (
+// // Step 5: Load the latest saved version
+// ~tree.loadLatestVersion;
+// )
+//
+// (
+// // Step 6: Print the tree to confirm it was restored
+// "✅ Tree after loading latest version:".postln;
+// ~tree.printTreePretty;
+// )
+// Create a saver
+~saver = CircularFileSave.new("myTree");
+
+// Save a version
+~saver.saveVersion("This is version " ++ Date.getDate.stamp);
+
+// List saved versions
+~saver.listVersions;
+
+// Load a specific version
+~saver.loadVersion(0).postln;
+(
+~displayTest = UserDisplay.new;
+
+~displayTest.display(\state, "🧭 State: treeNav");
+~displayTest.display(\queue, "📋 Queue: audio → noise → 100");
+~displayTest.display(\lastCommand, "🕘 Last Command: 100");
+~displayTest.display(\choices, "🎚 Choices:\nFret 7: noise\nFret 9: oscillators");
+)
+// temp
+
+(
+// 🧪 Set verbosity level to 0 (errors only)
+Verbosity.setLevel(0);
+Verbosity.postIf(0, "🔴 Level 0: Errors only");
+Verbosity.postIf(1, "🟠 Level 1: Actions");
+Verbosity.postIf(2, "🟡 Level 2: Input/Output");
+Verbosity.postIf(3, "🔵 Level 3: Object reporting");
+Verbosity.postIf(4, "🟣 Level 4: Everything");
+
+"---".postln;
+
+// 🧪 Set verbosity level to 2 (up to input/output)
+Verbosity.setLevel(2);
+Verbosity.postIf(0, "🔴 Level 0: Errors only");
+Verbosity.postIf(1, "🟠 Level 1: Actions");
+Verbosity.postIf(2, "🟡 Level 2: Input/Output");
+Verbosity.postIf(3, "🔵 Level 3: Object reporting");
+Verbosity.postIf(4, "🟣 Level 4: Everything");
+
+"---".postln;
+
+// 🧪 Set verbosity level to 4 (everything)
+Verbosity.setLevel(4);
+Verbosity.postIf(0, "🔴 Level 0: Errors only");
+Verbosity.postIf(1, "🟠 Level 1: Actions");
+Verbosity.postIf(2, "🟡 Level 2: Input/Output");
+Verbosity.postIf(3, "🔵 Level 3: Object reporting");
+Verbosity.postIf(4, "🟣 Level 4: Everything");
+)
+
+Verbosity.help;

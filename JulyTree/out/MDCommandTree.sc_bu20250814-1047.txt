@@ -1,0 +1,332 @@
+// MDCommandTree.sc
+// Refactored for clarity and consistency
+// MD 20250813
+
+MDCommandTree {
+	var <>root, <>nodeLimit = 50, <>nodeCount = 0, <>nodeMap;
+
+	*new { |rootName = "root", rootId = 0, nodeLimit|
+		^super.new.init(rootName, rootId, nodeLimit);
+	}
+
+	*fromDict { |dict|
+    var tree;
+
+    tree = MDCommandTree.new(dict[\name], dict[\id], dict[\fret]);
+
+    // Build children recursively under the existing root
+    if (dict[\children].isKindOf(Array)) {
+        dict[\children].do { |childDict|
+            tree.rebuildTreeFromDict(childDict, tree.root);
+        };
+    };
+
+    ^tree;
+}
+
+
+	//older version
+/*	*fromDict { |dict|
+		var tree;
+		tree = MDCommandTree.new(dict[\name], dict[\id], dict[\fret]);
+		tree.root = tree.rebuildTreeFromDict(dict);
+		("✅ Rebuilt root node: " ++ tree.root.name).postln;
+
+		^tree
+	}*/
+
+	init { |rootName, rootId, limit|
+		root = MDCommandNode.new(rootName, rootId);
+		nodeLimit = limit;
+		nodeCount = 1;
+
+		nodeMap = IdentityDictionary.new(100);
+		nodeMap.put(rootId, root);
+
+		^this
+	}
+
+	printTreePretty {
+		root.printTreePretty;
+		^this
+	}
+
+	addNode { |parentId, name, fret|
+		var newId, parentNode, newNode;
+
+		newId = nodeCount + 1;
+		parentNode = nodeMap.at(parentId);
+
+		if (parentNode.notNil) {
+			nodeCount = newId;
+			newNode = MDCommandNode.new(name, newId, fret);
+			newNode.parent = parentNode;
+			parentNode.addChild(newNode);
+			nodeMap.put(newId, newNode);
+			^newNode
+		} {
+			("⚠️ Invalid parent ID: " ++ parentId).postln;
+			^nil
+		}
+	}
+
+	removeNode { |nodeId|
+		var nodeToRemove, parentNode, found;
+
+		nodeToRemove = nodeMap.at(nodeId);
+		parentNode = nodeToRemove.parent;
+
+		if (parentNode.notNil) {
+			found = parentNode.children.detect { |c| c === nodeToRemove };
+			if (found.notNil) {
+				parentNode.removeChildById(found.id);
+				nodeMap.removeAt(nodeId);
+				("🗑 Node " ++ nodeId ++ " removed.").postln;
+				^nodeToRemove
+			} {
+				"⚠️ Node not found in parent's children".postln;
+				^nil
+			}
+		} {
+			"⚠️ Cannot remove root node".postln;
+			^nil
+		}
+	}
+
+	swapNodes { |nodeId1, nodeId2|
+		var node1, node2, parent1, parent2;
+
+		node1 = nodeMap.at(nodeId1);
+		node2 = nodeMap.at(nodeId2);
+		parent1 = node1.parent;
+		parent2 = node2.parent;
+
+		if (parent1.isNil or: { parent2.isNil }) {
+			"⚠️ Both nodes must have parents to swap".postln;
+			^nil
+		};
+
+		node1 = removeNode(nodeId1);
+		node2 = removeNode(nodeId2);
+
+		if (node1.isNil or: { node2.isNil }) {
+			"⚠️ Failed to remove nodes for swapping".postln;
+			^nil
+		};
+
+		parent1.addChild(node2);
+		parent2.addChild(node1);
+
+		"🔄 Nodes swapped".postln;
+		^nil
+	}
+
+	getNodeByName { |name|
+		var found;
+		found = nodeMap.values.detect { |node| node.name == name };
+		if (found.notNil) {
+			("🔍 Found node '" ++ found.name ++ "' at ID " ++ found.id).postln;
+			^found
+		} {
+			"⚠️ Node not found".postln;
+			^nil
+		}
+	}
+
+	getNodeByNamePath { |nameList|
+		var found;
+		found = root.getNodeByNamePath(nameList);
+		if (found.notNil) {
+			^found
+		} {
+			("⚠️ Node not found at path: " ++ nameList.join(" → ")).postln;
+			^nil
+		}
+	}
+
+	tagDepths {
+		root.tagByDepth(0);
+		^this
+	}
+
+	rebuildTreeFromDict { |dict|
+		var buildNode, rootNode;
+
+
+		buildNode = { |nodeDict, parent|
+			var node;
+
+			node = MDCommandNode.new(
+				nodeDict[\name],
+				nodeDict[\id],
+				nodeDict[\fret]
+			);
+
+			node.parent = parent;
+
+			if (parent.notNil) {
+				parent.addChild(node);
+			};
+
+			nodeMap.put(node.id, node);
+			nodeCount = node.id.max(nodeCount);
+
+			// Only recurse if children exist and are an Array
+			if (nodeDict[\children].isKindOf(Array)) {
+				nodeDict[\children].do { |childDict|
+					buildNode.(childDict, node);
+				};
+			};
+
+			^node;
+		};
+
+
+		//older version
+/*    buildNode = { |nodeDict, parent|
+        var node;
+
+        // Check for required keys
+        if (nodeDict[\name].isNil or: { nodeDict[\id].isNil }) {
+            ("⚠️ Missing required keys in nodeDict: " ++ nodeDict).postln;
+            ^nil;
+        };
+
+        node = MDCommandNode.new(
+            nodeDict[\name],
+            nodeDict[\id],
+            nodeDict[\fret]
+        );
+
+        node.parent = parent;
+
+        if (parent.notNil) {
+            parent.addChild(node);
+        };
+
+        nodeMap.put(node.id, node);
+        nodeCount = node.id.max(nodeCount);
+
+        // Check for children array
+        if (nodeDict[\children].isKindOf(Array)) {
+            nodeDict[\children].do { |childDict|
+                var childNode = buildNode.(childDict, node);
+                if (childNode.isNil) {
+                    ("⚠️ Failed to build child node under parent ID " ++ node.id).postln;
+                };
+            };
+        } {
+            ("⚠️ No children array for node ID " ++ node.id).postln;
+        };
+
+        ^node;
+    };*/
+
+		// Validate root dictionary before starting
+		if (dict.isNil or: { dict[\name].isNil or: { dict[\id].isNil } }) {
+			"⚠️ Invalid root dictionary.".postln;
+			^nil;
+		};
+
+		rootNode = buildNode.(dict, nil);
+
+		if (rootNode.isNil) {
+			"⚠️ Root node build failed.".postln;
+		};
+
+		^rootNode;
+	}
+
+
+
+	//older version
+/*    rebuildTreeFromDict { |dict|
+        var buildNode, rootNode;
+
+        buildNode = { |nodeDict, parent|
+            var node;
+            node = MDCommandNode.new(
+                nodeDict[\name],
+                nodeDict[\id],
+                nodeDict[\fret]
+         );
+            node.parent = parent;
+
+            if (parent.notNil) {
+                parent.addChild(node);
+            };
+
+            nodeMap.put(node.id, node);
+            nodeCount = node.id.max(nodeCount);
+
+            nodeDict[\children].do { |childDict|
+                buildNode.(childDict, node);
+            };
+
+            node
+        };
+
+        rootNode = buildNode.(dict, nil);
+        ^rootNode
+    }*/
+
+	exportJSONFile { |path|
+		var jsonString, file;
+
+		jsonString = JSONlib.convertToJSON(root.asDictRecursively);
+		file = File(path, "w");
+
+		if (file.isOpen) {
+			file.write(jsonString);
+			file.close;
+			("📤 Tree exported to " ++ path).postln;
+		} {
+			"⚠️ Failed to open file for writing.".warn;
+		}
+	}
+
+	////improved with error cheecking
+	importJSONFile { |path|
+		var jsonString, dict, rebuiltRoot;
+
+		if (File.exists(path).not) {
+			"❌ File does not exist: %".format(path).postln;
+			^false;
+		};
+
+		jsonString = File(path, "r").readAllString;
+
+		if (jsonString.isNil or: { jsonString.isEmpty }) {
+			"⚠️ File is empty or unreadable.".postln;
+			^false;
+		};
+
+		dict = JSONlib.convertToSC(jsonString);
+
+		if (dict.isNil) {
+			"⚠️ Failed to parse JSON.".postln;
+			^false;
+		};
+
+		rebuiltRoot = rebuildTreeFromDict(dict);
+
+		if (rebuiltRoot.isNil) {
+			"⚠️ Failed to rebuild tree from dictionary.".postln;
+			^false;
+		};
+
+		root = rebuiltRoot;
+		("📥 Tree imported from " ++ path).postln;
+		^true;
+	}
+
+/*    importJSONFile { |path|
+        var jsonString, dict, rebuiltRoot;
+
+        jsonString = File(path, "r").readAllString;
+        dict = JSONlib.convertToSC(jsonString);
+        rebuiltRoot = rebuildTreeFromDict(dict);
+        root = rebuiltRoot;
+        ("📥 Tree imported from " ++ path).postln;
+    }*/
+}

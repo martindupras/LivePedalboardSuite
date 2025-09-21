@@ -1,0 +1,224 @@
+// MDCommandMC.sc
+// MD 20250806
+
+// The purpose of this class is to handle what is happening with the MIDI input,
+// and to call the relevant objects to handle stuff.
+
+/*
+NEW 20250811 Added some handler methods using polymorphism; see at the end of this file.
+I'm not sure if that's the right approach but let's try.
+
+They are:
+  MDMIDIPreprocessor
+    MDLaunchpadPreprocessor : MDMIDIPreprocessor
+    MDfootControllerPreprocessor : MDMIDIPreprocessor
+    MDMIDIGuitarPreprocessor : MDMIDIPreprocessor
+*/
+
+// Its business is to create the objects that need to work together, and that when they're' initialised they received the paths that they need.
+
+MDCommandMC {
+
+	var <> something, <> octave, <> pitchclass, <> gString;
+	var <> currentState;
+	var <> states; // "states" contains the symbols representing the states; may not actually be needed
+	var <> tree; // will hold the tree of commands
+	var <> builder; // the command builder, which traverses the tree
+	var <> queue; // the queue to put commands in
+	var <> display, <> displayText;
+
+	var <> filePath;
+
+	var <> midiManager;
+
+	var launchpadPreprocessor, footControllerPreprocessor, guitarMIDIdPreprocessor;
+	var launchpadID, footControllerID, guitarID;
+
+	//var <> footControllerManager; // THAT NEEDS TO BE WRITTEN... or does it?
+
+	*new {
+		^super.new.init();
+	}
+
+	init {
+		//true for verbose
+		if(true){("MDCommandMC created").postln};
+
+		// CONSIDER IF THAT'S NEEDED OR NOT
+		states = [\idles,\inTree,\inQueue]; //possibly not needed
+		this.currentState = \idle; // ADD CHECK TO VERIFY IT'S IN 'states'
+//TODO NEXT
+		// SH would use a setter because it makes tracing easier. We can talk about it another time.
+		this.filePath = "~/Command Tree savefiles/myTree.json".standardizePath;
+
+		this.createNewTree();       // new tree starts empty. should be populated with  JSON file
+		this.createBuilder();		// create builder
+		this.createCommandQueue();  //create queue
+		this.display = UserDisplay.new(); // create user display window
+
+		this.launchpadPreprocessor = MDLaunchpadPreprocessor.new();
+		this.footControllerPreprocessor = MDfootControllerPreprocessor.new();
+		this.guitarMIDIdPreprocessor = MDMIDIGuitarPreprocessor.new();
+
+		this.midiManager = MDMIDIPreprocessorManager.new(builder, launchpadPreprocessor,footControllerPreprocessor,guitarMIDIdPreprocessor); // this will handle the MIDI listening including MIDIdef; think about what the arguments need to be; they probably should be the "clients" that midiManager is sending messages to
+
+
+		^this
+	} // end of init method for class
+
+
+	///// new one using MDMIDIPreprocessorManager
+	initMIDI {
+
+		// get symbolic srcIDs to put in dictionary
+		launchpadID = midiManager.getSrcID(\LPMiniMK3_MIDI_Out); // get those by using listDevices and copy-pasting from the console
+		footControllerID = midiManager.getSrcID(\KEYBOARD); // nanokey2
+		guitarID = midiManager.getSrcID(\to_SC); // example
+
+
+
+	}
+	// end initMIDI
+
+
+
+	/////
+	createNewTree{
+		this.tree = MDCommandTree.new("root");
+		this.tree.importJSONFile(filePath);
+        if (this.tree.notNil) {
+            "🔮 Tree created".postln;
+			if(true){this.tree.printTreePretty;};
+        } {
+            "🔮 Couldn't create tree for some reason".postln;
+        };
+	}
+
+	/////
+	createBuilder{
+		// create builder that navigates trees
+        this.builder = MDCommandBuilder.new(this.tree);
+        if (this.builder.notNil) {
+            "🔮 Builder created".postln;
+        }{
+            "🔮 Couldn't create builder for some reason".postln;
+        };
+	}
+
+	/////
+	createCommandQueue{
+		// create command queue
+        this.queue = MDCommandQueue.new();
+        if (this.queue.notNil) {
+            "🔮 Queue created".postln;
+        } {
+            "🔮 Couldn't create builder for some reason".postln;
+        };
+	}
+
+    print { |vel, num, chan|
+        ("vel: " + vel).postln;
+        ("num: " + num).postln;
+        ("chan: " + chan).postln;
+        ^this
+    }
+} // END OF MDCommandMD class
+
+
+///////////////////////////////////
+/* classes below now moved to MDMIDISourceManager.sc
+
+MDMIDIPreprocessor {
+	*new { ^super.new.init } // turns out we don't need an init method here... yet
+
+	init {
+		^this
+	}
+
+	handleMessage {|channel, type, value|
+		"MDMIDIPreprocessor: % % %".format(channel, type, value).postln;
+	}
+} // end of MDMIDIPreprocessor class
+
+
+// previously known as MDLaunchpadSource
+
+MDLaunchpadPreprocessor : MDMIDIPreprocessor {
+
+	handleMessage {|channel, type, value|
+		"Launchpad: % % %".format(channel, type, value).postln;
+		// dispatch string and fret to the builder to navigate tree
+	}
+} // end of MDLaunchpadPreprocessor class
+
+//alias for compatibility
+MDLaunchpadSource : MDLaunchpadPreprocessor {
+		// intentionally empty
+}
+
+MDfootControllerPreprocessor : MDMIDIPreprocessor{
+
+	// dictionary to keep midiNote -> function mappings
+ var <> footSwitchActions;
+
+	*new { ^super.new.init }  // we do need .init here!
+
+	init{
+		// Map what gets done by each foot switch // IMPORTANT: newFrom wants an ARRAY
+		footSwitchActions = Dictionary.newFrom(
+			[48, {"C".postln;},
+			50, {"D".postln;},
+			52, {"E".postln;},
+			53, {"F".postln;},
+			55, {"G".postln;},
+			57, {"A".postln;},
+			59, {"B".postln;},
+			60, {"C4".postln;},
+			62, {"D4".postln;}]
+		);
+		^this
+	}
+
+	handleMessage {|channel, type, value|
+		var action;
+		// TRUE FOR DEBUGGING
+		if (true) {		"Foot controller: % % %".format(channel, type, value).postln; };
+		if (type === \noteOn){
+			//("Type is noteOn, inside handleMessage of MDfootControllerPreprocessor").postln; // works
+			("Value is " + value).postln; //
+
+			// TEMP DEACT
+		action = footSwitchActions[value]; // get the function at that place in the dictionary
+			("action = " + action).postln;
+			if (action.notNil){
+				action.();
+			}{
+				("No such command for that note").postln;
+			}
+		};
+	}
+} // end of MDfootControllerPreprocessor class
+
+//alias
+MDfootControllerSource : MDfootControllerPreprocessor {
+	// intentionally empty
+}
+
+MDMIDIGuitarPreprocessor : MDMIDIPreprocessor {
+
+	handleMessage {|channel, type, value|
+		"MIDI Guitar: % % %".format(channel, type, value).postln;
+	}
+} // end of MDLaunchpadPreprocessor class
+
+//alias
+MDMIDIGuitarSource : MDMIDIGuitarPreprocessor {
+		// intentionally empty
+}
+
+MDMIDIManager {
+	// placeholder
+
+}
+
+*/

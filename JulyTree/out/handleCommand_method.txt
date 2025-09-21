@@ -1,0 +1,68 @@
+/* taken off MDCommandMD.sc to make smaller for Copilot
+
+/////
+    handleCommand { |vel, num, chan, srcID|
+        octave = (num - 36).div(12).round.asInteger;
+        pitchclass = num % 12;
+        gString = 6 - octave;
+
+        // Deal with foot controller
+        if (srcID == ~launchpad and: chan == 0) {
+            switch(num,
+                36, {
+                    "Reset tree".postln;
+                    this.currentState = this.states[\idle];
+                    ("State is " ++ this.currentState).postln;
+                },
+                38, {
+                    "Waiting for note".postln;
+                    this.currentState = this.states[\inTree];
+                    ("State is " ++ this.currentState).postln;
+
+					//display.display(\choices, builder.listChildren);
+					//display.display(\choices, displayText)
+					{
+						displayText = builder.listChildren.collect({ |item, i|
+            (i+1).asString ++ ": " ++ item
+        }).join("\n");
+
+        display.display(\choices, displayText);
+						}.defer; // a GUI thing so needs deferring
+                },
+                40, { "E2 pressed".postln; },
+                { "Other note".postln; }
+            );
+        };
+
+        // Deal with guitar stand-in (launchpad)
+        if (srcID == ~launchpad and: chan == 1) {
+            switch(gString,
+                1, {
+                    ("string1, fret" + pitchclass).postln;
+                    switch(pitchclass,
+                        0, { "alice".postln; },
+                        1, { "bob".postln; },
+                        2, { "clara".postln; },
+						3, { "david".postln; },
+                        4, { "erin".postln; },
+                        5, { "fred".postln; },
+                        { "unknown".postln; }
+                    );
+                },
+                2, { ("string2, fret" + pitchclass).postln; },
+                3, { ("string3, fret" + pitchclass).postln; },
+                4, { ("string4, fret" + pitchclass).postln; },
+                5, { ("string5, fret" + pitchclass).postln; },
+                6, {
+                    ("string6, fret" + pitchclass).postln;
+                    switch(pitchclass,
+                        0, { "6-alice".postln; },
+                        1, { "6-bob".postln; },
+                        2, { "6-clara".postln; },
+                        { "unknown".postln; }
+                    );
+                },
+                { "Other note".postln; }
+            );
+        };
+    } // end of handleCommand
