@@ -1,0 +1,56 @@
+<commands>
+  <audio>
+    <source>
+      <testmelody/>
+      <sine/>
+      <noise/>
+      <!-- Add more sources as needed -->
+    </source>
+    <timebased>
+      <delay>
+        <multitap/>
+        <pingpong/>
+        <!-- More delay types -->
+      </delay>
+      <chorus/>
+    </timebased>
+    <modulation>
+      <tremolo/>
+      <phaser/>
+      <flanger/>
+    </modulation>
+    <dynamics>
+      <compressor/>
+      <limiter/>
+    </dynamics>
+    <filter>
+      <lowpass/>
+      <highpass/>
+      <bandpass/>
+    </filter>
+    <reverb/>
+    <drive/>
+  </audio>
+  <chain>
+    <addprocessor/>
+    <removeprocessor/>
+    <swapprocessors/>
+    <bypassprocessor/>
+    <clearchain/>
+    <setsource/>
+    <printchains/>
+  </chain>
+  <switch>
+    <crossfade/>
+    <crossfade_customtime/>
+  </switch>
+  <preset>
+    <savepreset/>
+    <loadpreset/>
+  </preset>
+  <system>
+    <reset/>
+    <healthcheck/>
+    <showstatus/>
+  </system>
+</commands>
