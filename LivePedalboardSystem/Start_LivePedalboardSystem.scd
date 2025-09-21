@@ -5,7 +5,7 @@
 // Option A: Pass an explicit path (e.g., alternate tree for testing)
 (
     var customPath;
-    customPath = Platform.userExtensionDir ++ "/MDclasses/LivePedalboardSystem/MagicPedalboardCommandTree.json";
+    customPath = Platform.userExtensionDir ++ "/LivePedalboardSuite/LivePedalboardSystem/MagicPedalboardCommandTree.json";
 
     {
         ~system = LivePedalboardSystem.new(customPath);
