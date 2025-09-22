@@ -1,5 +1,5 @@
 // LivePedalboardSystem.sc
-// v0.2.4
+// v0.2.5
 // MD 2025-09-21 22:05
 
 // Purpose: Bring-up MagicPedalboard + CommandManager + single MagicDisplayGUI (no duplicate windows).
@@ -72,7 +72,7 @@ LivePedalboardSystem : Object {
     }
 
     // --- Provide \busMeterA / \busMeterB if they don't exist yet ---
-    ensureMeterDefs {
+/*    ensureMeterDefs {
         Server.default.bind({
             var hasA, hasB;
             hasA = SynthDescLib.global.at(\busMeterA).notNil;
@@ -94,7 +94,14 @@ LivePedalboardSystem : Object {
                 }).add;
             };
         });
+    }*/
+
+	// replaced with the below, which uses MAgicDisplay meters instead:
+
+    ensureMeterDefs {
+        MagicDisplay.ensureMeterDefs(2); // or MagicDisplay.setMeterChannels(2)
     }
+
 
     // --- Conservative "make sure something is audible" ---
     ensureAudioOn {

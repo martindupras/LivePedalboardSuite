@@ -1,4 +1,4 @@
-/* MagicPedalboardNew.sc v0.4.7
+/* MagicPedalboardNew.sc v0.4.8
  A/B pedalboard chain manager built on Ndefs.
 
  - Chains are Arrays of Symbols ordered [sink, …, source].
@@ -674,7 +674,42 @@ enforceExclusiveCurrentOptionA { arg fadeCurrent = 0.1;
 
 
 	// Internal rebuild that assumes we are already inside a server bind (no resets)
-	rebuildUnbound { arg listRef;
+
+    rebuildUnbound { arg listRef;
+        var effective, indexCounter, leftKey, rightKey, sinkKey, hasMinimum, shouldPlay, isPlaying;
+
+        hasMinimum = listRef.size >= 2;
+        if(hasMinimum.not) { ^this };
+
+        // (NEW 2D) Ensure Ndefs for symbols present in the *declared* chain (includes bypassed ones)
+        if(processorLib.notNil) {
+            processorLib.ensureFromChain(listRef, defaultNumChannels);
+        };
+
+        // From here on, this is your original "effective / do / connect"
+        effective = this.effectiveListForInternal(listRef);
+        effective.do({ arg keySymbol; this.ensureStereoInternal(keySymbol) });
+
+        indexCounter = 0;
+        while({ indexCounter < (effective.size - 1) }, {
+            leftKey = effective[indexCounter];
+            rightKey = effective[indexCounter + 1];
+            Ndef(leftKey) <<> Ndef(rightKey);
+            indexCounter = indexCounter + 1;
+        });
+
+        sinkKey = effective[0];
+        shouldPlay = (listRef === currentChain);
+        isPlaying = Ndef(sinkKey).isPlaying;
+        if(shouldPlay) {
+            if(isPlaying.not) { Ndef(sinkKey).play(numChannels: defaultNumChannels) };
+        }{
+            if(isPlaying) { Ndef(sinkKey).stop };
+        };
+    }
+
+
+/*	rebuildUnbound { arg listRef;
 		var effective, indexCounter, leftKey, rightKey, sinkKey, hasMinimum, shouldPlay, isPlaying;
 
 		hasMinimum = listRef.size >= 2;
@@ -699,7 +734,7 @@ enforceExclusiveCurrentOptionA { arg fadeCurrent = 0.1;
 		}{
 			if(isPlaying) { Ndef(sinkKey).stop };
 		};
-	}
+	}*/
 
 /*	// At end of rebuildUnbound
 	rebuildUnbound { arg listRef;
