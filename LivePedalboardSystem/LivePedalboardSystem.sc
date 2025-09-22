@@ -124,39 +124,22 @@ LivePedalboardSystem : Object {
 	}
 
 	// --- Single MagicDisplayGUI window, with meters enabled ---
-/*	bringUpMagicDisplayGUI {
-		// Create your existing MagicDisplayGUI (no "openUnique" in your class)
-		statusDisplay = MagicDisplayGUI.new;  // constructor signature matches your file
-		// Set initial text using your API: showExpectation(...)
-		statusDisplay.showExpectation("System ready.", 0);  // MagicDisplayGUI has no updateStatus
-		// Share GUI with CommandManager so CommandManager:setStatus can target it
-		if (commandManager.respondsTo(\display_)) { commandManager.display = statusDisplay; };
 
-		// Ensure meter SynthDefs are present before enabling
-		this.ensureMeterDefs;
-		statusDisplay.enableMeters(true);
-	}*/
 
-/*	bringUpMagicDisplayGUI {
-		statusDisplay = MagicDisplayGUI_GridDemo.new;    // ← newer layout
-		statusDisplay.showExpectation("System ready.", 0);
-
-		// share GUI with CommandManager so CommandManager:setStatus can target it
-		if (commandManager.respondsTo(\display_)) { commandManager.display = statusDisplay; };
-
-		this.ensureMeterDefs;
-		statusDisplay.enableMeters(true);
-	}*/
 	bringUpMagicDisplayGUI {
-		statusDisplay = MagicDisplayGUI_GridDemo.new;    // ← newer layout
+		// close any previous MagicDisplayGUI windows to avoid duplicates
+		this.closeExistingMagicDisplayWindows;
+
+		statusDisplay = MagicDisplayGUI_GridDemo.new; // existing line
 		statusDisplay.showExpectation("System ready.", 0);
 
 		// share GUI with CommandManager so CommandManager:setStatus can target it
 		if (commandManager.respondsTo(\display_)) { commandManager.display = statusDisplay; };
 
 		this.ensureMeterDefs;
-		//statusDisplay.enableMeters(true);
+		// meters are enabled later in bringUpAll to avoid node races
 	}
+
 
 
 	// --- Provide \busMeterA / \busMeterB if they don't exist yet ---
@@ -301,6 +284,23 @@ LivePedalboardSystem : Object {
         if (statusDisplay.notNil) { statusDisplay.close };
         logger.warn("Shutdown", "LivePedalboardSystem shut down.");
     }*/
+
+
+	closeExistingMagicDisplayWindows {
+		var wins;
+		wins = Window.allWindows.select({ |w|
+			var nm = w.tryPerform(\name);
+			nm.notNil and: { nm.asString.beginsWith("MagicDisplayGUI") }
+		});
+		AppClock.sched(0.0, {
+			wins.do({ |w| w.close });
+			nil
+		});
+		^this
+	}
+
+
+
 	shutdownAll {
 		var runnerClosed;
 

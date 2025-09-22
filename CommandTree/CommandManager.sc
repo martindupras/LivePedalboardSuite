@@ -153,7 +153,7 @@ CommandManager {
 		^content
 	}
 
-	updateDisplay {
+/*	updateDisplay {
 		var guiRef, modeText;
 		guiRef = display; // may be nil
 		modeText = "Mode: " ++ (currentState ? \idle).asString;
@@ -170,8 +170,37 @@ CommandManager {
 		}.defer;
 
 		^this
-	}
+	}*/
+updateDisplay {
+    var guiRef, modeText, choiceLines;
 
+    guiRef = display;   // may be nil
+    if (guiRef.isNil) { ^this };
+
+    modeText = "Mode: " ++ (currentState ? \idle).asString;
+
+    // build "fret X → Name" lines from the builder's current node
+    choiceLines = if (builder.notNil and: { builder.currentNode.notNil }) {
+        builder.currentNode.children.collect({ |ch|
+            ("fret " ++ ch.fret.asString ++ " → " ++ ch.name.asString)
+        })
+    } { [] };
+
+    {
+        // 1) a small headline (MagicDisplayGUI supports this)
+        if (guiRef.respondsTo(\showExpectation)) {
+            guiRef.showExpectation(modeText, 0);
+        };
+
+        // 2) write to generic text fields if available (UserDisplay supports this)
+        if (guiRef.respondsTo(\updateTextField)) {
+            guiRef.updateTextField(\state, modeText);
+            guiRef.updateTextField(\choices, choiceLines.join("\n"));
+        };
+    }.defer;
+
+    ^this
+}
 }
 
 // Back-compat alias
