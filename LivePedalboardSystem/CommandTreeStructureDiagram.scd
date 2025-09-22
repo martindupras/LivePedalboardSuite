@@ -1,46 +1,45 @@
-Command Tree Structure:
+// updated 20250922-2147
 
-Root
-├── Audio
-│   ├── Source
-│   │   ├── TestMelody
-│   │   ├── Sine
-│   │   ├── Noise
-│   │   └── [Other sources...]
-│   ├── Time-Based
-│   │   ├── Delay
-│   │   │   ├── Multi-Tap
-│   │   │   ├── Ping-Pong
-│   │   │   └── [Other delay types...]
-│   │   └── Chorus
-│   ├── Modulation
-│   │   ├── Tremolo
-│   │   ├── Phaser
-│   │   └── Flanger
-│   ├── Dynamics
-│   │   ├── Compressor
-│   │   └── Limiter
-│   ├── Filter
-│   │   ├── Lowpass
-│   │   ├── Highpass
-│   │   └── Bandpass
-│   ├── Reverb
-│   └── Drive
-├── Chain
-│   ├── Add Processor
-│   ├── Remove Processor
-│   ├── Swap Processors
-│   ├── Bypass Processor
-│   ├── Clear Chain
-│   ├── Set Source
-│   └── Print Chains
-├── Switch
-│   ├── Crossfade (default)
-│   └── Crossfade (custom time)
-├── Preset
-│   ├── Save Preset
-│   └── Load Preset
-├── System
-│   ├── Reset
-│   ├── Health Check
-│   └── Show Status
+root
+├── audio (string 6, fret 1)
+│   ├── source      (string 5, fret 3)
+│   │   ├── testmelody (string 4, fret 3)
+│   │   ├── sine       (string 4, fret 5)
+│   │   └── noise      (string 4, fret 7)
+│   ├── timebased   (string 5, fret 5)
+│   │   ├── delay     (string 4, fret 3)
+│   │   │   ├── multitap  (string 3, fret 3)
+│   │   │   └── pingpong  (string 3, fret 5)
+│   │   └── chorus    (string 4, fret 5)
+│   ├── modulation (string 5, fret 7)
+│   │   ├── tremolo   (string 4, fret 3)
+│   │   ├── phaser    (string 4, fret 5)
+│   │   └── flanger   (string 4, fret 7)
+│   ├── filter (string 5, fret 9)
+│   │   ├── lowpass   (string 4, fret 3)
+│   │   ├── highpass  (string 4, fret 5)
+│   │   └── bandpass  (string 4, fret 7)
+│   ├── reverb (string 5, fret 11)
+│   └── drive  (string 5, fret 13)
+
+├── chain (string 6, fret 3)
+│   ├── add         (string 5, fret 3)
+│   ├── remove      (string 5, fret 5)
+│   ├── swap        (string 5, fret 7)
+│   ├── bypass      (string 5, fret 9)
+│   ├── clear       (string 5, fret 11)
+│   ├── setsource   (string 5, fret 13)
+│   └── print       (string 5, fret 15)
+
+├── switch (string 6, fret 5)
+│   ├── crossfade         (string 5, fret 3)
+│   └── crossfade_custom  (string 5, fret 5)
+
+├── preset (string 6, fret 7)
+│   ├── save        (string 5, fret 3)
+│   └── load        (string 5, fret 5)
+
+├── system (string 6, fret 9)
+│   ├── reset       (string 5, fret 3)
+│   ├── healthcheck (string 5, fret 5)
+│   └── status      (string 5, fret 7)

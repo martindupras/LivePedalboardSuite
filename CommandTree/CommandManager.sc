@@ -153,54 +153,41 @@ CommandManager {
 		^content
 	}
 
-/*	updateDisplay {
-		var guiRef, modeText;
-		guiRef = display; // may be nil
-		modeText = "Mode: " ++ (currentState ? \idle).asString;
 
-		// If there's no GUI injected yet, do nothing (prevents exceptions)
+	updateDisplay {
+		var guiRef, modeText, choiceLines;
+
+		guiRef = display;   // may be nil
 		if (guiRef.isNil) { ^this };
 
-		// Update something lightweight and safe on the GUI
+		modeText = "Mode: " ++ (currentState ? \idle).asString;
+
+		// build "fret X → Name" lines from the builder's current node
+		choiceLines = if (builder.notNil and: { builder.currentNode.notNil }) {
+			builder.currentNode.children.collect({ |ch|
+				("fret " ++ ch.fret.asString ++ " → " ++ ch.name.asString)
+			})
+		} { [] };
+
 		{
 			if (guiRef.respondsTo(\showExpectation)) {
 				guiRef.showExpectation(modeText, 0);
 			};
-			// Optional: if your GUI later gets specific setters, add them here.
+			if (guiRef.respondsTo(\updateTextField)) {
+				guiRef.updateTextField(\state, modeText);
+				guiRef.updateTextField(\choices, choiceLines.join("\n"));
+			};
+			// NEW: update choices panel in MagicDisplayGUI if present
+			if (guiRef.respondsTo(\setOperations)) {
+				guiRef.setOperations(choiceLines);
+			};
 		}.defer;
 
 		^this
-	}*/
-updateDisplay {
-    var guiRef, modeText, choiceLines;
+	}
 
-    guiRef = display;   // may be nil
-    if (guiRef.isNil) { ^this };
 
-    modeText = "Mode: " ++ (currentState ? \idle).asString;
 
-    // build "fret X → Name" lines from the builder's current node
-    choiceLines = if (builder.notNil and: { builder.currentNode.notNil }) {
-        builder.currentNode.children.collect({ |ch|
-            ("fret " ++ ch.fret.asString ++ " → " ++ ch.name.asString)
-        })
-    } { [] };
-
-    {
-        // 1) a small headline (MagicDisplayGUI supports this)
-        if (guiRef.respondsTo(\showExpectation)) {
-            guiRef.showExpectation(modeText, 0);
-        };
-
-        // 2) write to generic text fields if available (UserDisplay supports this)
-        if (guiRef.respondsTo(\updateTextField)) {
-            guiRef.updateTextField(\state, modeText);
-            guiRef.updateTextField(\choices, choiceLines.join("\n"));
-        };
-    }.defer;
-
-    ^this
-}
 }
 
 // Back-compat alias

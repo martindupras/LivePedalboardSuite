@@ -1,5 +1,5 @@
 // MagicDisplayGUI_GridDemo.sc
-// v0.1.5
+// v0.1.6
 // MD 20250919-10:46 BST
 
 /*
@@ -17,124 +17,137 @@ Style
 */
 
 MagicDisplayGUI_GridDemo : MagicDisplay {
-    classvar <versionGUI;
-    var <window;
+	classvar <versionGUI;
+	var <window;
 
-    // root + top-level row views (children of window.view)
-    var rootLayout;
-    var leftPanel, rightPanel;
-    var expectationView, countdownHolder, meterStrip, bottomHudView;
+	// root + top-level row views (children of window.view)
+	var rootLayout;
+	var leftPanel, rightPanel;
+	var expectationView, countdownHolder, meterStrip, bottomHudView;
 
-    // children within panels
-    var leftHeader, leftListView, leftEff;
-    var rightHeader, rightListView, rightEff;
-    var countdownLabel, countdownBar;
-    var bottomCurText, bottomNextText;
+	// children within panels
+	var leftHeader, leftListView, leftEff;
+	var rightHeader, rightListView, rightEff;
+	var countdownLabel, countdownBar;
+	var bottomCurText, bottomNextText;
 
-    // debug overlay
-    var debugOn = false;
-    var overlayRow0, overlayRow1, overlayRow2, overlayRow3, overlayRow4;
+	// debug overlay
+	var debugOn = false;
+	var overlayRow0, overlayRow1, overlayRow2, overlayRow3, overlayRow4;
 
-    var metersEnabled;
+	var metersEnabled;
 
-    *initClass {
-        var s;
-        versionGUI = "v0.1.5";
-        s = "MagicDisplayGUI_GridDemo " ++ versionGUI;
-        s.postln;
-    }
+	//new
+	var <choicesPanel, <choicesTitle, <choicesText;
+	var buildChoices;
 
-    *new { arg level = 1;
-        var instance;
-        instance = super.new(level);
-        ^instance.initGui;
-    }
+	*initClass {
+		var s;
+		versionGUI = "v0.1.5";
+		s = "MagicDisplayGUI_GridDemo " ++ versionGUI;
+		s.postln;
+	}
 
-    initGui {
-        var reqW, reqH, sb, maxW, maxH, winW, winH, rect;
-        var metersRowH, hudRowH;
-        var buildLeft, buildRight, buildExpectation, buildCountdown, buildMeters, buildBottomHud;
+	*new { arg level = 1;
+		var instance;
+		instance = super.new(level);
+		^instance.initGui;
+	}
 
-        // window sizing (fits iPad side-screen limit)
-        reqW = 1200; reqH = 760;
-        sb   = Window.screenBounds ? Rect(0, 0, 1920, 1080);
-        maxW = (2560).min(sb.width);
-        maxH = (1666).min(sb.height);
-        winW = reqW.clip(640, maxW);
-        winH = reqH.clip(480, maxH);
-        rect = Rect(
-            sb.left + ((sb.width - winW) * 0.5),
-            sb.top  + ((sb.height - winH) * 0.5),
-            winW, winH
-        );
+	initGui {
+		var reqW, reqH, sb, maxW, maxH, winW, winH, rect;
+		var metersRowH, hudRowH;
+		var buildLeft, buildRight, buildExpectation, buildCountdown, buildMeters, buildBottomHud;
 
-        metersRowH = 30;   // thin strips
-        hudRowH    = 88;
+		// window sizing (fits iPad side-screen limit)
+		reqW = 1200; reqH = 760;
+		sb   = Window.screenBounds ? Rect(0, 0, 1920, 1080);
+		maxW = (2560).min(sb.width);
+		maxH = (1666).min(sb.height);
+		winW = reqW.clip(640, maxW);
+		winH = reqH.clip(480, maxH);
+		rect = Rect(
+			sb.left + ((sb.width - winW) * 0.5),
+			sb.top  + ((sb.height - winH) * 0.5),
+			winW, winH
+		);
 
-        window = Window("MagicDisplayGUI – GridDemo", rect).front.alwaysOnTop_(true);
-        metersEnabled = false;
+		metersRowH = 30;   // thin strips
+		hudRowH    = 88;
 
-        // root GridLayout on the VIEW (not the Window)
-        rootLayout = GridLayout.new;
-        window.view.layout = rootLayout;
+		window = Window("MagicDisplayGUI – GridDemo", rect).front.alwaysOnTop_(true);
+		metersEnabled = false;
 
-        // equal columns globally (row 0 uses them)
-        rootLayout.setColumnStretch(0, 1);
-        rootLayout.setColumnStretch(1, 1);
+		// root GridLayout on the VIEW (not the Window)
+		rootLayout = GridLayout.new;
+		window.view.layout = rootLayout;
 
-        // ---- Row 0: CURRENT / NEXT (two equal columns) ----
-        buildLeft = {
-            var grid;
-            grid = GridLayout.new;
-            leftPanel = CompositeView(window.view).background_(Color(0.92, 0.92, 0.92));
-            leftPanel.layout = grid;
+		// equal columns globally (row 0 uses them)
+		rootLayout.setColumnStretch(0, 1);
+		rootLayout.setColumnStretch(1, 1);
 
-            leftHeader   = StaticText(leftPanel).string_("CHAIN A ACTIVE").align_(\center);
-            leftListView = ListView(leftPanel).items_([]);
-            leftEff      = StaticText(leftPanel).string_("eff: —").align_(\center);
+		// ---- Row 0: CURRENT / NEXT (two equal columns) ----
+		buildLeft = {
+			var grid;
+			grid = GridLayout.new;
+			leftPanel = CompositeView(window.view).background_(Color(0.92, 0.92, 0.92));
+			leftPanel.layout = grid;
 
-            grid.add(leftHeader,   0, 0);
-            grid.add(leftListView, 1, 0);
-            grid.add(leftEff,      2, 0);
-            grid.setRowStretch(0, 0);
-            grid.setRowStretch(1, 1);
-            grid.setRowStretch(2, 0);
-        };
+			leftHeader   = StaticText(leftPanel).string_("CHAIN A ACTIVE").align_(\center);
+			leftListView = ListView(leftPanel).items_([]);
+			leftEff      = StaticText(leftPanel).string_("eff: —").align_(\center);
 
-        buildRight = {
-            var grid;
-            grid = GridLayout.new;
-            rightPanel = CompositeView(window.view).background_(Color(0.92, 0.92, 0.92));
-            rightPanel.layout = grid;
+			grid.add(leftHeader,   0, 0);
+			grid.add(leftListView, 1, 0);
+			grid.add(leftEff,      2, 0);
+			grid.setRowStretch(0, 0);
+			grid.setRowStretch(1, 1);
+			grid.setRowStretch(2, 0);
+		};
 
-            rightHeader   = StaticText(rightPanel).string_("CHAIN B NEXT").align_(\center);
-            rightListView = ListView(rightPanel).items_([]);
-            rightEff      = StaticText(rightPanel).string_("eff: —").align_(\center);
+		buildRight = {
+			var grid;
+			grid = GridLayout.new;
+			rightPanel = CompositeView(window.view).background_(Color(0.92, 0.92, 0.92));
+			rightPanel.layout = grid;
 
-            grid.add(rightHeader,   0, 0);
-            grid.add(rightListView, 1, 0);
-            grid.add(rightEff,      2, 0);
-            grid.setRowStretch(0, 0);
-            grid.setRowStretch(1, 1);
-            grid.setRowStretch(2, 0);
-        };
+			rightHeader   = StaticText(rightPanel).string_("CHAIN B NEXT").align_(\center);
+			rightListView = ListView(rightPanel).items_([]);
+			rightEff      = StaticText(rightPanel).string_("eff: —").align_(\center);
 
-        buildLeft.value;
-        buildRight.value;
-        rootLayout.add(leftPanel,  0, 0);
-        rootLayout.add(rightPanel, 0, 1);
-        rootLayout.setRowStretch(0, 1); // only row allowed to grow
+			grid.add(rightHeader,   0, 0);
+			grid.add(rightListView, 1, 0);
+			grid.add(rightEff,      2, 0);
+			grid.setRowStretch(0, 0);
+			grid.setRowStretch(1, 1);
+			grid.setRowStretch(2, 0);
+		};
 
-        // ---- Row 1: expectation (FULL width) ----
-        buildExpectation = {
-            expectationView = TextView(window.view)
-                .background_(Color(1, 1, 0.9))
-                .string_("Command:");
-        };
-        buildExpectation.value;
-        rootLayout.addSpanning(expectationView, 1, 0, 1, 2);
-        rootLayout.setRowStretch(1, 0);
-        rootLayout.setMinRowHeight(1, 36);
+		buildLeft.value;
+		buildRight.value;
+		rootLayout.add(leftPanel,  0, 0);
+		rootLayout.add(rightPanel, 0, 1);
+		rootLayout.setRowStretch(0, 1); // only row allowed to grow
+
+		// ---- Row 1: expectation (FULL width) ----
+		buildExpectation = {
+			expectationView = TextView(window.view)
+			.background_(Color(1, 1, 0.9))
+			.string_("Command:");
+		};
+		buildExpectation.value;
+        // rootLayout.addSpanning(expectationView, 1, 0, 1, 2);
+        // rootLayout.setRowStretch(1, 0);
+        // rootLayout.setMinRowHeight(1, 36);
+
+		// Put Choices (left) and Processors HUD (right) side-by-side on Row 4
+rootLayout.add(choicesPanel, 4, 0);     // left column
+rootLayout.add(bottomHudView, 4, 1);    // right column
+
+// Tweaks for row/column growth
+rootLayout.setRowStretch(4, 0);         // fixed height for bottom row
+rootLayout.setMinRowHeight(4, hudRowH); // keep same height as before
+
 
         // ---- Row 2: countdown (FULL width) ----
         buildCountdown = {
@@ -179,6 +192,44 @@ MagicDisplayGUI_GridDemo : MagicDisplay {
         rootLayout.setRowStretch(3, 0);
         rootLayout.setMinRowHeight(3, metersRowH);
 
+		// new
+		// --- Row 4 (left column): Choices panel (new) ---
+
+buildChoices = {
+			var sub; // nested layout for the choices panel
+
+			choicesPanel = CompositeView(window.view).background_(Color(0.12, 0.12, 0.12, 0.92));
+
+			// install a GridLayout into the choices panel
+			sub = GridLayout.new;
+			choicesPanel.layout = sub;
+
+choicesTitle = StaticText(choicesPanel)
+    .string_("Choices")
+    .stringColor_(Color(0.12, 0.12, 0.12));
+
+choicesText  = TextView(choicesPanel)
+    .string_("—")
+    .editable_(false)
+    .hasVerticalScroller_(true)
+    .background_(Color(0.98, 0.98, 0.98, 0.96))  // very light
+    .stringColor_(Color(0.10, 0.10, 0.10))       // near-black text
+    .font_(Font("Menlo", 12));
+
+
+
+
+
+			// add to nested grid: title on row 0, text on row 1 (stretches)
+			sub.add(choicesTitle, 0, 0);
+			sub.add(choicesText, 1, 0);
+			sub.setRowStretch(0, 0);   // title fixed
+			sub.setRowStretch(1, 1);   // text grows to fill
+			sub.setColumnStretch(0, 1);
+		};
+		buildChoices.value;
+
+
         // ---- Row 4: processors (FULL width) ----
         buildBottomHud = {
             var grid, title, curLabel, nextLabel;
@@ -202,9 +253,17 @@ MagicDisplayGUI_GridDemo : MagicDisplay {
             grid.vSpacing = 4;
         };
         buildBottomHud.value;
-        rootLayout.addSpanning(bottomHudView, 4, 0, 1, 2);
+/*        rootLayout.addSpanning(bottomHudView, 4, 0, 1, 2);
         rootLayout.setRowStretch(4, 0);
-        rootLayout.setMinRowHeight(4, hudRowH);
+        rootLayout.setMinRowHeight(4, hudRowH);*/
+
+		//new
+		// Put Choices (left) and Processors HUD (right) side-by-side on Row 4
+		rootLayout.add(choicesPanel, 4, 0);     // left column
+		rootLayout.add(bottomHudView, 4, 1);    // right column
+		rootLayout.setRowStretch(4, 0);         // fixed bottom-row height
+		rootLayout.setMinRowHeight(4, hudRowH);
+
 
         this.attachResizeHandler;
         ^this
@@ -275,7 +334,29 @@ MagicDisplayGUI_GridDemo : MagicDisplay {
         ^this
     }
 
-    setOperations { arg itemsArray; ^this }  // visual-only
+
+	//new:
+	// Add inside MagicDisplayGUI_GridDemo class:
+setOperations { arg itemsArray;
+    var s = (itemsArray ? []).collect({ |x| x.asString }).join("\n");
+    AppClock.sched(0.0, {
+        if(choicesText.notNil) {
+            choicesText.string_( (s.size > 0).if({ s }, { "—" }) );
+            // Re-assert color to be safe across themes (match dark/light choice you used)
+            choicesText.stringColor_(Color(0.96, 0.96, 0.96));  // dark panel
+            // or choicesText.stringColor_(Color(0.10, 0.10, 0.10));  // light panel
+        }{
+            if(expectationView.notNil) {
+                expectationView.string_("Choices:\n" ++ ((s.size > 0).if({ s }, { "—" })));
+            };
+        };
+        nil
+    });
+    ^this
+}
+
+
+
 
     enableMeters { arg flag = false; metersEnabled = (flag ? false); ^this }
 
@@ -377,4 +458,30 @@ MagicDisplayGUI_GridDemo : MagicDisplay {
         AppClock.sched(0.00, { run.value; nil });
         ^this
     }
+
+	updateTextField { |box, msg|
+    // fallback: write to expectationView only
+    if(expectationView.notNil) {
+        expectationView.string_("[" ++ box.asString ++ "] " ++ msg.asString);
+    };
+    ^this;
+}
+
+
+
+	//new
+	// Add inside MagicDisplayGUI_GridDemo class:
+	// setOperations { arg itemsArray;
+	// 	var s;
+	// 	// build a visible list; accept nil and non-strings defensively
+	// 	s = (itemsArray ? []).collect({ |x| x.asString }).join("\n");
+	// 	if(choicesText.notNil) {
+	// 		AppClock.sched(0.0, {
+	// 			choicesText.string_( (s.size > 0).if({ s }, { "—" }) );
+	// 			nil
+	// 		});
+	// 	};
+	// 	^this
+	// }
+
 }

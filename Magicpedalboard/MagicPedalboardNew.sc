@@ -100,11 +100,11 @@ MagicPedalboardNew : Object {
 
 
 
-// set initial state; the poll will flip it once conditions are true
-ready = false;
+		// set initial state; the poll will flip it once conditions are true
+		ready = false;
 
-// OPTION A: enable background poll (comment out if you prefer Option B)
-this.startReadyPoll;
+		// OPTION A: enable background poll (comment out if you prefer Option B)
+		this.startReadyPoll;
 
 
 		^this
@@ -413,53 +413,53 @@ this.startReadyPoll;
 
 
 
-setSourcesBoth { arg key;
-    var k, lastA, lastB, curWasA, nextWasA, newA, newB, sizeOk;
+	setSourcesBoth { arg key;
+		var k, lastA, lastB, curWasA, nextWasA, newA, newB, sizeOk;
 
-    // pick a sensible key (today we want \testmelody)
-    k = key ? \testmelody;
+		// pick a sensible key (today we want \testmelody)
+		k = key ? \testmelody;
 
-    // guard: require [sink, source] minimum on both chains
-    sizeOk = (chainAList.size >= 2) and: { chainBList.size >= 2 };
-    if(sizeOk.not) { ^this };
+		// guard: require [sink, source] minimum on both chains
+		sizeOk = (chainAList.size >= 2) and: { chainBList.size >= 2 };
+		if(sizeOk.not) { ^this };
 
-    // remember which concrete list object was CURRENT/NEXT *before* we replace them
-    curWasA  = (currentChain === chainAList);
-    nextWasA = (nextChain    === chainAList);
+		// remember which concrete list object was CURRENT/NEXT *before* we replace them
+		curWasA  = (currentChain === chainAList);
+		nextWasA = (nextChain    === chainAList);
 
-    // compute last indices
-    lastA = chainAList.size - 1;
-    lastB = chainBList.size - 1;
+		// compute last indices
+		lastA = chainAList.size - 1;
+		lastB = chainBList.size - 1;
 
-    // replace the *source symbol* (last position) on both lists
-    newA = chainAList.copy; newA[lastA] = k;
-    newB = chainBList.copy; newB[lastB] = k;
+		// replace the *source symbol* (last position) on both lists
+		newA = chainAList.copy; newA[lastA] = k;
+		newB = chainBList.copy; newB[lastB] = k;
 
-    // publish new lists and restore CURRENT/NEXT pointers to the matching list
-    chainAList = newA;
-    chainBList = newB;
-    currentChain = if(curWasA)  { chainAList } { chainBList };
-    nextChain    = if(nextWasA) { chainAList } { chainBList };
+		// publish new lists and restore CURRENT/NEXT pointers to the matching list
+		chainAList = newA;
+		chainBList = newB;
+		currentChain = if(curWasA)  { chainAList } { chainBList };
+		nextChain    = if(nextWasA) { chainAList } { chainBList };
 
-    // rebuild both (non-destructive; uses <<> internally in rebuildUnbound)
-    this.rebuild(currentChain);
-    this.rebuild(nextChain);
+		// rebuild both (non-destructive; uses <<> internally in rebuildUnbound)
+		this.rebuild(currentChain);
+		this.rebuild(nextChain);
 
-    // (optional) inform display
-    if(display.notNil and: { display.respondsTo(\showMutation) }) {
-        display.showMutation(\setSourcesBoth, [k], nextChain);
-    };
+		// (optional) inform display
+		if(display.notNil and: { display.respondsTo(\showMutation) }) {
+			display.showMutation(\setSourcesBoth, [k], nextChain);
+		};
 
-    ^this
-}
+		^this
+	}
 
-setDefaultSource { arg key;
-    var k;
-    // update the instance default; does not modify existing chains immediately
-    k = key ? \testmelody;
-    defaultSource = k;
-    ^this
-}
+	setDefaultSource { arg key;
+		var k;
+		// update the instance default; does not modify existing chains immediately
+		k = key ? \testmelody;
+		defaultSource = k;
+		^this
+	}
 
 
 	// ─── diagnostics helpers ──────────────────────────────────────
@@ -573,42 +573,42 @@ setDefaultSource { arg key;
 		^serverIsRunning
 	}
 
-//
-// v0.4.6 change
+	//
+	// v0.4.6 change
 
 
-enforceExclusiveCurrentOptionA { arg fadeCurrent = 0.1;
-    var currentSink, nextSink, chans, fadeCur;
-    currentSink = currentChain[0];
-    nextSink    = nextChain[0];
-    chans       = defaultNumChannels;
-    fadeCur     = fadeCurrent.clip(0.05, 0.2);
+	enforceExclusiveCurrentOptionA { arg fadeCurrent = 0.1;
+		var currentSink, nextSink, chans, fadeCur;
+		currentSink = currentChain[0];
+		nextSink    = nextChain[0];
+		chans       = defaultNumChannels;
+		fadeCur     = fadeCurrent.clip(0.05, 0.2);
 
-    Server.default.bind({
-        // CURRENT: robust \in.ar, stereo shape pinned, playing
-        Ndef(currentSink, { \in.ar(chans) });
-        Ndef(currentSink).mold(chans, \audio);   // authoritative shape
-        Ndef(currentSink).fadeTime_(fadeCur);
-        if(Ndef(currentSink).isPlaying.not) {
-            Ndef(currentSink).play(numChannels: chans);
-        };
+		Server.default.bind({
+			// CURRENT: robust \in.ar, stereo shape pinned, playing
+			Ndef(currentSink, { \in.ar(chans) });
+			Ndef(currentSink).mold(chans, \audio);   // authoritative shape
+			Ndef(currentSink).fadeTime_(fadeCur);
+			if(Ndef(currentSink).isPlaying.not) {
+				Ndef(currentSink).play(numChannels: chans);
+			};
 
-        // NEXT: hard-silence + ensure flag drops
-        // 1) silence source, then .stop (no audio either way)
-        Ndef(nextSink, { Silent.ar(chans) });
-        Ndef(nextSink).mold(chans, \audio);
-        Ndef(nextSink).fadeTime_(0.01);
-        Ndef(nextSink).stop;
+			// NEXT: hard-silence + ensure flag drops
+			// 1) silence source, then .stop (no audio either way)
+			Ndef(nextSink, { Silent.ar(chans) });
+			Ndef(nextSink).mold(chans, \audio);
+			Ndef(nextSink).fadeTime_(0.01);
+			Ndef(nextSink).stop;
 
-        // 2) drop monitor/flag deterministically, then re-establish silent sink
-        Ndef(nextSink).end;                      // frees inner players, "stop listen" (NodeProxy help)
-        Ndef(nextSink, { Silent.ar(chans) });    // keep NEXT present & silent for prebuild
-        Ndef(nextSink).mold(chans, \audio);
-        // do NOT play NEXT
-    });
+			// 2) drop monitor/flag deterministically, then re-establish silent sink
+			Ndef(nextSink).end;                      // frees inner players, "stop listen" (NodeProxy help)
+			Ndef(nextSink, { Silent.ar(chans) });    // keep NEXT present & silent for prebuild
+			Ndef(nextSink).mold(chans, \audio);
+			// do NOT play NEXT
+		});
 
-    ^this
-}
+		^this
+	}
 
 /*	enforceExclusiveCurrentOptionA { arg fadeCurrent = 0.1;
 		var currentSink, nextSink, chans, fadeCur;
@@ -675,38 +675,38 @@ enforceExclusiveCurrentOptionA { arg fadeCurrent = 0.1;
 
 	// Internal rebuild that assumes we are already inside a server bind (no resets)
 
-    rebuildUnbound { arg listRef;
-        var effective, indexCounter, leftKey, rightKey, sinkKey, hasMinimum, shouldPlay, isPlaying;
+	rebuildUnbound { arg listRef;
+		var effective, indexCounter, leftKey, rightKey, sinkKey, hasMinimum, shouldPlay, isPlaying;
 
-        hasMinimum = listRef.size >= 2;
-        if(hasMinimum.not) { ^this };
+		hasMinimum = listRef.size >= 2;
+		if(hasMinimum.not) { ^this };
 
-        // (NEW 2D) Ensure Ndefs for symbols present in the *declared* chain (includes bypassed ones)
-        if(processorLib.notNil) {
-            processorLib.ensureFromChain(listRef, defaultNumChannels);
-        };
+		// (NEW 2D) Ensure Ndefs for symbols present in the *declared* chain (includes bypassed ones)
+		if(processorLib.notNil) {
+			processorLib.ensureFromChain(listRef, defaultNumChannels);
+		};
 
-        // From here on, this is your original "effective / do / connect"
-        effective = this.effectiveListForInternal(listRef);
-        effective.do({ arg keySymbol; this.ensureStereoInternal(keySymbol) });
+		// From here on, this is your original "effective / do / connect"
+		effective = this.effectiveListForInternal(listRef);
+		effective.do({ arg keySymbol; this.ensureStereoInternal(keySymbol) });
 
-        indexCounter = 0;
-        while({ indexCounter < (effective.size - 1) }, {
-            leftKey = effective[indexCounter];
-            rightKey = effective[indexCounter + 1];
-            Ndef(leftKey) <<> Ndef(rightKey);
-            indexCounter = indexCounter + 1;
-        });
+		indexCounter = 0;
+		while({ indexCounter < (effective.size - 1) }, {
+			leftKey = effective[indexCounter];
+			rightKey = effective[indexCounter + 1];
+			Ndef(leftKey) <<> Ndef(rightKey);
+			indexCounter = indexCounter + 1;
+		});
 
-        sinkKey = effective[0];
-        shouldPlay = (listRef === currentChain);
-        isPlaying = Ndef(sinkKey).isPlaying;
-        if(shouldPlay) {
-            if(isPlaying.not) { Ndef(sinkKey).play(numChannels: defaultNumChannels) };
-        }{
-            if(isPlaying) { Ndef(sinkKey).stop };
-        };
-    }
+		sinkKey = effective[0];
+		shouldPlay = (listRef === currentChain);
+		isPlaying = Ndef(sinkKey).isPlaying;
+		if(shouldPlay) {
+			if(isPlaying.not) { Ndef(sinkKey).play(numChannels: defaultNumChannels) };
+		}{
+			if(isPlaying) { Ndef(sinkKey).stop };
+		};
+	}
 
 
 /*	rebuildUnbound { arg listRef;
@@ -809,66 +809,96 @@ enforceExclusiveCurrentOptionA { arg fadeCurrent = 0.1;
     }*/
 
 	// ---- Ready helpers (public API) ----
-// boolean snapshot (no server ops)
-isReady {
-    ^ready
+	// boolean snapshot (no server ops)
+	isReady {
+		^ready
+	}
+
+	// AppClock polling; onReadyFunc is optional
+	waitUntilReady { arg timeoutSec = 2.0, pollSec = 0.05, onReadyFunc = nil;
+		var startTime, tick;
+		startTime = Main.elapsedTime;
+
+		AppClock.sched(0, {
+			tick = {
+				if(this.readyConditionOk) {
+					ready = true;
+					if(onReadyFunc.notNil) { onReadyFunc.value };
+					nil
+				}{
+					if((Main.elapsedTime - startTime) > timeoutSec) {
+						// timed out; leave 'ready' as-is
+						nil
+					}{
+						AppClock.sched(pollSec, tick)
+					}
+				}
+			};
+			tick.value;
+			nil
+		});
+		^this
+	}
+
+	// ---- Ready helpers (internal; no leading underscore) ----
+
+	// light background poll started from init (OPTION A)
+	startReadyPoll {
+		var alreadyTrue;
+		alreadyTrue = this.readyConditionOk;
+		if(alreadyTrue) { ready = true; ^this };
+		this.waitUntilReady(2.0, 0.05, { nil });
+		^this
+	}
+
+	// compute the readiness condition; no server ops here
+	readyConditionOk {
+		var curSink, nxtSink, serverOk, curBus, nxtBus, busesOk, currentPlaying;
+
+		curSink = currentChain[0];
+		nxtSink = nextChain[0];
+
+		serverOk = Server.default.serverRunning;
+
+		curBus = Ndef(curSink).bus;
+		nxtBus = Ndef(nxtSink).bus;
+
+		busesOk = curBus.notNil and: { nxtBus.notNil }
+		and: { curBus.rate == \audio } and: { nxtBus.rate == \audio };
+
+		currentPlaying = Ndef(curSink).isPlaying;
+
+		^(serverOk and: { busesOk } and: { currentPlaying })
+	}
+
+	// handleCommand { |oscPath|
+	// 	var path;
+	// 	path = oscPath.asString;
+	//
+	// 	// Route to your existing mutation logic
+	// 	// Update this if you use a different handler name
+	// 	if(this.respondsTo(\applyOSCPath)) {
+	// 		this.applyOSCPath(path);
+	// 	} {
+	// 		("[MPB] handleCommand: " ++ path ++ " → no handler found").warn;
+	// 	};
+	//
+	// 	^this;
+	// }
+handleCommand { |oscPath|
+    var path;
+    path = oscPath.asString;
+
+    if(~ct_applyOSCPathToMPB.notNil) {
+        ~ct_applyOSCPathToMPB.(path, this, display);
+    } {
+        ("[MPB] handleCommand: " ++ path ++ " → no handler found").warn;
+    };
+
+    ^this;
 }
 
-// AppClock polling; onReadyFunc is optional
-waitUntilReady { arg timeoutSec = 2.0, pollSec = 0.05, onReadyFunc = nil;
-    var startTime, tick;
-    startTime = Main.elapsedTime;
 
-    AppClock.sched(0, {
-        tick = {
-            if(this.readyConditionOk) {
-                ready = true;
-                if(onReadyFunc.notNil) { onReadyFunc.value };
-                nil
-            }{
-                if((Main.elapsedTime - startTime) > timeoutSec) {
-                    // timed out; leave 'ready' as-is
-                    nil
-                }{
-                    AppClock.sched(pollSec, tick)
-                }
-            }
-        };
-        tick.value;
-        nil
-    });
-    ^this
-}
 
-// ---- Ready helpers (internal; no leading underscore) ----
-
-// light background poll started from init (OPTION A)
-startReadyPoll {
-    var alreadyTrue;
-    alreadyTrue = this.readyConditionOk;
-    if(alreadyTrue) { ready = true; ^this };
-    this.waitUntilReady(2.0, 0.05, { nil });
-    ^this
-}
-
-// compute the readiness condition; no server ops here
-readyConditionOk {
-    var curSink, nxtSink, serverOk, curBus, nxtBus, busesOk, currentPlaying;
-
-    curSink = currentChain[0];
-    nxtSink = nextChain[0];
-
-    serverOk = Server.default.serverRunning;
-
-    curBus = Ndef(curSink).bus;
-    nxtBus = Ndef(nxtSink).bus;
-
-    busesOk = curBus.notNil and: { nxtBus.notNil }
-        and: { curBus.rate == \audio } and: { nxtBus.rate == \audio };
-
-    currentPlaying = Ndef(curSink).isPlaying;
-
-    ^(serverOk and: { busesOk } and: { currentPlaying })
-}
 
 }

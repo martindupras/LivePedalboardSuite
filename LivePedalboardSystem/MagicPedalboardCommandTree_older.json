@@ -7,26 +7,26 @@
     {
       "id": 1,
       "name": "audio",
-      "fret": 1,
+      "fret": 3,
       "payload": "audio",
       "children": [
         {
           "id": 2,
           "name": "source",
-          "fret": 3,
+          "fret": 5,
           "payload": "audio/source",
           "children": [
             {
               "id": 3,
               "name": "testmelody",
-              "fret": 3,
+              "fret": 7,
               "payload": "audio/source/testmelody",
               "children": []
             },
             {
               "id": 4,
               "name": "sine",
-              "fret": 5,
+              "fret": 7,
               "payload": "audio/source/sine",
               "children": []
             },
@@ -48,20 +48,20 @@
             {
               "id": 7,
               "name": "delay",
-              "fret": 3,
+              "fret": 7,
               "payload": "audio/timebased/delay",
               "children": [
                 {
                   "id": 8,
                   "name": "multitap",
-                  "fret": 3,
+                  "fret": 9,
                   "payload": "audio/timebased/delay/multitap",
                   "children": []
                 },
                 {
                   "id": 9,
                   "name": "pingpong",
-                  "fret": 5,
+                  "fret": 9,
                   "payload": "audio/timebased/delay/pingpong",
                   "children": []
                 }
@@ -70,7 +70,7 @@
             {
               "id": 10,
               "name": "chorus",
-              "fret": 5,
+              "fret": 7,
               "payload": "audio/timebased/chorus",
               "children": []
             }
@@ -79,20 +79,20 @@
         {
           "id": 11,
           "name": "modulation",
-          "fret": 7,
+          "fret": 5,
           "payload": "audio/modulation",
           "children": [
             {
               "id": 12,
               "name": "tremolo",
-              "fret": 3,
+              "fret": 7,
               "payload": "audio/modulation/tremolo",
               "children": []
             },
             {
               "id": 13,
               "name": "phaser",
-              "fret": 5,
+              "fret": 7,
               "payload": "audio/modulation/phaser",
               "children": []
             },
@@ -108,20 +108,20 @@
         {
           "id": 15,
           "name": "filter",
-          "fret": 9,
+          "fret": 5,
           "payload": "audio/filter",
           "children": [
             {
               "id": 16,
               "name": "lowpass",
-              "fret": 3,
+              "fret": 7,
               "payload": "audio/filter/lowpass",
               "children": []
             },
             {
               "id": 17,
               "name": "highpass",
-              "fret": 5,
+              "fret": 7,
               "payload": "audio/filter/highpass",
               "children": []
             },
@@ -137,14 +137,14 @@
         {
           "id": 19,
           "name": "reverb",
-          "fret": 11,
+          "fret": 5,
           "payload": "audio/reverb",
           "children": []
         },
         {
           "id": 20,
           "name": "drive",
-          "fret": 13,
+          "fret": 5,
           "payload": "audio/drive",
           "children": []
         }
@@ -159,7 +159,7 @@
         {
           "id": 22,
           "name": "add",
-          "fret": 3,
+          "fret": 5,
           "payload": "chain/add",
           "children": []
         },
@@ -173,35 +173,35 @@
         {
           "id": 24,
           "name": "swap",
-          "fret": 7,
+          "fret": 5,
           "payload": "chain/swap",
           "children": []
         },
         {
           "id": 25,
           "name": "bypass",
-          "fret": 9,
+          "fret": 5,
           "payload": "chain/bypass",
           "children": []
         },
         {
           "id": 26,
           "name": "clear",
-          "fret": 11,
+          "fret": 5,
           "payload": "chain/clear",
           "children": []
         },
         {
           "id": 27,
           "name": "setsource",
-          "fret": 13,
+          "fret": 5,
           "payload": "chain/setsource",
           "children": []
         },
         {
           "id": 28,
           "name": "print",
-          "fret": 15,
+          "fret": 5,
           "payload": "chain/print",
           "children": []
         }
@@ -210,13 +210,13 @@
     {
       "id": 29,
       "name": "switch",
-      "fret": 5,
+      "fret": 3,
       "payload": "switch",
       "children": [
         {
           "id": 30,
           "name": "crossfade",
-          "fret": 3,
+          "fret": 5,
           "payload": "switch/crossfade",
           "children": []
         },
@@ -232,13 +232,13 @@
     {
       "id": 32,
       "name": "preset",
-      "fret": 7,
+      "fret": 3,
       "payload": "preset",
       "children": [
         {
           "id": 33,
           "name": "save",
-          "fret": 3,
+          "fret": 5,
           "payload": "preset/save",
           "children": []
         },
@@ -254,13 +254,13 @@
     {
       "id": 35,
       "name": "system",
-      "fret": 9,
+      "fret": 3,
       "payload": "system",
       "children": [
         {
           "id": 36,
           "name": "reset",
-          "fret": 3,
+          "fret": 5,
           "payload": "system/reset",
           "children": []
         },
@@ -274,7 +274,7 @@
         {
           "id": 38,
           "name": "status",
-          "fret": 7,
+          "fret": 5,
           "payload": "system/status",
           "children": []
         }
