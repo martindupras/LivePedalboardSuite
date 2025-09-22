@@ -1,5 +1,5 @@
 // CommandManager.sc
-// v1.5
+// v1.6
 // MD 20250921-22:40
 
 // Purpose: Central controller; uses injected display (MagicDisplayGUI), does NOT create windows.
@@ -24,41 +24,66 @@ CommandManager {
         ^super.new.init(treePath);
     }
 
-    init { arg treePath;
-        var defaultPath;
-        if (true) { "CommandManager created".postln };
-        currentState = \idle;
 
-        saver = CircularFileSave.new("myTree", "~/CommandTreeSavefiles", 10);
+init { arg treePath;
+    var defaultPath, savedPath, stateDir, stateFile;
+    var explicitOk, savedOk;
 
-        defaultPath = Platform.userExtensionDir ++ "/MDclasses/LivePedalboardSystem/MagicPedalboardCommandTree.json";
-        filePath = treePath.ifNil { defaultPath };
+    currentState = \idle;
+    saver = CircularFileSave.new("myTree", "~/CommandTreeSavefiles", 10);
 
-        this.createNewTree;
-        this.createBuilder;
-        this.createCommandQueue;
+    stateDir  = Platform.userExtensionDir ++ "/LivePedalboardSuite/.state";
+    stateFile = stateDir ++ "/LastCommandTreePath.txt";
 
-        // IMPORTANT: Do NOT create a UserDisplay here; we inject MagicDisplayGUI from LPS.
-        // display = UserDisplay.new;
+    defaultPath = Platform.userExtensionDir
+        ++ "/LivePedalboardSuite/LivePedalboardSystem/MagicPedalboardCommandTree.json";
 
-        midiManager = MIDIInputManager.new(builder, nil, nil, nil);
-        midiManager.parentCommandManager = this;
+    savedPath = this.readLastPath(stateFile); // <- empty/whitespace -> nil
 
-        ^this
-    }
+    explicitOk = treePath.isString and: { treePath.size > 0 };
+    savedOk    = savedPath.isString and: { savedPath.size > 0 } and: { File.exists(savedPath) };
+
+    filePath = if (explicitOk) { treePath } { if (savedOk) { savedPath } { defaultPath } };
+
+    if (filePath.isString and: { filePath.size > 0 }) {
+        this.writeLastPath(stateDir, stateFile, filePath);
+    };
+
+    this.createNewTree;        // will harden path again inside
+    this.createBuilder;
+    this.createCommandQueue;
+
+    midiManager = MIDIInputManager.new(builder, nil, nil, nil);
+    midiManager.parentCommandManager = this;
+    ^this
+}
 
     // --- Build pieces --------------------------------------------------------
 
-    createNewTree {
-        tree = MDCommandTree.new("root");
-        tree.importJSONFile(filePath);  // uses your chosen/default path
-        if (tree.notNil) {
-            "📥 Tree imported from ".post; filePath.postln;
-            if (true) { tree.printTreePretty };  // optional debug
-        }{
-            "📥 Couldn't create/import tree.".postln;
-        }
-    }
+createNewTree {
+    var usePath;
+    // final guard before import: ensure a usable String path
+    usePath = filePath;
+    if (usePath.isString.not or: { usePath.size <= 0 }) {
+        usePath = Platform.userExtensionDir
+            ++ "/LivePedalboardSuite/LivePedalboardSystem/MagicPedalboardCommandTree.json";
+    };
+    if (File.exists(usePath).not) {
+        // last resort: keep going with default even if missing (import will warn gracefully)
+        usePath = Platform.userExtensionDir
+            ++ "/LivePedalboardSuite/LivePedalboardSystem/MagicPedalboardCommandTree.json";
+    };
+
+    tree = MDCommandTree.new("root");
+    tree.importJSONFile(usePath);
+
+    if (tree.notNil) {
+        "📥 Tree imported from ".post; usePath.postln;
+    }{
+        "📥 Couldn't create/import tree.".postln;
+    };
+    ^this
+}
 
     createBuilder {
         builder = MDCommandBuilder.new(tree);
@@ -96,6 +121,40 @@ CommandManager {
         builder = MDCommandBuilder.new(tree);
         this.setStatus("✅ Tree reloaded from: " ++ filePath);
     }
+
+	// --- tiny helpers (inside the same class) ---
+
+writeLastPath { arg dirPath, filePath, pathToWrite;
+    var okDir;
+    // guard: do nothing if not a non-empty String
+    if (pathToWrite.isString.not or: { pathToWrite.size <= 0 }) { ^this };
+
+    okDir = PathName(dirPath).isFolder;
+    if (okDir.not) { File.mkdir(dirPath) };
+
+    File.use(filePath, "w", { |fh| fh.write(pathToWrite) });
+    ^this
+}
+
+readLastPath { arg filePath;
+    var content, cleaned, hasNonSpace;
+    if (File.exists(filePath)) {
+        File.use(filePath, "r", { |fh| content = fh.readAllString });
+        // collapse whitespace-only to nil
+        cleaned = content ? "";
+        hasNonSpace = false;
+        cleaned.do { |ch|
+            if ((ch != $\ ) and: { ch != $\t } and: { ch != $\n } and: { ch != $\r }) {
+                hasNonSpace = true;
+            }
+        };
+        if (hasNonSpace.not) { content = nil };
+    };
+    ^content
+}
+
+
+
 }
 
 // Back-compat alias

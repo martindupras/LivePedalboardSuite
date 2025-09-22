@@ -1,0 +1,1 @@
+/Users/martindupras/Library/Application Support/SuperCollider/Extensions/LivePedalboardSuite/LivePedalboardSystem/MagicPedalboardCommandTree.json

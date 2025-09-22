@@ -1,40 +1,6 @@
-===== CommandTree/CircularFileSave_SortByMTime.sc =====
-// CircularFileSave_SortByMTime.sc
-// v1.1 — 2025-09-21 MD
-
-// Purpose
-// - Ensure latestVersion() is truly latest by sorting entries (mtime desc).
-// Style
-// - var-first; lowercase; no server.sync.
-
-+ CircularFileSave {
-    refreshFileList {
-        var pn, entries;
-        pn = PathName(folderPath);
-        entries = pn.entries.select { |f|
-            f.fileName.beginsWith(prefix ++ "-") and: { f.fileName.endsWith(".json") }
-        };
-        // sort newest → oldest by modification time
-        fileList = entries.sortBy({ |f| File.mtime(f.fullPath) }).reverse;
-    }
-
-    saveVersion { |content|
-        var timestamp, filename, path;
-        timestamp = Date.getDate.stamp;
-        filename = "%-%".format(prefix, timestamp) ++ ".json";
-        path = folderPath +/+ filename;
-        File.use(path, "w", { |fh| fh.write(content) });
-        this.refreshFileList; // recompute then prune
-        if(fileList.size > maxVersions) {
-            fileList.copyRange(maxVersions, fileList.size - 1).do(_.delete);
-            fileList = fileList.copyRange(0, maxVersions - 1);
-        };
-        path.postln;
-    }
-}
-
 ===== CommandTree/CircularSaves.sc =====
 // circularSaves.sc
+// v1.2.1
 // MD 20250819
 
 // This allows me to save the last ten trees in a folder, and keep track of the last one. Versions are named after date/time.
@@ -59,11 +25,30 @@ CircularFileSave {
         File.mkdir(folderPath);
     }
 
-    refreshFileList {
+/*    refreshFileList {
         fileList = PathName(folderPath).entries.select { |f|
             f.fileName.beginsWith(prefix ++ "-") and: { f.fileName.endsWith(".json") }
         };
-    }
+    }*/
+
+	// 20250922
+refreshFileList {
+    var pn, entries;
+    pn = PathName(folderPath.standardizePath);
+    if (pn.isFolder.not) { File.mkdir(pn.fullPath) };
+
+    entries = pn.entries
+        .select(_.isFile)
+        .select({ |p| p.fileName.beginsWith(prefix) and: { p.fileName.endsWith(".json") } });
+
+    // robust boolean comparator; no key-function; no .at on PathName
+    entries = entries.asArray.sort({ |a, b| a.fileName > b.fileName });
+
+    fileList = entries; // keep PathName objects; callers can use .fullPath / .fileName
+    ^this
+}
+
+
 
     saveVersion { |content|
         var timestamp = Date.getDate.stamp;
@@ -114,52 +99,55 @@ CircularFileSave {
 
 
 ===== CommandTree/CommandManager_PathPersistence.sc =====
-// CommandManager_PathPersistence.sc
-// v1.0 — 2025-09-22 MD
-// Purpose: Remember last used tree path across runs.
-// Style: var-first; lowercase; no server.sync.
+// OBSOLETE
 
-+ CommandManager {
-    var <lastPathFile;
 
-    init { |treePath|
-        var defaultPath;
-        lastPathFile = Platform.userExtensionDir ++ "/MDclasses/LivePedalboardSystem/last_tree_path.txt";
-        defaultPath = Platform.userExtensionDir ++ "/MDclasses/LivePedalboardSystem/MagicPedalboardCommandTree.json";
-
-        // Load last path if treePath is nil
-        if(treePath.isNil) {
-            treePath = this.readLastPath ?? defaultPath;
-        };
-
-        filePath = treePath;
-        this.writeLastPath(filePath); // persist for next time
-
-        // existing init logic continues...
-        this.createNewTree;
-        this.createBuilder;
-        this.createCommandQueue;
-        midiManager = MIDIInputManager.new(builder, nil, nil, nil);
-        midiManager.parentCommandManager = this;
-        ^this
-    }
-
-    writeLastPath { |path|
-        File.use(lastPathFile, "w", { |f| f.write(path) });
-    }
-
-    readLastPath {
-        var content;
-        if(File.exists(lastPathFile)) {
-            File.use(lastPathFile, "r", { |f| content = f.readAllString });
-        };
-        ^content
-    }
-}
+// // CommandManager_PathPersistence.sc
+// // v1.0 — 2025-09-22 MD
+// // Purpose: Remember last used tree path across runs.
+// // Style: var-first; lowercase; no server.sync.
+//
+// + CommandManager {
+// 	var <lastPathFile;
+//
+// 	init { |treePath|
+// 		var defaultPath;
+// 		lastPathFile = Platform.userExtensionDir ++ "/MDclasses/LivePedalboardSystem/last_tree_path.txt";
+// 		defaultPath = Platform.userExtensionDir ++ "/MDclasses/LivePedalboardSystem/MagicPedalboardCommandTree.json";
+//
+// 		// Load last path if treePath is nil
+// 		if(treePath.isNil) {
+// 			treePath = this.readLastPath ?? defaultPath;
+// 		};
+//
+// 		filePath = treePath;
+// 		this.writeLastPath(filePath); // persist for next time
+//
+// 		// existing init logic continues...
+// 		this.createNewTree;
+// 		this.createBuilder;
+// 		this.createCommandQueue;
+// 		midiManager = MIDIInputManager.new(builder, nil, nil, nil);
+// 		midiManager.parentCommandManager = this;
+// 		^this
+// 	}
+//
+// 	writeLastPath { |path|
+// 		File.use(lastPathFile, "w", { |f| f.write(path) });
+// 	}
+//
+// 	readLastPath {
+// 		var content;
+// 		if(File.exists(lastPathFile)) {
+// 			File.use(lastPathFile, "r", { |f| content = f.readAllString });
+// 		};
+// 		^content
+// 	}
+// }
 
 ===== CommandTree/CommandManager.sc =====
 // CommandManager.sc
-// v1.5
+// v1.6
 // MD 20250921-22:40
 
 // Purpose: Central controller; uses injected display (MagicDisplayGUI), does NOT create windows.
@@ -184,41 +172,66 @@ CommandManager {
         ^super.new.init(treePath);
     }
 
-    init { arg treePath;
-        var defaultPath;
-        if (true) { "CommandManager created".postln };
-        currentState = \idle;
 
-        saver = CircularFileSave.new("myTree", "~/CommandTreeSavefiles", 10);
+init { arg treePath;
+    var defaultPath, savedPath, stateDir, stateFile;
+    var explicitOk, savedOk;
 
-        defaultPath = Platform.userExtensionDir ++ "/MDclasses/LivePedalboardSystem/MagicPedalboardCommandTree.json";
-        filePath = treePath.ifNil { defaultPath };
+    currentState = \idle;
+    saver = CircularFileSave.new("myTree", "~/CommandTreeSavefiles", 10);
 
-        this.createNewTree;
-        this.createBuilder;
-        this.createCommandQueue;
+    stateDir  = Platform.userExtensionDir ++ "/LivePedalboardSuite/.state";
+    stateFile = stateDir ++ "/LastCommandTreePath.txt";
 
-        // IMPORTANT: Do NOT create a UserDisplay here; we inject MagicDisplayGUI from LPS.
-        // display = UserDisplay.new;
+    defaultPath = Platform.userExtensionDir
+        ++ "/LivePedalboardSuite/LivePedalboardSystem/MagicPedalboardCommandTree.json";
 
-        midiManager = MIDIInputManager.new(builder, nil, nil, nil);
-        midiManager.parentCommandManager = this;
+    savedPath = this.readLastPath(stateFile); // <- empty/whitespace -> nil
 
-        ^this
-    }
+    explicitOk = treePath.isString and: { treePath.size > 0 };
+    savedOk    = savedPath.isString and: { savedPath.size > 0 } and: { File.exists(savedPath) };
+
+    filePath = if (explicitOk) { treePath } { if (savedOk) { savedPath } { defaultPath } };
+
+    if (filePath.isString and: { filePath.size > 0 }) {
+        this.writeLastPath(stateDir, stateFile, filePath);
+    };
+
+    this.createNewTree;        // will harden path again inside
+    this.createBuilder;
+    this.createCommandQueue;
+
+    midiManager = MIDIInputManager.new(builder, nil, nil, nil);
+    midiManager.parentCommandManager = this;
+    ^this
+}
 
     // --- Build pieces --------------------------------------------------------
 
-    createNewTree {
-        tree = MDCommandTree.new("root");
-        tree.importJSONFile(filePath);  // uses your chosen/default path
-        if (tree.notNil) {
-            "📥 Tree imported from ".post; filePath.postln;
-            if (true) { tree.printTreePretty };  // optional debug
-        }{
-            "📥 Couldn't create/import tree.".postln;
-        }
-    }
+createNewTree {
+    var usePath;
+    // final guard before import: ensure a usable String path
+    usePath = filePath;
+    if (usePath.isString.not or: { usePath.size <= 0 }) {
+        usePath = Platform.userExtensionDir
+            ++ "/LivePedalboardSuite/LivePedalboardSystem/MagicPedalboardCommandTree.json";
+    };
+    if (File.exists(usePath).not) {
+        // last resort: keep going with default even if missing (import will warn gracefully)
+        usePath = Platform.userExtensionDir
+            ++ "/LivePedalboardSuite/LivePedalboardSystem/MagicPedalboardCommandTree.json";
+    };
+
+    tree = MDCommandTree.new("root");
+    tree.importJSONFile(usePath);
+
+    if (tree.notNil) {
+        "📥 Tree imported from ".post; usePath.postln;
+    }{
+        "📥 Couldn't create/import tree.".postln;
+    };
+    ^this
+}
 
     createBuilder {
         builder = MDCommandBuilder.new(tree);
@@ -256,6 +269,40 @@ CommandManager {
         builder = MDCommandBuilder.new(tree);
         this.setStatus("✅ Tree reloaded from: " ++ filePath);
     }
+
+	// --- tiny helpers (inside the same class) ---
+
+writeLastPath { arg dirPath, filePath, pathToWrite;
+    var okDir;
+    // guard: do nothing if not a non-empty String
+    if (pathToWrite.isString.not or: { pathToWrite.size <= 0 }) { ^this };
+
+    okDir = PathName(dirPath).isFolder;
+    if (okDir.not) { File.mkdir(dirPath) };
+
+    File.use(filePath, "w", { |fh| fh.write(pathToWrite) });
+    ^this
+}
+
+readLastPath { arg filePath;
+    var content, cleaned, hasNonSpace;
+    if (File.exists(filePath)) {
+        File.use(filePath, "r", { |fh| content = fh.readAllString });
+        // collapse whitespace-only to nil
+        cleaned = content ? "";
+        hasNonSpace = false;
+        cleaned.do { |ch|
+            if ((ch != $\ ) and: { ch != $\t } and: { ch != $\n } and: { ch != $\r }) {
+                hasNonSpace = true;
+            }
+        };
+        if (hasNonSpace.not) { content = nil };
+    };
+    ^content
+}
+
+
+
 }
 
 // Back-compat alias
@@ -279,9 +326,9 @@ MDCommandMC : CommandManager {}
 // }
 
 ===== CommandTree/Logging/CommandManagerLogging.sc =====
-CommandManagerLogging
-v1.0.0
-MD 2025-09-22 09:52 BST
+// CommandManagerLogging
+// v1.0.0
+// MD 2025-09-22 09:52 BST
 
 /*
 Purpose
@@ -351,9 +398,9 @@ Style
 }
 
 ===== CommandTree/Logging/MDCommandBuilderLogging.sc =====
-MDCommandBuilderLogging
-v1.0.0
-MD 2025-09-22 09:52 BST
+// MDCommandBuilderLogging
+// v1.0.0
+// MD 2025-09-22 09:52 BST
 
 /*
 Purpose
@@ -437,9 +484,9 @@ Style
 }
 
 ===== CommandTree/Logging/MDCommandNodeLogging.sc =====
-MDCommandNodeLogging
-v1.0.0
-MD 2025-09-22 09:52 BST
+// MDCommandNodeLogging
+// v1.0.0
+// MD 2025-09-22 09:52 BST
 
 /*
 Purpose
@@ -528,9 +575,9 @@ Style
 }
 
 ===== CommandTree/Logging/MDCommandTreeLogging.sc =====
-MDCommandTreeLogging
-v1.0.0
-MD 2025-09-22 09:52 BST
+// MDCommandTreeLogging
+// v1.0.0
+// MD 2025-09-22 09:52 BST
 
 /*
 Purpose
@@ -676,9 +723,9 @@ Style
 }
 
 ===== CommandTree/Logging/MDLogFacade.sc =====
-MDLogFacade
-v1.0.0
-MD 2025-09-22 09:52 BST
+// MDLogFacade
+// v1.0.0
+// MD 2025-09-22 09:52 BST
 
 /*
 Purpose
@@ -1984,150 +2031,390 @@ Verbosity {
     }
 }
 
+===== LivePedalboardSystem/LivePedalboardSystem-Pathing.sc =====
+// LivePedalboardSystem-Pathing.sc
+// v0.3.0
+// MD 2025-09-22 10:44 BST
+
+/*
+Purpose
+- Make LivePedalboardSystem default to a JSON tree INSIDE the repo so a fresh clone runs.
+- Allow optional, per-user overrides in Extensions/MDclasses or UserState.
+- Preserve explicit constructor path as the highest priority.
+
+Style
+- var-first; lowercase method names; no server.sync.
+- Class extension only; pure path logic here.
+*/
+
++ LivePedalboardSystem {
+
+    // 1) Repo default (shipped in Git)
+    *defaultTreePath {
+        ^Platform.userExtensionDir
+        ++ "/LivePedalboardSuite/LivePedalboardSystem/MagicPedalboardCommandTree.json";
+    }
+
+    // 2) Optional per-user override in MDclasses (not in Git)
+    *userOverrideMDclasses {
+        ^Platform.userExtensionDir
+        ++ "/MDclasses/LivePedalboardSystem/MagicPedalboardCommandTree.json";
+    }
+
+    // 3) Optional per-user override alongside the code (normally .gitignored)
+    *userOverrideUserState {
+        ^Platform.userExtensionDir
+        ++ "/LivePedalboardSuite/LivePedalboardSystem/UserState/MagicPedalboardCommandTree.json";
+    }
+
+    // Resolution: explicit → MDclasses → UserState → repo default
+    *resolveTreePath { |maybePath|
+        var p, mdOverride, usOverride, repoDefault;
+
+        p = maybePath;
+        if (p.notNil) { ^p }; // caller took responsibility
+
+        mdOverride   = this.userOverrideMDclasses;
+        usOverride   = this.userOverrideUserState;
+        repoDefault  = this.defaultTreePath;
+
+        if (File.exists(mdOverride)) { ^mdOverride };
+        if (File.exists(usOverride)) { ^usOverride };
+        if (File.exists(repoDefault)) { ^repoDefault };
+
+        // Nothing found → helpful message
+        ("[LPS] No CommandTree JSON found.\n"
+        ++ "Tried:\n  1) " ++ mdOverride
+        ++ "\n  2) " ++ usOverride
+        ++ "\n  3) " ++ repoDefault
+        ++ "\nCreate one of these files or pass a path to LivePedalboardSystem.new(path)."
+        ).warn;
+
+        ^repoDefault  // return something to avoid nil crashes; caller can handle missing file
+    }
+
+    // Ensure the constructor honours the resolver
+    *new { |maybePath|
+        ^super.newCopyArgs(
+            this.resolveTreePath(maybePath)
+        ).init;
+    }
+}
+
 ===== LivePedalboardSystem/LivePedalboardSystem.sc =====
 // LivePedalboardSystem.sc
-// v0.2.5
-// MD 2025-09-21 22:05
+// v0.2.7
+// MD 2025-09-22 1204
 
 // Purpose: Bring-up MagicPedalboard + CommandManager + single MagicDisplayGUI (no duplicate windows).
 // Style: var-first, logger-enabled, AppClock-safe, Server.default.bind for server ops, no server.sync.
 
 LivePedalboardSystem : Object {
-    var <>pedalboard;
-    var <>pedalboardGUI;
-    var <>commandManager;
-    var <>statusDisplay;   // this will hold a MagicDisplayGUI
-    var <>logger;
-    var <>treeFilePath;
+	var <>pedalboard;
+	var <>pedalboardGUI;
+	var <>commandManager;
+	var <>statusDisplay;   // this will hold a MagicDisplayGUI
+	var <>logger;
+	var <>treeFilePath;
 
-    *new { arg treePath;
-        ^super.new.init(treePath);
-    }
+	*new { arg treePath;
+		^super.new.init(treePath);
+	}
 
-    init { arg treePath;
-        var defaultPath;
-        logger = MDMiniLogger.get;
-        defaultPath = Platform.userExtensionDir ++ "/MDclasses/LivePedalboardSystem/MagicPedalboardCommandTree.json";
-        treeFilePath = treePath.ifNil { defaultPath };
-        ^this;
-    }
+	init { arg treePath;
+		var defaultPath;
+		logger = MDMiniLogger.get;
 
-    bringUpAll {
-        this.bringUpPedalboard;
-        this.bringUpCommandSystem;
-        this.bringUpMagicDisplayGUI;
-        this.ensureAudioOn;
-        logger.info("LivePedalboardSystem", "✅ System is ready.");
-        ^this;
-    }
+		// Minimal change: use LivePedalboardSuite (symlinked in Extensions) as canonical default
+		defaultPath = Platform.userExtensionDir
+		++ "/LivePedalboardSuite/LivePedalboardSystem/MagicPedalboardCommandTree.json";
 
-    bringUpPedalboard {
-        pedalboard = MagicPedalboard.new;
-        pedalboardGUI = MagicPedalboardTestRunner.new(pedalboard, nil);
-        pedalboardGUI.bringUp;
-        logger.info("Pedalboard", "Pedalboard and GUI initialized.");
-    }
+		treeFilePath = treePath.ifNil { defaultPath };
+		^this;
+	}
 
-    bringUpCommandSystem {
-        commandManager = CommandManager.new(treeFilePath);
+/*	bringUpAll {
+		this.bringUpPedalboard;
+		this.bringUpCommandSystem;
+		this.bringUpMagicDisplayGUI;
+		this.ensureAudioOn;
+		logger.info("LivePedalboardSystem", "✅ System is ready.");
+		^this;
+	}*/
 
-        // Queue export -> pedalboard
-        commandManager.queueExportCallback = { |oscPath|
-            pedalboard.handleCommand(oscPath);
-            logger.info("Integration", "Sent command to pedalboard: " ++ oscPath);
-            // If GUI is up, show last command
-            if (statusDisplay.notNil and: { statusDisplay.respondsTo(\showExpectation) }) {
-                statusDisplay.showExpectation("Sent: " ++ oscPath, 0);
-            };
+
+/*	bringUpAll {
+		this.bringUpMagicDisplayGUI;   // 1) GUI first
+		this.bringUpPedalboard;        // 2) MPB (new) uses this display
+		this.bringUpCommandSystem;     // 3) Command system shares the same display
+		this.ensureAudioOn;            // 4) Prime audio and UI once
+		logger.info("LivePedalboardSystem", "✅ System is ready.");
+		^this;
+	}*/
+
+bringUpAll {
+    this.bringUpMagicDisplayGUI;   // 1) GUI first
+    this.bringUpPedalboard;        // 2) MPB (new) uses this display
+    this.bringUpCommandSystem;     // 3) Command system shares the same display
+    this.ensureAudioOn;            // 4) Prime audio and UI once
+    logger.info("LivePedalboardSystem", "✅ System is ready.");
+    ^this;
+}
+/*	bringUpPedalboard {
+		pedalboard = MagicPedalboard.new;
+		pedalboardGUI = MagicPedalboardTestRunner.new(pedalboard, nil);
+		pedalboardGUI.bringUp;
+		logger.info("Pedalboard", "Pedalboard and GUI initialized.");
+	}*/
+
+/*	bringUpPedalboard {
+		// new pedalboard bound to display (if ctor supports it)
+		pedalboard = if (statusDisplay.notNil) {
+			MagicPedalboardNew.new(statusDisplay)
+		} {
+			MagicPedalboardNew.new
+		};
+
+		// be defensive: wire after construction too, if there is a setter
+		if (statusDisplay.notNil and: { pedalboard.respondsTo(\setDisplay) }) {
+			pedalboard.setDisplay(statusDisplay);
+		};
+
+		// remove runner usage; it's not needed for the new GUI path
+		pedalboardGUI = nil;
+
+		logger.info("Pedalboard", "MagicPedalboardNew initialized and bound to display.");
+	}*/
+
+	bringUpPedalboard {
+    // new pedalboard bound to display (if ctor supports it)
+    pedalboard = if (statusDisplay.notNil) {
+        MagicPedalboardNew.new(statusDisplay)
+    } {
+        MagicPedalboardNew.new
+    };
+
+    // be defensive: wire after construction too, if there is a setter
+    if (statusDisplay.notNil and: { pedalboard.respondsTo(\setDisplay) }) {
+        pedalboard.setDisplay(statusDisplay);
+    };
+
+    // remove runner usage; it's not needed for the new GUI path
+    pedalboardGUI = nil;
+
+    logger.info("Pedalboard", "MagicPedalboardNew initialized and bound to display.");
+}
+
+	bringUpCommandSystem {
+		commandManager = CommandManager.new(treeFilePath);
+
+		// Queue export -> pedalboard
+		commandManager.queueExportCallback = { |oscPath|
+			pedalboard.handleCommand(oscPath);
+			logger.info("Integration", "Sent command to pedalboard: " ++ oscPath);
+			// If GUI is up, show last command
+			if (statusDisplay.notNil and: { statusDisplay.respondsTo(\showExpectation) }) {
+				statusDisplay.showExpectation("Sent: " ++ oscPath, 0);
+			};
+		};
+
+		logger.info("CommandSystem", "CommandManager initialized and connected.");
+	}
+
+	// --- Single MagicDisplayGUI window, with meters enabled ---
+/*	bringUpMagicDisplayGUI {
+		// Create your existing MagicDisplayGUI (no "openUnique" in your class)
+		statusDisplay = MagicDisplayGUI.new;  // constructor signature matches your file
+		// Set initial text using your API: showExpectation(...)
+		statusDisplay.showExpectation("System ready.", 0);  // MagicDisplayGUI has no updateStatus
+		// Share GUI with CommandManager so CommandManager:setStatus can target it
+		if (commandManager.respondsTo(\display_)) { commandManager.display = statusDisplay; };
+
+		// Ensure meter SynthDefs are present before enabling
+		this.ensureMeterDefs;
+		statusDisplay.enableMeters(true);
+	}*/
+
+/*	bringUpMagicDisplayGUI {
+		statusDisplay = MagicDisplayGUI_GridDemo.new;    // ← newer layout
+		statusDisplay.showExpectation("System ready.", 0);
+
+		// share GUI with CommandManager so CommandManager:setStatus can target it
+		if (commandManager.respondsTo(\display_)) { commandManager.display = statusDisplay; };
+
+		this.ensureMeterDefs;
+		statusDisplay.enableMeters(true);
+	}*/
+bringUpMagicDisplayGUI {
+    statusDisplay = MagicDisplayGUI_GridDemo.new;    // ← newer layout
+    statusDisplay.showExpectation("System ready.", 0);
+
+    // share GUI with CommandManager so CommandManager:setStatus can target it
+    if (commandManager.respondsTo(\display_)) { commandManager.display = statusDisplay; };
+
+    this.ensureMeterDefs;
+    statusDisplay.enableMeters(true);
+}
+
+
+	// --- Provide \busMeterA / \busMeterB if they don't exist yet ---
+	// replaced with the below, which uses MagicDisplay meters instead:
+	ensureMeterDefs {
+		MagicDisplay.ensureMeterDefs(2); // or MagicDisplay.setMeterChannels(2)
+	}
+
+	// --- Conservative "make sure something is audible" ---
+/*	ensureAudioOn {
+		var started;
+		started = false;
+
+		if (pedalboard.respondsTo(\start)) { pedalboard.start; started = true; }
+		{ if (pedalboard.respondsTo(\play)) { pedalboard.play; started = true; } };
+
+		if (started.not) {
+			this.tryPlayNdefs([\chainA, \chainB, \testmelody]);
+		};
+
+		logger.info("Audio", "ensureAudioOn called (started: %).".format(started));
+	}*/
+/*	ensureAudioOn {
+		var started;
+
+		// define sources and sinks once
+		Server.default.bind({
+			if (Ndef(\testmelody).source.isNil) {
+				Ndef(\testmelody, {
+					var trig = Impulse.kr(3.2);
+					var seq  = Dseq([220,277.18,329.63,392,329.63,277.18,246.94], inf);
+					var f    = Demand.kr(trig, 0, seq);
+					var env  = Decay2.kr(trig, 0.01, 0.35);
+					var pan  = ToggleFF.kr(trig).linlin(0,1,-0.6,0.6);
+					Pan2.ar(SinOsc.ar(f) * env * 0.25, pan)
+				});
+			};
+			Ndef(\testmelody).ar(2);
+
+			if (Ndef(\ts0).source.isNil) { Ndef(\ts0, { Silent.ar(2) }) };
+			Ndef(\ts0).ar(2);
+
+			// stereo sinks
+			Ndef(\chainA).ar(2);
+			Ndef(\chainB).ar(2);
+		});
+
+		// steer CURRENT to \testmelody and enforce exclusivity
+		if (pedalboard.respondsTo(\setSourceCurrent)) {
+			pedalboard.setSourceCurrent(\testmelody);
+		};
+		if (pedalboard.respondsTo(\enforceExclusiveCurrentOptionA)) {
+			pedalboard.enforceExclusiveCurrentOptionA(0.1);
+		};
+
+		// flags reflect audio: A playing, B stopped
+		Server.default.bind({
+			if (Ndef(\chainA).isPlaying.not) { Ndef(\chainA).play(numChannels: 2) };
+			if (Ndef(\chainB).isPlaying)     { Ndef(\chainB).stop };
+		});
+
+		// one visible update in display
+		if (pedalboard.respondsTo(\printChains)) { pedalboard.printChains };
+
+		logger.info("Audio", "Primed CURRENT with \\testmelody; NEXT silenced (Option A).");
+	}*/
+
+
+	ensureAudioOn {
+    var started;
+
+    // define sources and sinks once
+    Server.default.bind({
+        if (Ndef(\testmelody).source.isNil) {
+            Ndef(\testmelody, {
+                var trig = Impulse.kr(3.2);
+                var seq  = Dseq([220,277.18,329.63,392,329.63,277.18,246.94], inf);
+                var f    = Demand.kr(trig, 0, seq);
+                var env  = Decay2.kr(trig, 0.01, 0.35);
+                var pan  = ToggleFF.kr(trig).linlin(0,1,-0.6,0.6);
+                Pan2.ar(SinOsc.ar(f) * env * 0.25, pan)
+            });
         };
+        Ndef(\testmelody).ar(2);
 
-        logger.info("CommandSystem", "CommandManager initialized and connected.");
-    }
+        if (Ndef(\ts0).source.isNil) { Ndef(\ts0, { Silent.ar(2) }) };
+        Ndef(\ts0).ar(2);
 
-    // --- Single MagicDisplayGUI window, with meters enabled ---
-    bringUpMagicDisplayGUI {
-        // Create your existing MagicDisplayGUI (no "openUnique" in your class)
-        statusDisplay = MagicDisplayGUI.new;  // constructor signature matches your file
-        // Set initial text using your API: showExpectation(...)
-        statusDisplay.showExpectation("System ready.", 0);  // MagicDisplayGUI has no updateStatus
-        // Share GUI with CommandManager so CommandManager:setStatus can target it
-        if (commandManager.respondsTo(\display_)) { commandManager.display = statusDisplay; };
+        // stereo sinks
+        Ndef(\chainA).ar(2);
+        Ndef(\chainB).ar(2);
+    });
 
-        // Ensure meter SynthDefs are present before enabling
-        this.ensureMeterDefs;
-        statusDisplay.enableMeters(true);
-    }
+    // steer CURRENT to \testmelody and enforce exclusivity
+    if (pedalboard.respondsTo(\setSourceCurrent)) {
+        pedalboard.setSourceCurrent(\testmelody);
+    };
+    if (pedalboard.respondsTo(\enforceExclusiveCurrentOptionA)) {
+        pedalboard.enforceExclusiveCurrentOptionA(0.1);
+    };
 
-    // --- Provide \busMeterA / \busMeterB if they don't exist yet ---
-/*    ensureMeterDefs {
-        Server.default.bind({
-            var hasA, hasB;
-            hasA = SynthDescLib.global.at(\busMeterA).notNil;
-            hasB = SynthDescLib.global.at(\busMeterB).notNil;
+    // flags reflect audio: A playing, B stopped
+    Server.default.bind({
+        if (Ndef(\chainA).isPlaying.not) { Ndef(\chainA).play(numChannels: 2) };
+        if (Ndef(\chainB).isPlaying)     { Ndef(\chainB).stop };
+    });
 
-            if (hasA.not) {
-                SynthDef(\busMeterA, { arg inBus, rate = 24;
-                    var sig = In.ar(inBus, 2);
-                    var amp = Amplitude.ar(sig).clip(0, 1);
-                    SendReply.kr(Impulse.kr(rate), '/ampA', A2K.kr(amp));
-                }).add;
-            };
+    // one visible update in display
+    if (pedalboard.respondsTo(\printChains)) { pedalboard.printChains };
 
-            if (hasB.not) {
-                SynthDef(\busMeterB, { arg inBus, rate = 24;
-                    var sig = In.ar(inBus, 2);
-                    var amp = Amplitude.ar(sig).clip(0, 1);
-                    SendReply.kr(Impulse.kr(rate), '/ampB', A2K.kr(amp));
-                }).add;
-            };
-        });
-    }*/
-
-	// replaced with the below, which uses MAgicDisplay meters instead:
-
-    ensureMeterDefs {
-        MagicDisplay.ensureMeterDefs(2); // or MagicDisplay.setMeterChannels(2)
-    }
+    logger.info("Audio", "Primed CURRENT with \\testmelody; NEXT silenced (Option A).");
+}
 
 
-    // --- Conservative "make sure something is audible" ---
-    ensureAudioOn {
-        var started;
-        started = false;
+	tryPlayNdefs { arg syms;
+		syms.do { arg sym;
+			var nd = Ndef(sym);
+			if (nd.notNil) { nd.play; };
+		};
+	}
 
-        if (pedalboard.respondsTo(\start)) { pedalboard.start; started = true; }
-        { if (pedalboard.respondsTo(\play)) { pedalboard.play; started = true; } };
+	showStatus {
+		logger.info("SystemStatus", "Pedalboard: %, CommandManager: %".format(
+			pedalboard, commandManager
+		));
+	}
 
-        if (started.not) {
-            this.tryPlayNdefs([\chainA, \chainB, \testmelody]);
-        };
-
-        // Optional: if you expect stereo, declare channel count before play once
-        // Ndef(\chainA).numChannels_(2);
-        // Ndef(\chainB).numChannels_(2);
-
-        logger.info("Audio", "ensureAudioOn called (started: %).".format(started));
-    }
-
-    tryPlayNdefs { arg syms;
-        syms.do { arg sym;
-            var nd = Ndef(sym);
-            if (nd.notNil) { nd.play; };
-        };
-    }
-
-    showStatus {
-        logger.info("SystemStatus", "Pedalboard: %, CommandManager: %".format(
-            pedalboard, commandManager
-        ));
-    }
-
-    shutdownAll {
+/*    shutdownAll {
         pedalboard.free;
         pedalboardGUI.close;
         if (statusDisplay.notNil) { statusDisplay.close };
         logger.warn("Shutdown", "LivePedalboardSystem shut down.");
-    }
+    }*/
+	shutdownAll {
+		var runnerClosed;
+
+		runnerClosed = false;
+
+		if (pedalboard.notNil and: { pedalboard.respondsTo(\free) }) {
+			pedalboard.free;
+		};
+
+		if (pedalboardGUI.notNil) {
+			if (pedalboardGUI.respondsTo(\close)) {
+				pedalboardGUI.close; runnerClosed = true;
+			};
+			if (runnerClosed.not and: { pedalboardGUI.respondsTo(\stop) }) {
+				pedalboardGUI.stop; runnerClosed = true;
+			};
+			if (runnerClosed.not and: { pedalboardGUI.respondsTo(\free) }) {
+				pedalboardGUI.free; runnerClosed = true;
+			};
+		};
+
+		if (statusDisplay.notNil and: { statusDisplay.respondsTo(\close) }) {
+			statusDisplay.close;
+		};
+
+		logger.warn("Shutdown", "LivePedalboardSystem shut down.");
+	}
 }
 
 ===== Magicpedalboard/_archive/2025-09-20/TestMagicPedalboard.sc =====

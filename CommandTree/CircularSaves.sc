@@ -1,4 +1,5 @@
 // circularSaves.sc
+// v1.2.1
 // MD 20250819
 
 // This allows me to save the last ten trees in a folder, and keep track of the last one. Versions are named after date/time.
@@ -23,11 +24,30 @@ CircularFileSave {
         File.mkdir(folderPath);
     }
 
-    refreshFileList {
+/*    refreshFileList {
         fileList = PathName(folderPath).entries.select { |f|
             f.fileName.beginsWith(prefix ++ "-") and: { f.fileName.endsWith(".json") }
         };
-    }
+    }*/
+
+	// 20250922
+refreshFileList {
+    var pn, entries;
+    pn = PathName(folderPath.standardizePath);
+    if (pn.isFolder.not) { File.mkdir(pn.fullPath) };
+
+    entries = pn.entries
+        .select(_.isFile)
+        .select({ |p| p.fileName.beginsWith(prefix) and: { p.fileName.endsWith(".json") } });
+
+    // robust boolean comparator; no key-function; no .at on PathName
+    entries = entries.asArray.sort({ |a, b| a.fileName > b.fileName });
+
+    fileList = entries; // keep PathName objects; callers can use .fullPath / .fileName
+    ^this
+}
+
+
 
     saveVersion { |content|
         var timestamp = Date.getDate.stamp;
