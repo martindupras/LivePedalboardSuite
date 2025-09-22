@@ -1,5 +1,5 @@
 // LivePedalboardSystem.sc
-// v0.2.7
+// v0.2.8
 // MD 2025-09-22 1204
 
 // Purpose: Bring-up MagicPedalboard + CommandManager + single MagicDisplayGUI (no duplicate windows).
@@ -29,38 +29,33 @@ LivePedalboardSystem : Object {
 		^this;
 	}
 
-/*
-bringUpAll {
-    this.bringUpMagicDisplayGUI;   // 1) GUI first
-    this.bringUpPedalboard;        // 2) MPB (new) uses this display
-    this.bringUpCommandSystem;     // 3) Command system shares the same display
-    this.ensureAudioOn;            // 4) Prime audio and UI once (creates Ndefs, plays A)
 
-    // ✅ Enable meters only after audio graph is ready
-    if(statusDisplay.notNil and: { statusDisplay.respondsTo(\enableMeters) }) {
+	bringUpAll {
+		// ✅ Make sure the server is up and the tree is clean *before* we create MPB
+		this.ensureServerReady;
+
+		this.bringUpMagicDisplayGUI;   // 1) GUI first
+		this.bringUpPedalboard;        // 2) create MPB (it will create groups)
+		this.bringUpCommandSystem;     // 3) hook command system
+		this.ensureAudioOn;            // 4) prime sources + play current (no tree reset here)
+
+
+		// meters last (you already moved this)
+/*    if(statusDisplay.notNil and: { statusDisplay.respondsTo(\enableMeters) }) {
         statusDisplay.enableMeters(true);
-    };
+    };*/
 
-    logger.info("LivePedalboardSystem", "✅ System is ready.");
-    ^this;
-}*/
-bringUpAll {
-    // ✅ Make sure the server is up and the tree is clean *before* we create MPB
-    this.ensureServerReady;
+		//v0.2.8
+		AppClock.sched(0.35, {    // 350 ms is enough to outlive the initial MPB rebuild
+			if(statusDisplay.notNil and: { statusDisplay.respondsTo(\enableMeters) }) {
+				statusDisplay.enableMeters(true);
+			};
+			nil
+		});
 
-    this.bringUpMagicDisplayGUI;   // 1) GUI first
-    this.bringUpPedalboard;        // 2) create MPB (it will create groups)
-    this.bringUpCommandSystem;     // 3) hook command system
-    this.ensureAudioOn;            // 4) prime sources + play current (no tree reset here)
-
-    // meters last (you already moved this)
-    if(statusDisplay.notNil and: { statusDisplay.respondsTo(\enableMeters) }) {
-        statusDisplay.enableMeters(true);
-    };
-
-    logger.info("LivePedalboardSystem", "✅ System is ready.");
-    ^this;
-}
+		logger.info("LivePedalboardSystem", "✅ System is ready.");
+		^this;
+	}
 
 
 /*	bringUpPedalboard {
@@ -90,26 +85,30 @@ bringUpAll {
 	}*/
 
 	bringUpPedalboard {
-    // new pedalboard bound to display (if ctor supports it)
-    pedalboard = if (statusDisplay.notNil) {
-        MagicPedalboardNew.new(statusDisplay)
-    } {
-        MagicPedalboardNew.new
-    };
+		// new pedalboard bound to display (if ctor supports it)
+		pedalboard = if (statusDisplay.notNil) {
+			MagicPedalboardNew.new(statusDisplay)
+		} {
+			MagicPedalboardNew.new
+		};
 
-    // be defensive: wire after construction too, if there is a setter
-    if (statusDisplay.notNil and: { pedalboard.respondsTo(\setDisplay) }) {
-        pedalboard.setDisplay(statusDisplay);
-    };
+		// be defensive: wire after construction too, if there is a setter
+		if (statusDisplay.notNil and: { pedalboard.respondsTo(\setDisplay) }) {
+			pedalboard.setDisplay(statusDisplay);
+		};
 
-    // remove runner usage; it's not needed for the new GUI path
-    pedalboardGUI = nil;
+		// remove runner usage; it's not needed for the new GUI path
+		pedalboardGUI = nil;
 
-    logger.info("Pedalboard", "MagicPedalboardNew initialized and bound to display.");
-}
+		logger.info("Pedalboard", "MagicPedalboardNew initialized and bound to display.");
+	}
 
 	bringUpCommandSystem {
 		commandManager = CommandManager.new(treeFilePath);
+
+
+		// inject GUI so updateDisplay() can actually update something
+		commandManager.display = statusDisplay;
 
 		// Queue export -> pedalboard
 		commandManager.queueExportCallback = { |oscPath|
@@ -148,16 +147,16 @@ bringUpAll {
 		this.ensureMeterDefs;
 		statusDisplay.enableMeters(true);
 	}*/
-bringUpMagicDisplayGUI {
-    statusDisplay = MagicDisplayGUI_GridDemo.new;    // ← newer layout
-    statusDisplay.showExpectation("System ready.", 0);
+	bringUpMagicDisplayGUI {
+		statusDisplay = MagicDisplayGUI_GridDemo.new;    // ← newer layout
+		statusDisplay.showExpectation("System ready.", 0);
 
-    // share GUI with CommandManager so CommandManager:setStatus can target it
-    if (commandManager.respondsTo(\display_)) { commandManager.display = statusDisplay; };
+		// share GUI with CommandManager so CommandManager:setStatus can target it
+		if (commandManager.respondsTo(\display_)) { commandManager.display = statusDisplay; };
 
-    this.ensureMeterDefs;
-    //statusDisplay.enableMeters(true);
-}
+		this.ensureMeterDefs;
+		//statusDisplay.enableMeters(true);
+	}
 
 
 	// --- Provide \busMeterA / \busMeterB if they don't exist yet ---
@@ -182,52 +181,52 @@ bringUpMagicDisplayGUI {
 	}*/
 
 
-ensureAudioOn {
-    var s;
-    s = Server.default;
+	ensureAudioOn {
+		var s;
+		s = Server.default;
 
-    // Define sources/sinks idempotently
-    Server.default.bind({
-        if (Ndef(\testmelody).source.isNil) {
-            Ndef(\testmelody, {
-                var trig = Impulse.kr(3.2);
-                var seq = Dseq([220,277.18,329.63,392,329.63,277.18,246.94], inf);
-                var f = Demand.kr(trig, 0, seq);
-                var env = Decay2.kr(trig, 0.01, 0.35);
-                var pan = ToggleFF.kr(trig).linlin(0,1,-0.6,0.6);
-                Pan2.ar(SinOsc.ar(f) * env * 0.25, pan)
-            });
-        };
-        Ndef(\testmelody).ar(2);
+		// Define sources/sinks idempotently
+		Server.default.bind({
+			if (Ndef(\testmelody).source.isNil) {
+				Ndef(\testmelody, {
+					var trig = Impulse.kr(3.2);
+					var seq = Dseq([220,277.18,329.63,392,329.63,277.18,246.94], inf);
+					var f = Demand.kr(trig, 0, seq);
+					var env = Decay2.kr(trig, 0.01, 0.35);
+					var pan = ToggleFF.kr(trig).linlin(0,1,-0.6,0.6);
+					Pan2.ar(SinOsc.ar(f) * env * 0.25, pan)
+				});
+			};
+			Ndef(\testmelody).ar(2);
 
-        if (Ndef(\ts0).source.isNil) { Ndef(\ts0, { Silent.ar(2) }) };
-        Ndef(\ts0).ar(2);
+			if (Ndef(\ts0).source.isNil) { Ndef(\ts0, { Silent.ar(2) }) };
+			Ndef(\ts0).ar(2);
 
-        // Ensure sink proxies exist at audio rate; MPB wires them
-        Ndef(\chainA).ar(2);
-        Ndef(\chainB).ar(2);
-    });
+			// Ensure sink proxies exist at audio rate; MPB wires them
+			Ndef(\chainA).ar(2);
+			Ndef(\chainB).ar(2);
+		});
 
-    // Route CURRENT to \testmelody + Option A
-    if (pedalboard.respondsTo(\setSourceCurrent)) {
-        pedalboard.setSourceCurrent(\testmelody);
-    };
-    if (pedalboard.respondsTo(\enforceExclusiveCurrentOptionA)) {
-        pedalboard.enforceExclusiveCurrentOptionA(0.1);
-    };
+		// Route CURRENT to \testmelody + Option A
+		if (pedalboard.respondsTo(\setSourceCurrent)) {
+			pedalboard.setSourceCurrent(\testmelody);
+		};
+		if (pedalboard.respondsTo(\enforceExclusiveCurrentOptionA)) {
+			pedalboard.enforceExclusiveCurrentOptionA(0.1);
+		};
 
-    // Make sure CURRENT sink is actually playing; stop the other
-    if (pedalboard.respondsTo(\playCurrent)) {
-        pedalboard.playCurrent;
-    } {
-        Server.default.bind({
-            if (Ndef(\chainA).isPlaying.not) { Ndef(\chainA).play(numChannels: 2) };
-            if (Ndef(\chainB).isPlaying)     { Ndef(\chainB).stop };
-        });
-    };
+		// Make sure CURRENT sink is actually playing; stop the other
+		if (pedalboard.respondsTo(\playCurrent)) {
+			pedalboard.playCurrent;
+		} {
+			Server.default.bind({
+				if (Ndef(\chainA).isPlaying.not) { Ndef(\chainA).play(numChannels: 2) };
+				if (Ndef(\chainB).isPlaying)     { Ndef(\chainB).stop };
+			});
+		};
 
-    // One tiny deferred re-assert (survives any late rebuild)
-    AppClock.sched(0.10, {
+		// One tiny deferred re-assert (survives any late rebuild)
+/*		AppClock.sched(0.10, {
         if (pedalboard.respondsTo(\playCurrent)) {
             pedalboard.playCurrent;
         } {
@@ -236,36 +235,51 @@ ensureAudioOn {
                 if (Ndef(\chainB).isPlaying)     { Ndef(\chainB).stop };
             });
         };
-        nil
-    });
-
-    if (pedalboard.respondsTo(\printChains)) { pedalboard.printChains };
-    logger.info("Audio", "Primed CURRENT with \\testmelody; ensured CURRENT is playing (Option A).");
-}
+        nil*/
 
 
-ensureServerReady {
-    var s, didBoot;
+		// --- Make sure CURRENT sink is actually playing (single deferred assert) ---
+		AppClock.sched(0.25, {     // allow the temp SynthDef add to complete
+			if (pedalboard.respondsTo(\playCurrent)) {
+				pedalboard.playCurrent;  // MPB decides which (A/B) should be audible
+			} {
+				Server.default.bind({
+					if (Ndef(\chainA).isPlaying.not) { Ndef(\chainA).play(numChannels: 2) };
+					if (Ndef(\chainB).isPlaying)     { Ndef(\chainB).stop };
+				});
+			};
+			nil
+		});
 
-    s = Server.default;
-    didBoot = false;
 
-    if (s.serverRunning.not) {
-        s.boot;
-        s.waitForBoot;   // permitted in your safe-reset pattern
-        didBoot = true;
-    };
 
-    if (didBoot) {
-        // Only wipe the tree on fresh boot, before MPB is constructed
-        Server.default.bind({
-            s.initTree;
-            s.defaultGroup.freeAll;
-        });
-    };
+		if (pedalboard.respondsTo(\printChains)) { pedalboard.printChains };
+		logger.info("Audio", "Primed CURRENT with \\testmelody; ensured CURRENT is playing (Option A).");
+	}
 
-    ^didBoot
-}
+
+	ensureServerReady {
+		var s, didBoot;
+
+		s = Server.default;
+		didBoot = false;
+
+		if (s.serverRunning.not) {
+			s.boot;
+			s.waitForBoot;   // permitted in your safe-reset pattern
+			didBoot = true;
+		};
+
+		if (didBoot) {
+			// Only wipe the tree on fresh boot, before MPB is constructed
+			Server.default.bind({
+				s.initTree;
+				s.defaultGroup.freeAll;
+			});
+		};
+
+		^didBoot
+	}
 
 
 	tryPlayNdefs { arg syms;
