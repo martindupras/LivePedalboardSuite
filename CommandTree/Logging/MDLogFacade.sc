@@ -1,6 +1,6 @@
-MDLogFacade
-v1.0.0
-MD 2025-09-22 09:52 BST
+// MDLogFacade
+// v1.0.0
+// MD 2025-09-22 09:52 BST
 
 /*
 Purpose

@@ -1,6 +1,6 @@
 // LivePedalboardSystem.sc
-// v0.2.5
-// MD 2025-09-21 22:05
+// v0.2.6
+// MD 2025-09-22 11:34 BST
 
 // Purpose: Bring-up MagicPedalboard + CommandManager + single MagicDisplayGUI (no duplicate windows).
 // Style: var-first, logger-enabled, AppClock-safe, Server.default.bind for server ops, no server.sync.
@@ -20,7 +20,11 @@ LivePedalboardSystem : Object {
     init { arg treePath;
         var defaultPath;
         logger = MDMiniLogger.get;
-        defaultPath = Platform.userExtensionDir ++ "/MDclasses/LivePedalboardSystem/MagicPedalboardCommandTree.json";
+
+        // Minimal change: use LivePedalboardSuite (symlinked in Extensions) as canonical default
+        defaultPath = Platform.userExtensionDir
+            ++ "/LivePedalboardSuite/LivePedalboardSystem/MagicPedalboardCommandTree.json";
+
         treeFilePath = treePath.ifNil { defaultPath };
         ^this;
     }
@@ -72,36 +76,10 @@ LivePedalboardSystem : Object {
     }
 
     // --- Provide \busMeterA / \busMeterB if they don't exist yet ---
-/*    ensureMeterDefs {
-        Server.default.bind({
-            var hasA, hasB;
-            hasA = SynthDescLib.global.at(\busMeterA).notNil;
-            hasB = SynthDescLib.global.at(\busMeterB).notNil;
-
-            if (hasA.not) {
-                SynthDef(\busMeterA, { arg inBus, rate = 24;
-                    var sig = In.ar(inBus, 2);
-                    var amp = Amplitude.ar(sig).clip(0, 1);
-                    SendReply.kr(Impulse.kr(rate), '/ampA', A2K.kr(amp));
-                }).add;
-            };
-
-            if (hasB.not) {
-                SynthDef(\busMeterB, { arg inBus, rate = 24;
-                    var sig = In.ar(inBus, 2);
-                    var amp = Amplitude.ar(sig).clip(0, 1);
-                    SendReply.kr(Impulse.kr(rate), '/ampB', A2K.kr(amp));
-                }).add;
-            };
-        });
-    }*/
-
-	// replaced with the below, which uses MAgicDisplay meters instead:
-
+    // replaced with the below, which uses MagicDisplay meters instead:
     ensureMeterDefs {
         MagicDisplay.ensureMeterDefs(2); // or MagicDisplay.setMeterChannels(2)
     }
-
 
     // --- Conservative "make sure something is audible" ---
     ensureAudioOn {
@@ -114,10 +92,6 @@ LivePedalboardSystem : Object {
         if (started.not) {
             this.tryPlayNdefs([\chainA, \chainB, \testmelody]);
         };
-
-        // Optional: if you expect stereo, declare channel count before play once
-        // Ndef(\chainA).numChannels_(2);
-        // Ndef(\chainB).numChannels_(2);
 
         logger.info("Audio", "ensureAudioOn called (started: %).".format(started));
     }
