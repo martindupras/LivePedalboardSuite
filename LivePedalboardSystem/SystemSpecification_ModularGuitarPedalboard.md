@@ -68,6 +68,21 @@ This system is a modular, software-based audio pedalboard designed for live perf
   - Status messages and errors
 - Updates the display in real time as navigation and execution progress.
 
+### 3.5 Command Tree Path Resolution (Runtime)
+When no explicit path is provided to `LivePedalboardSystem.new(path)`, the JSON path is resolved with this precedence:
+1. `Platform.userExtensionDir/MDclasses/LivePedalboardSystem/MagicPedalboardCommandTree.json`
+2. `Platform.userExtensionDir/LivePedalboardSuite/LivePedalboardSystem/UserState/MagicPedalboardCommandTree.json`
+3. `Platform.userExtensionDir/LivePedalboardSuite/LivePedalboardSystem/MagicPedalboardCommandTree.json`
+
+If none exist, the repo default path is returned and the import warns.
+
+### 3.6 Acceptance & Demo Constraints
+- **Audio**: generated sources only (no `SoundIn`).
+- **Exclusivity (Option A)**: NEXT is silenced at source except during crossfades.
+- **A/B XOR**: at any time exactly one sink (A or B) is audible; demos verify this.
+- **GUI**: single MagicDisplayGUI window; UI updates via `AppClock` only.
+
+
 ## 4. Operational Workflow
 
 1. **System Initialization**

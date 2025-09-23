@@ -1,4 +1,5 @@
 // MIDIInputManager.sc
+// v1.1.1
 // v1.1 added things in send mode for LivePedalboardSystem
 // MD 20250817-1926
 
@@ -104,42 +105,39 @@ MIDIInputManager {
 			//---
 
 
-			modes[\queue], {
-				var queueText;
-				var payload = builder.getCurrentPayload;
+      modes[\queue], {
+        var queueText, canonicalPath;
 
-				if (payload != lastEnqueuedPayload) {
-					("Current payload to queue: " ++ payload).postln;
-					queue.enqueueCommand(payload);
-					lastEnqueuedPayload = payload;
+        // NEW: derive canonical short path from current CommandTree selection
+        canonicalPath = parentCommandManager.canonicalPathFromBuilder(builder);
 
-					if (builder.isAtLeaf) {
-						parentCommandManager.setStatus("🌿 Leaf node reached; payload: " ++ payload);
-					} {
-						parentCommandManager.setStatus("📥 Queued node: " ++ payload);
-					};
+        if (canonicalPath != lastEnqueuedPayload) { // reuse dedupe guard
+          ("Current canonical to queue: " ++ canonicalPath).postln;
+          queue.enqueueCommand(canonicalPath);
+          lastEnqueuedPayload = canonicalPath;
 
-					queueText = queue.commandList.collect { |cmd| "- " ++ cmd.asString }.join("\n");
-					("Queue contents:\n" ++ queueText).postln;
+          if (builder.isAtLeaf) {
+            parentCommandManager.setStatus("🌿 Leaf → " ++ canonicalPath);
+          } {
+            parentCommandManager.setStatus("📥 Queued node: " ++ canonicalPath);
+          };
 
-					{
-						/*parentCommandManager.display.display(\state, "Mode: queue");
-						parentCommandManager.display.display(\queue, "Current Queue:\n" ++ queueText);
-						parentCommandManager.display.display(\lastCommand, "Last Added: " ++ payload);*/
-						parentCommandManager.display.updateTextField(\state, "Mode: queue");
-						parentCommandManager.display.updateTextField(\queue, "Current Queue:\n" ++ queueText);
-						parentCommandManager.display.updateTextField(\lastCommand, "Last Added: " ++ payload);
+          queueText = queue.commandList.collect({ arg cmd; "- " ++ cmd.asString }).join("\n");
+          {
+            parentCommandManager.display.updateTextField(\state, "Mode: queue");
+            parentCommandManager.display.updateTextField(\queue, "Current Queue:\n" ++ queueText);
+            parentCommandManager.display.updateTextField(\lastCommand, "Last Added: " ++ canonicalPath);
+          }.defer;
 
-					}.defer;
-				} {
-					("⚠️ Duplicate payload ignored: " ++ payload).postln;
-					parentCommandManager.setStatus("⚠️ Duplicate payload ignored");
-				};
+        } {
+          ("⚠️ Duplicate canonical ignored: " ++ canonicalPath).postln;
+          parentCommandManager.setStatus("⚠️ Duplicate canonical ignored");
+        };
 
-				builder.resetNavigation;
-				"Added node to queue and restarted navigation.".postln;
-				this.setMode(modes[\prog]);
-			},
+        builder.resetNavigation;
+        "Added canonical to queue and restarted navigation.".postln;
+        this.setMode(modes[\prog]); // unchanged
+      },
 
 			//---
 
