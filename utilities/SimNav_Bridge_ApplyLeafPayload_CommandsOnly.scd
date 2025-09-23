@@ -1,0 +1,207 @@
+// SimNav_Bridge_ApplyLeafPayload_CommandsOnly.scd
+// v0.1.2
+// MD 20250923-1040
+
+(
+/*
+Purpose
+- Drive the "commands" branch using (string, fret) without relying on MDCommandBuilder.navigateToChild.
+- When a leaf is reached, apply its canonical payload "/verb/arg/..." via the adapter.
+
+Style
+- var-first; lowercase; no server.sync; .scd-safe (no caret returns).
+*/
+
+var jsonPath, tree, ok, proceed;
+var currentNode, rootNode;
+var findChildByName, buildPathFromSegments, applyPayloadPath, ensureAdapterOk;
+var mapAtRoot, mapAtCommands, mapAtAdd, mapAtBypassLevel1, mapAtBypassLevel2, mapAtSetSource;
+var handleFret, resetNav;
+
+// --- preconditions -----------------------------------------------------------
+proceed = true;
+if(~system.isNil) {
+    "⚠️ Bring-up first: Start_LivePedalboardSystem.scd (Option B)".postln;
+    proceed = false;
+};
+
+// adapter presence (known-good, absolute locations)
+if(~ct_applyOSCPathToMPB.isNil) {
+    var candidates, i, p;
+    candidates = List[
+        Platform.userExtensionDir ++ "/LivePedalboardSuite/Magicpedalboard/adapter_CommandTree_to_MagicPedalboard.scd",
+        Platform.userExtensionDir ++ "/LivePedalboardSuite/Magicpedalboard/adapter_commandtree_to_magicpedalboard.scd"
+    ];
+    i = 0;
+    while({ i < candidates.size }, {
+        p = candidates[i].standardizePath;
+        if(File.exists(p)) { p.load };
+        i = i + 1;
+    });
+};
+ensureAdapterOk = (~ct_applyOSCPathToMPB.notNil);
+if(ensureAdapterOk.not) {
+    "⚠️ Adapter missing; evaluate adapter_* file".postln;
+    proceed = false;
+};
+
+// load the canonical CommandTree JSON (same as your tests/editor)
+if(proceed) {
+    jsonPath = Platform.userExtensionDir
+      ++ "/LivePedalboardSuite/LivePedalboardSystem/MagicPedalboardCommandTree.json";
+    tree = MDCommandTree.new("root");
+    ok = tree.importJSONFile(jsonPath);
+    ("[BRIDGE] import ok → " ++ ok).postln;
+    proceed = ok;
+};
+
+if(proceed) {
+
+    // --- helpers -------------------------------------------------------------
+    findChildByName = { |parentNode, childName|
+        var wanted, found;
+        wanted = childName.asString; found = nil;
+        parentNode.children.do({ |c| if(c.name.asString == wanted) { found = c } });
+        found
+    };
+
+    buildPathFromSegments = { |segmentsArray|
+        var out, i, lim;
+        out = ""; i = 0; lim = segmentsArray.size;
+        while({ i < lim }, { out = out ++ "/" ++ segmentsArray[i]; i = i + 1 });
+        out
+    };
+
+    applyPayloadPath = { |payloadString|
+        var pedalboardRef, guiRef, pathText;
+        pedalboardRef = ~system.pedalboard;
+        guiRef = ~system.statusDisplay;
+        pathText = payloadString.asString;
+        ("[BRIDGE] apply → " ++ pathText).postln;
+        ~ct_applyOSCPathToMPB.(pathText, pedalboardRef, guiRef);
+    };
+
+    resetNav = {
+        currentNode = tree.root;
+        "[BRIDGE] nav reset".postln;
+    };
+
+    // --- routing tables for (string, fret) → child.name ----------------------
+    // Note: you created these frets in the editor script we just ran.
+    mapAtRoot = { |stringNum, fretNum|
+        if(stringNum == 6 and: { fretNum == 10 }) { "commands" } { nil }
+    };
+
+    mapAtCommands = { |stringNum, fretNum|
+        // depth 1 under "commands": string 5
+        if(stringNum != 5) { nil } {
+            if(fretNum == 1) { "add" }
+            { if(fretNum == 2) { "bypass" }
+            { if(fretNum == 3) { "switch" }
+            { if(fretNum == 4) { "setSource" } { nil }}}}
+        }
+    };
+
+    mapAtAdd = { |stringNum, fretNum|
+        // string 4
+        if(stringNum == 4 and: { fretNum == 1 }) { "delay" } { nil }
+    };
+
+    mapAtBypassLevel1 = { |stringNum, fretNum|
+        // string 4
+        if(stringNum == 4 and: { fretNum == 1 }) { "delay" } { nil }
+    };
+
+    mapAtBypassLevel2 = { |stringNum, fretNum|
+        // string 3 (after selecting "delay")
+        if(stringNum == 3) {
+            if(fretNum == 2) { "on" } { if(fretNum == 3) { "off" } { nil } }
+        } { nil }
+    };
+
+    mapAtSetSource = { |stringNum, fretNum|
+        // string 4
+        if(stringNum == 4 and: { fretNum == 1 }) { "testmelody" } { nil }
+    };
+
+    // --- main entry: called per (string, fret) --------------------------------
+    handleFret = { |stringNum, fretNum|
+        var parentName, childName, childNode, payloadText;
+
+        parentName = currentNode.name.asString;
+
+        // decide next child name by context
+        if(parentName == "root") {
+            childName = mapAtRoot.(stringNum, fretNum);
+        }{
+            if(parentName == "commands") {
+                childName = mapAtCommands.(stringNum, fretNum);
+            }{
+                if(parentName == "add") {
+                    childName = mapAtAdd.(stringNum, fretNum);
+                }{
+                    if(parentName == "bypass") {
+                        childName = mapAtBypassLevel1.(stringNum, fretNum);
+                    }{
+                        if(parentName == "delay") {
+                            // only valid when parent is "bypass" → "delay"
+                            childName = mapAtBypassLevel2.(stringNum, fretNum);
+                        }{
+                            if(parentName == "setSource") {
+                                childName = mapAtSetSource.(stringNum, fretNum);
+                            }{
+                                childName = nil; // unknown context
+                            };
+                        };
+                    };
+                };
+            };
+        };
+
+        if(childName.isNil) {
+            ("[BRIDGE] no child for (" ++ stringNum ++ "," ++ fretNum
+             ++ ") under '" ++ parentName ++ "'").postln;
+        }{
+            childNode = findChildByName.(currentNode, childName);
+            if(childNode.isNil) {
+                ("[BRIDGE] child '" ++ childName ++ "' not found under '" ++ parentName ++ "'").postln;
+            }{
+                currentNode = childNode;
+                ("[BRIDGE] → " ++ currentNode.name.asString).postln;
+
+                if(currentNode.isLeaf) {
+                    // prefer the canonical payload string written by the editor; if missing, derive
+                    if(currentNode.payload.notNil) {
+                        payloadText = currentNode.payload.asString;
+                    }{
+                        // derive path from names (after "commands")
+                        var segments, walker, at, stop, segsOut;
+                        segments = List.new; at = currentNode; stop = false;
+                        // if your node lacks .parent, you can skip this; we set payloads already
+                        // here we just fallback to "/verb/arg/..." builder if payload is missing
+                        segsOut = [ currentNode.name.asString ];
+                        payloadText = buildPathFromSegments.(segsOut);
+                    };
+                    applyPayloadPath.(payloadText);
+                    resetNav.(); // ready for next gesture
+                }{
+                    // not a leaf — print children so you see next choices
+                    var names;
+                    names = List.new;
+                    currentNode.children.do({ |c| names.add(c.name.asString) });
+                    ("[BRIDGE] choices: " ++ names.asString).postln;
+                };
+            };
+        };
+    };
+
+    // publish API
+    ~nav_reset = resetNav;
+    ~nav_handleFret = handleFret;
+
+    // init state
+    rootNode = tree.root;
+    resetNav.();
+    "[BRIDGE] commands-only router ready (string/fret)".postln;
+};
+)
