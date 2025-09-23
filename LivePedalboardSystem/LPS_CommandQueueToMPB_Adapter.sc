@@ -1,85 +1,71 @@
 // LPS_CommandQueueToMPB_Adapter.sc
-// v0.1.1
-// MD 2025-09-22 22:42 BST
+// v0.1.3
+// MD 2025-09-22 23:08 BST
 
 /* Purpose
-   - Canonicalize CommandManager's exported path (joined payload segments) to the
-     short verb/object grammar that MagicPedalboardNew expects today.
-   - Examples:
-       "/chain/add/audio/timebased/delay"   -> "/add/delay"
-       "/chain/setsource/audio/source/sine" -> "/setSource/sine"
-       "/switch(/crossfade|/crossfade_custom)?" -> "/switch"
-   - Lives as a class extension to LivePedalboardSystem and is used in
-     bringUpCommandSystem via queueExportCallback.
-
+   - Canonicalize CommandManager's exported path to short verb/object grammar
+     for MagicPedalboardNew today.
+   Examples:
+     "/chain/add/audio/timebased/delay"    -> "/add/delay"
+     "/chain/setsource/audio/source/sine"  -> "/setSource/sine"
+     "/switch" or "/switch/crossfade*"     -> "/switch"
    Style
-   - var-first; lowercase; no server.sync; pure string ops; defensive where needed.
+   - var-first; lowercase; no server.sync; flat control flow (no nested ^).
 */
 
 + LivePedalboardSystem {
 
     canonicalizeCommandPath { |rawPath|
-        var parts, clean, has, pickLeaf, trySwitch, first, passList;
+        var parts, first;
 
-        // Split the path into non-empty segments
-        parts = rawPath.asString.split($/).reject({ |s| s.isEmpty });
-        clean = parts.copy;
+        // Tokenize into non-empty segments
+        parts = rawPath.asString.split($/).reject({ |s| s.size == 0 });
+        if(parts.size == 0) { ^rawPath.asString };
 
-        // has(...tokens) -> true if all tokens are present in 'clean'
-        has = { |...tokens|
-            var ok = true;
-            tokens.do({ |t|
-                if(clean.includes(t).not, { ok = false });
-            });
-            ok
+        first = parts[0].asString;
+
+        // 1) switch family → "/switch"
+        if(first == "switch") {
+            ^"/switch";
         };
 
-        // pickLeaf("audio") -> last segment (e.g., "delay" or "sine") if "audio" exists
-        pickLeaf = { |prefix|
-            var idx;
-            idx = clean.indexOf(prefix);
-            if(idx.isNil) { ^nil };
-            clean.last
-        };
+        // 2) chain/* positional mappings
+        if(first == "chain") {
+            // Guard against short arrays
+            if(parts.size >= 3) {
+                var second = parts[1].asString;
 
-        // Accept "switch", "switch/crossfade", "switch/crossfade_custom"
-        trySwitch = {
-            if(clean.size > 0 and: { clean[0] == "switch" }) {
-                ^"/switch"
+                // 2a) /chain/add/audio/.../<effect> -> /add/<effect>
+                if(second == "add" and: { parts[2].asString == "audio" }) {
+                    ^("/add/" ++ parts.last.asString);
+                };
+
+                // 2b) /chain/setsource/audio/source/<src> -> /setSource/<src>
+                if(second == "setsource"
+                   and: { parts.size >= 5 }
+                   and: { parts[2].asString == "audio" }
+                   and: { parts[3].asString == "source" }) {
+                    ^("/setSource/" ++ parts.last.asString);
+                };
+
+                // (Extend here for remove/clear/bypass/swap later)
             };
-            nil
+
+            // If we get here and didn't match any chain rule, fall through to raw.
+            ^rawPath.asString;
         };
 
-        // 1) /chain/add + /audio/.../<effect> -> /add/<effect>
-        if(has.("chain","add") and: { has.("audio") }) {
-            var eff = pickLeaf.("audio");
-            if(eff.notNil) { ^("/add/" ++ eff) };
+        // 3) Already-canonical short forms — pass through
+        if(#["add","remove","clear","bypass","swap","setSource","switch"].includes(first)) {
+            ^("/" ++ parts.join("/"));
         };
 
-        // 2) /chain/setsource + /audio/source/<src> -> /setSource/<src>
-        if(has.("chain","setsource") and: { has.("audio","source") }) {
-            var src = pickLeaf.("audio");
-            if(src.notNil) { ^("/setSource/" ++ src) };
-        };
-
-        // 3) switch family -> "/switch"
-        { var s = trySwitch.(); if(s.notNil) { ^s } }.value;
-
-        // 4) direct canonical short forms -> pass-through
-        passList = ["add","remove","clear","bypass","swap","setSource","switch"];
-        first = if(clean.size > 0) { clean[0].asString } { "" };
-        if(passList.includes(first)) {
-            ^("/" ++ clean.join("/"));
-        };
-
-        // 5) fallback: return as-is (you may log a warning here if desired)
-        rawPath
+        // 4) Fallback: return unchanged
+        ^rawPath.asString;
     }
 
     bringUpCommandSystem {
         var cm;
-
-        // Construct and wire the command manager (same as your version, with the adapter in-line)
         cm = CommandManager.new(treeFilePath);
         cm.display = statusDisplay;
 
