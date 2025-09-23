@@ -187,9 +187,6 @@ applyDirectToPedalboard = { |canonicalPath|
 
 // ── unified apply: prefer adapter; fall back to direct mapping ───────────────
 applyOneCommand = { |canonicalPath|
-
-    "DEBUG: applyOneCommand called with %".format(canonicalPath).postln;
-
     logMessage.("apply → " ++ canonicalPath);
     if(adapterAvailable) { applyViaAdapter.(canonicalPath) } { applyDirectToPedalboard.(canonicalPath) };
     if(~procHud_update.notNil) { ~procHud_update.() }; // optional HUD refresh

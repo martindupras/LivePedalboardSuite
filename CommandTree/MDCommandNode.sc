@@ -154,7 +154,7 @@ MDCommandNode {
 			^this.getPathToRoot.join(" → ");
 		}
 
-		checkIntegrity {
+/*		checkIntegrity {
 			var failedChild;
 
 			if (this.children.isKindOf(List).not) {
@@ -169,8 +169,23 @@ MDCommandNode {
 			};
 
 			^true
-		}
-
+		}*/
+//newer:
+    checkIntegrity {
+        var okType, failedChild;
+        okType = this.children.isKindOf(List) or: { this.children.isKindOf(SortedList) };
+        if(okType.not) {
+            ("❌ Integrity check failed at node '" ++ this.name
+             ++ "': children is " ++ children.class).postln;
+            ^false;
+        };
+        failedChild = this.children.detect { |c| c.checkIntegrity.not };
+        if(failedChild.notNil) {
+            ("❌ Integrity failed in child: " ++ failedChild.name).postln;
+            ^false;
+        };
+        ^true;
+    }
 
 	// ───── Tree Display ─────
 printTreePretty { |level = 0, isLast = true, prefix = ""|

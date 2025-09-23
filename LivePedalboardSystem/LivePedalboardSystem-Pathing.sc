@@ -59,10 +59,11 @@ Style
         ^repoDefault  // return something to avoid nil crashes; caller can handle missing file
     }
 
-    // Ensure the constructor honours the resolver
+	// removed 20250923
+/*    // Ensure the constructor honours the resolver
     *new { |maybePath|
         ^super.newCopyArgs(
             this.resolveTreePath(maybePath)
         ).init;
-    }
+    }*/
 }

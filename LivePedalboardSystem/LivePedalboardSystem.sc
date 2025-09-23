@@ -13,9 +13,16 @@ LivePedalboardSystem : Object {
 	var <>logger;
 	var <>treeFilePath;
 
-	*new { arg treePath;
+/*	*new { arg treePath;
 		^super.new.init(treePath);
-	}
+	}*/
+
+
+	    *new { arg treePath;
+        var resolvedPath;
+        resolvedPath = LivePedalboardSystem.resolveTreePath(treePath);
+        ^super.new.init(resolvedPath);
+    }
 
 	init { arg treePath;
 		var defaultPath;
@@ -103,7 +110,7 @@ LivePedalboardSystem : Object {
 		logger.info("Pedalboard", "MagicPedalboardNew initialized and bound to display.");
 	}
 
-	bringUpCommandSystem {
+/*	bringUpCommandSystem {
 		commandManager = CommandManager.new(treeFilePath);
 
 
@@ -121,7 +128,21 @@ LivePedalboardSystem : Object {
 		};
 
 		logger.info("CommandSystem", "CommandManager initialized and connected.");
-	}
+	}*/
+
+	//newer:
+	    bringUpCommandSystem {
+        var cm;
+        cm = CommandManager.new(treeFilePath);
+        cm.display = statusDisplay;
+        // temporary callback: log only; the bridge will overwrite this
+        cm.queueExportCallback = { |path|
+            MDMiniLogger.get.info("Integration", "Queued path: " ++ path.asString);
+        };
+        commandManager = cm;
+        MDMiniLogger.get.info("CommandSystem", "CommandManager initialized (bridge pending).");
+        ^this
+    }
 
 	// --- Single MagicDisplayGUI window, with meters enabled ---
 
