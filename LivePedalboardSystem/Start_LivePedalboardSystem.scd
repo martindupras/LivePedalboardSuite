@@ -1,11 +1,11 @@
 // Start_LivePedalboardSystem.scd
-// v0.2.6
-// MD 2025-09-22 11:42 BST
+// v0.2.7
+// MD 20250923-1331
 
 /*
 Purpose
 - Canonical entry to construct LivePedalboardSystem and call bringUpAll.
-- Evaluate ONE of the two blocks below (explicit vs. default).
+- Install the queue→adapter bridge so SHORT canonical commands are applied via the adapter.
 
 Style
 - var-first; Function.defer (not thisProcess.defer); no server.sync; AppClock-safe.
@@ -13,24 +13,28 @@ Style
 
 // --- Option A: explicit path (uncomment to use) ---
 //(
-//     var customPath;
-//     customPath = Platform.userExtensionDir
-//         ++ "/LivePedalboardSuite/LivePedalboardSystem/MagicPedalboardCommandTree.json";
-//
 //     {
-//         // optional: stop a previous instance cleanly
+//         var customPath;
 //         if(~system.notNil and: { ~system.respondsTo(\shutdownAll) }) { ~system.shutdownAll };
+//         customPath = Platform.userExtensionDir
+//             ++ "/LivePedalboardSuite/LivePedalboardSystem/MagicPedalboardCommandTree.json";
 //         ~system = LivePedalboardSystem.new(customPath);
 //         ~system.bringUpAll;
-//     }.defer;  // <-- Function.defer
+//         ~system.installAdapterBridge;   // ← ONE LINE
+//     }.defer;
 //)
 
 // --- Option B: rely on class default (preferred day to day)
 (
     {
-        // optional: stop a previous instance cleanly
+        var systemRef;
         if(~system.notNil and: { ~system.respondsTo(\shutdownAll) }) { ~system.shutdownAll };
-        ~system = LivePedalboardSystem.new(nil);  // nil → class default in LivePedalboardSuite
+        systemRef = LivePedalboardSystem.new(nil);  // nil → class default in LivePedalboardSuite
+        ~system = systemRef;
         ~system.bringUpAll;
-    }.defer;  // <-- Function.defer
+
+        //New: install the queue→adapter bridge (SHORT canonicals → MPB)
+        ~system.installAdapterBridge;
+    }.defer;
 )
+

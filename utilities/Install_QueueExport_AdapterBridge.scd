@@ -1,0 +1,58 @@
+// Install_QueueExport_AdapterBridge.scd
+// v0.1
+// MD 20250923-1456
+
+/* Purpose
+   Bridge CommandManager.queueExportCallback to your adapter (~ct_applyOSCPathToMPB),
+   so queued SHORT canonical commands (e.g., "/add/delay") apply to MagicPedalboardNew.
+   Tries to load the adapter if it isn't already in memory.
+
+   Style
+   - var-first; descriptive variable names; AppClock-only GUI; no server.sync.
+*/
+
+(
+var environmentReady, commandManager, pedalboardRef, statusDisplayRef;
+var adapterAvailable, candidatePaths, loadedPathString;
+
+environmentReady = (~system.notNil)
+  and: { ~system.commandManager.notNil }
+  and: { ~system.pedalboard.notNil };
+
+if(environmentReady.not) {
+  "⚠️ Bring-up first (Start_LivePedalboardSystem.scd, Option B).".warn;
+  ^nil;
+};
+
+commandManager    = ~system.commandManager;
+pedalboardRef     = ~system.pedalboard;
+statusDisplayRef  = ~system.statusDisplay;
+
+// Ensure adapter is present
+adapterAvailable = (~ct_applyOSCPathToMPB.notNil);
+if(adapterAvailable.not) {
+  candidatePaths = [
+    (Platform.userExtensionDir ++ "/LivePedalboardSuite/Magicpedalboard/adapter_CommandTree_to_MagicPedalboard.scd").standardizePath
+  ];
+  candidatePaths.do({ |fullPathString|
+    if(adapterAvailable.not and: { File.exists(fullPathString) }) {
+      fullPathString.load;
+      adapterAvailable = (~ct_applyOSCPathToMPB.notNil);
+      if(adapterAvailable) { loadedPathString = fullPathString };
+    };
+  });
+};
+
+if(adapterAvailable.not) {
+  "❌ Adapter not found. Cannot bridge queue -> MPB today.".warn;
+  ^nil;
+};
+
+// Install the bridge
+commandManager.queueExportCallback = { |canonicalPathString|
+  ~ct_applyOSCPathToMPB.(canonicalPathString, pedalboardRef, statusDisplayRef);
+};
+
+("✅ Adapter bridge active" ++ (loadedPathString.notNil.if({ " (loaded: " ++ loadedPathString ++ ")" }, { "" }))).postln;
+"   Sending the queue will now apply each command via the adapter.".postln;
+)
