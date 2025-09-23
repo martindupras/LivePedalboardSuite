@@ -58,7 +58,7 @@ showGuiHint = { |text|
 ensureGeneratedSources = {
     Server.default.bind({
         if(Ndef(\testmelody).source.isNil) {
-            Ndef(\testmelody, {
+/*            Ndef(\testmelody, {
                 var trig, frequencySeq, freq, env, pan;
                 trig         = Impulse.kr(3.2);
                 frequencySeq = Dseq([220,277.18,329.63,392,329.63,277.18,246.94], inf);
@@ -66,7 +66,19 @@ ensureGeneratedSources = {
                 env          = Decay2.kr(trig, 0.01, 0.35);
                 pan          = ToggleFF.kr(trig).linlin(0,1,-0.6,0.6);
                 Pan2.ar(SinOsc.ar(freq) * env * 0.25, pan)
-            });
+            });*/
+
+			Ndef(\testmelody, {
+    var trig, freq, env, pan, scale, idx;
+    trig = Impulse.kr(2.2); // relaxed tempo
+    scale = [60, 62, 64, 67, 69]; // C major pentatonic
+    idx = Demand.kr(trig, 0, Dwhite(0, scale.size, inf)); // returns control-rate index
+    freq = Select.kr(idx, scale).midicps; // safe indexing
+    env = Decay2.kr(trig, 0.01, 0.4);
+    pan = LFNoise1.kr(0.3).range(-0.7, 0.7);
+    Pan2.ar(SinOsc.ar(freq) * env * 0.2, pan)
+});
+
         };
         Ndef(\testmelody).ar(2);
 

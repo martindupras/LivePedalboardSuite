@@ -1,0 +1,68 @@
+
+StartHere.txt — Quick Start for LivePedalboardSuite Demo
+======================================================
+
+1. Prerequisites
+----------------
+- SuperCollider 3.11 or newer installed and working
+- Clone or download the LivePedalboardSuite repository to your computer
+- (Optional) Audio interface or headphones for best sound
+
+2. Launch SuperCollider
+-----------------------
+- Open SuperCollider (scide)
+- Open the file: Start_LivePedalboardSystem.scd (usually in the root or a Scripts/ folder)
+
+3. Bring Up the System
+----------------------
+- Evaluate the following block (select and press Cmd+Return or Ctrl+Return):
+
+(
+{
+    if(~system.notNil and: { ~system.respondsTo(\shutdownAll) }) { ~system.shutdownAll };
+    ~system = LivePedalboardSystem.new(nil);
+    ~system.bringUpAll;
+    ~system.installAdapterBridge;
+}.defer;
+)
+
+- Wait for the GUI window to appear and for console logs to confirm bring-up.
+
+4. Run the Demo
+---------------
+- Open the file: Demo_Today_Playbook_FallbackOnly.scd (or similarly named demo script)
+- Evaluate the entire file (select all, Cmd+Return/Ctrl+Return)
+- You should see console output like:
+    [FALLBACK] entered
+    [FALLBACK] apply → /add/delay
+    ...
+    [FALLBACK] done.
+- The GUI window should update with each step.
+- You should hear a pleasant melody and effect changes.
+
+5. Troubleshooting
+------------------
+- **No sound?**
+    - Make sure your audio interface is selected in SuperCollider (check ServerOptions)
+    - Check your system volume and headphones/speakers
+    - Confirm that the Ndef(\testmelody) is playing (see code in ensureGeneratedSources)
+    - Try re-evaluating Start_LivePedalboardSystem.scd and then the demo script
+- **No GUI window?**
+    - Make sure you ran the bring-up block in step 3
+    - Check for errors in the SuperCollider console
+    - Try closing all SuperCollider windows and re-running from step 3
+- **No effect changes?**
+    - Confirm the demo script is running (look for [FALLBACK] logs)
+    - Check that ~system.pedalboard is not nil (type ~system.pedalboard; in the console)
+    - Try restarting SuperCollider and repeating steps 3 and 4
+- **Still stuck?**
+    - Paste any error messages into an issue on the project repo or ask your team lead
+
+6. Stopping the Demo
+--------------------
+- To stop all sound, evaluate:
+    s.meter; // open meters
+    s.quit;  // stop audio server
+    // or close SuperCollider
+
+Enjoy exploring LivePedalboardSuite!
