@@ -1,14 +1,14 @@
 // TestLogging_CommandTree.scd
-// v0.1.5
-// MD 20250923-0936
+// v0.1.6
+// MD 20250923-1007
 
 (
 /*
 Purpose
 - Load the canonical CommandTree JSON used by LivePedalboardSystem.
-- Print a useful summary: structure, counts, payload coverage, and (if present) sample command payloads.
+- Print a useful summary: structure, counts, payload coverage, and canonical command paths.
 - Validate and export a .tmp snapshot; list saved versions if available.
-- No early returns; no nonstandard List methods.
+- No early returns; no nonstandard List methods; do NOT reassign payloads here.
 
 Style
 - var-first; lowercase methods; no server.sync; class extensions only.
@@ -18,9 +18,10 @@ var jsonPrimary, jsonFallback, jsonPathUsed;
 var tree, ok, proceed;
 var totalNodes, leafCount, leavesAll, leavesWithPayload, payloadCoverage, payloadPctStr;
 var findByName, commandsNode, haveCommands, samplePaths, tmpPath;
-var showFirstN;
 
-// verbosity for this test (ok to leave)
+// small helpers (known-good)
+var showFirstN, buildPathFromSegments;
+
 MDMiniLogger.get.setverbosity(3);
 
 // choose path (prefer LivePedalboardSuite; fall back to MDclasses if present)
@@ -37,24 +38,26 @@ ok = tree.importJSONFile(jsonPathUsed);
 ("import ok → " ++ ok).postln;
 proceed = ok;
 
-// helper: take first N from a List (safe)
+// helpers
 showFirstN = { |listIn, nIn|
   var lim, out, i;
   lim = nIn ? 8;
   if(lim > listIn.size) { lim = listIn.size };
-  out = List.new;
-  i = 0;
-  while({ i < lim }, {
-    out.add(listIn[i]);
-    i = i + 1;
-  });
+  out = List.new; i = 0;
+  while({ i < lim }, { out.add(listIn[i]); i = i + 1 });
   out.asArray
 };
 
-// only continue if loaded
+buildPathFromSegments = { |segs|
+  var out, i, lim;
+  out = ""; i = 0; lim = segs.size;
+  while({ i < lim }, { out = out ++ "/" ++ segs[i]; i = i + 1 });
+  out
+};
+
+// continue only if loaded
 if(proceed) {
-  // normalize & tag
-  tree.assignPayloads;      // payload=name where missing
+  // tag depths (do NOT call assignPayloads; we keep canonical payloads written by the editor)
   tree.root.tagByDepth(0);
 
   // pretty tree
@@ -67,7 +70,7 @@ if(proceed) {
   leafCount  = tree.root.countLeavesOnly;
   ("nodes=" ++ totalNodes ++ "  leaves=" ++ leafCount).postln;
 
-  // payload coverage (leaves)
+  // payload coverage (leaves) — informative only
   leavesAll = List.new;
   tree.nodeMap.values.do({ |n| if(n.isLeaf) { leavesAll.add(n) } });
   leavesWithPayload = leavesAll.select({ |n| n.payload.notNil });
@@ -86,23 +89,34 @@ if(proceed) {
     n
   };
 
-  // commands branch diagnostic
+  // commands branch diagnostic — print canonical "/verb/arg/..." by deriving paths
   "--- Commands branch (if present) ---".postln;
   commandsNode = findByName.("commands");
   haveCommands = commandsNode.notNil;
   ("have 'commands' → " ++ haveCommands).postln;
   if(haveCommands) {
-    var leafStrings, visit;
-    leafStrings = List.new;
-    visit = { |node|
+    var leafPaths, traverse;
+    leafPaths = List.new;
+
+    traverse = { |node, segs|
       if(node.isLeaf) {
-        leafStrings.add((node.payload ?? node.name).asString);
+        leafPaths.add(buildPathFromSegments.(segs));
       }{
-        node.children.do(visit);
+        node.children.do({ |child|
+          var nextSegs;
+          nextSegs = segs.copy;
+          nextSegs.add(child.name.asString);
+          traverse.(child, nextSegs);
+        });
       }
     };
-    visit.(commandsNode);
-    samplePaths = showFirstN.(leafStrings, 8);
+
+    // seed traversal under "commands"
+    commandsNode.children.do({ |child|
+      traverse.(child, [child.name.asString]);
+    });
+
+    samplePaths = showFirstN.(leafPaths, 8);
     ("sample payloads: " ++ samplePaths.asString).postln;
   };
 
