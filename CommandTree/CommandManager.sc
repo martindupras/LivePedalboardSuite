@@ -31,7 +31,10 @@ CommandManager {
 		var explicitOk, savedOk;
 
 		currentState = \idle;
-		saver = CircularFileSave.new("myTree", "~/CommandTreeSavefiles", 10);
+		// saver = CircularFileSave.new("myTree", "~/CommandTreeSavefiles", 10);
+		saver = CircularFileSave.new("myTree", nil, 10);
+// or simply: saver = CircularFileSave.new("myTree");
+
 
 		stateDir  = Platform.userExtensionDir ++ "/LivePedalboardSuite/.state";
 		stateFile = stateDir ++ "/LastCommandTreePath.txt";

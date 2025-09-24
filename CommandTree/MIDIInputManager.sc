@@ -23,6 +23,7 @@ MIDIInputManager {
 		^super.new.init(builder, launchpad, footController, guitarMIDI, launchpadDAW);
 	}
 
+	/*
 	init { |argBuilder, argLaunchpad, argFootController, argGuitarMIDI, argLaunchpadDAW|
 
 		this.modes = IdentityDictionary[
@@ -39,13 +40,20 @@ MIDIInputManager {
 		this.builder = argBuilder;
 		this.queue = MDCommandQueue.new;
 
-		this.launchpadHandler = argLaunchpad ?? LaunchpadHandler.new;
-		this.footControllerHandler = argFootController ?? FootControllerHandler.new(this);
+		// this.launchpadHandler = argLaunchpad ?? LaunchpadHandler.new;
+		// this.footControllerHandler = argFootController ?? FootControllerHandler.new(this);
 		//DEBUG:
 		("footControllerHandler manager is: " ++ footControllerHandler.inputManager).postln;
 
-		this.guitarHandler = argGuitarMIDI ?? GuitarMIDIHandler.new(this);
-		this.launchpadDAWHandler = argLaunchpadDAW ?? LaunchpadDAWHandler.new;
+		// this.guitarHandler = argGuitarMIDI ?? GuitarMIDIHandler.new(this);
+		// this.launchpadDAWHandler = argLaunchpadDAW ?? LaunchpadDAWHandler.new;
+
+
+		this.launchpadHandler      = argLaunchpad      ?? { LaunchpadHandler.new(this) };
+		this.footControllerHandler = argFootController ?? { FootControllerHandler.new(this) };
+		this.guitarHandler         = argGuitarMIDI     ?? { GuitarMIDIHandler.new(this) };
+		this.launchpadDAWHandler   = argLaunchpadDAW   ?? { LaunchpadDAWHandler.new(this) };
+
 
 		MIDIClient.init;
 		MIDIIn.connectAll;
@@ -71,6 +79,55 @@ MIDIInputManager {
 		this.setupMIDIDef;
 		^this
 	}
+*/
+
+	init { arg argBuilder, argLaunchpad, argFootController, argGuitarMIDI, argLaunchpadDAW;
+    var defined;
+
+    // -- modes + basics
+    this.modes = IdentityDictionary[
+        \idle -> \idle, \prog -> \prog, \queue -> \queue, \send -> \send,
+        \play -> \play, \numeric -> \numeric, \capture -> \capture, \record -> \record
+    ];
+    this.builder = argBuilder;
+    this.queue   = MDCommandQueue.new;
+
+    // --- 1) CREATE HANDLERS FIRST (safe fallbacks)
+    launchpadHandler      = argLaunchpad      ?? { LaunchpadHandler.new(this)      };
+    footControllerHandler = argFootController ?? { FootControllerHandler.new(this) };
+    guitarHandler         = argGuitarMIDI     ?? { GuitarMIDIHandler.new(this)     };
+    launchpadDAWHandler   = argLaunchpadDAW   ?? { LaunchpadDAWHandler.new(this)   };
+
+    // --- 2) MIDI client + device scan/bind
+    MIDIClient.init;
+    MIDIIn.connectAll;
+
+    deviceUIDs     = Dictionary.new;
+    deviceHandlers = Dictionary.new;
+    this.scanDevices;
+
+    launchpadID      = this.getDeviceSrcID(\Launchpad_Mini_MK3_LPMiniMK3_MIDI_Out);
+    launchpadDAWID   = this.getDeviceSrcID(\Launchpad_Mini_MK3_LPMiniMK3_DAW_Out);
+    footControllerID = this.getDeviceSrcID(\nanoKEY2_KEYBOARD);
+    guitarID         = this.getDeviceSrcID(\MD_IAC_to_SC);
+
+    // Bind (guarded inside bindDevice)
+    this.bindDevice(launchpadID,      launchpadHandler);
+    this.bindDevice(footControllerID, footControllerHandler);
+    this.bindDevice(guitarID,         guitarHandler);
+    this.bindDevice(launchpadDAWID,   launchpadDAWHandler);
+
+    // --- 3) Optional debug (after creation; nil-safe)
+    ("LaunchpadDAWHandler is: " ++ launchpadDAWHandler).postln;
+    ("footControllerHandler manager is: "
+        ++ (footControllerHandler.notNil.if({ footControllerHandler.inputManager }, { "nil" }))
+    ).postln;
+
+    // --- 4) Final MIDIdef
+    this.setupMIDIDef;
+
+    ^this
+}
 
 	setMode { |newMode|
 		currentMode = newMode;
@@ -105,39 +162,39 @@ MIDIInputManager {
 			//---
 
 
-      modes[\queue], {
-        var queueText, canonicalPath;
+			modes[\queue], {
+				var queueText, canonicalPath;
 
-        // NEW: derive canonical short path from current CommandTree selection
-        canonicalPath = parentCommandManager.canonicalPathFromBuilder(builder);
+				// NEW: derive canonical short path from current CommandTree selection
+				canonicalPath = parentCommandManager.canonicalPathFromBuilder(builder);
 
-        if (canonicalPath != lastEnqueuedPayload) { // reuse dedupe guard
-          ("Current canonical to queue: " ++ canonicalPath).postln;
-          queue.enqueueCommand(canonicalPath);
-          lastEnqueuedPayload = canonicalPath;
+				if (canonicalPath != lastEnqueuedPayload) { // reuse dedupe guard
+					("Current canonical to queue: " ++ canonicalPath).postln;
+					queue.enqueueCommand(canonicalPath);
+					lastEnqueuedPayload = canonicalPath;
 
-          if (builder.isAtLeaf) {
-            parentCommandManager.setStatus("🌿 Leaf → " ++ canonicalPath);
-          } {
-            parentCommandManager.setStatus("📥 Queued node: " ++ canonicalPath);
-          };
+					if (builder.isAtLeaf) {
+						parentCommandManager.setStatus("🌿 Leaf → " ++ canonicalPath);
+					} {
+						parentCommandManager.setStatus("📥 Queued node: " ++ canonicalPath);
+					};
 
-          queueText = queue.commandList.collect({ arg cmd; "- " ++ cmd.asString }).join("\n");
-          {
-            parentCommandManager.display.updateTextField(\state, "Mode: queue");
-            parentCommandManager.display.updateTextField(\queue, "Current Queue:\n" ++ queueText);
-            parentCommandManager.display.updateTextField(\lastCommand, "Last Added: " ++ canonicalPath);
-          }.defer;
+					queueText = queue.commandList.collect({ arg cmd; "- " ++ cmd.asString }).join("\n");
+					{
+						parentCommandManager.display.updateTextField(\state, "Mode: queue");
+						parentCommandManager.display.updateTextField(\queue, "Current Queue:\n" ++ queueText);
+						parentCommandManager.display.updateTextField(\lastCommand, "Last Added: " ++ canonicalPath);
+					}.defer;
 
-        } {
-          ("⚠️ Duplicate canonical ignored: " ++ canonicalPath).postln;
-          parentCommandManager.setStatus("⚠️ Duplicate canonical ignored");
-        };
+				} {
+					("⚠️ Duplicate canonical ignored: " ++ canonicalPath).postln;
+					parentCommandManager.setStatus("⚠️ Duplicate canonical ignored");
+				};
 
-        builder.resetNavigation;
-        "Added canonical to queue and restarted navigation.".postln;
-        this.setMode(modes[\prog]); // unchanged
-      },
+				builder.resetNavigation;
+				"Added canonical to queue and restarted navigation.".postln;
+				this.setMode(modes[\prog]); // unchanged
+			},
 
 			//---
 

@@ -327,7 +327,7 @@ MDCommandTree {
 		^this
 	}
 
-	importJSONFile { |path|
+/*	importJSONFile { |path|
 		var jsonString, dict, newTree;
 
 		if (File.exists(path).not) {
@@ -360,7 +360,65 @@ MDCommandTree {
 		("📥 Tree imported from " ++ path).postln;
 		this.mdlog(2, "CommandTree", "imported=" ++ path);
 		^true;
-	}
+	}*/
+
+	importJSONFile { arg path;
+    var jsonString, dict;
+
+    // Basic I/O and parsing guards
+    if (File.exists(path).not) {
+        ("❌ File does not exist: %".format(path)).postln;
+        this.mdlog(0, "CommandTree", "file does not exist: " ++ path);
+        ^false;
+    };
+
+    jsonString = File(path, "r").readAllString;
+
+    if (jsonString.isNil or: { jsonString.isEmpty }) {
+        "⚠️ File is empty or unreadable.".postln;
+        this.mdlog(1, "CommandTree", "empty/unreadable: " ++ path);
+        ^false;
+    };
+
+    dict = JSONlib.convertToSC(jsonString);
+
+    if (dict.isNil) {
+        "⚠️ Failed to parse JSON.".postln;
+        this.mdlog(0, "CommandTree", "failed to parse: " ++ path);
+        ^false;
+    };
+
+    // ---- Build *this* tree in-place: reset containers first
+    {
+        var rootName, rootId, children;
+
+        // tolerant root fields (work even if JSON doesn't carry name/id)
+        rootName = dict[\name] ? "root";
+        rootId   = (dict[\id] ? 0).asInteger;
+
+        // fresh root + maps
+        root = MDCommandNode.new(rootName.asString, rootId, 0);
+        nodeMap = IdentityDictionary.new(128);
+        nodeMap.put(rootId, root);
+        nodeCount = rootId.max(1);
+
+        // recursively build from children if present
+        children = dict[\children];
+        if (children.isKindOf(Array)) {
+            children.do({ |childDict| this.rebuildTreeFromDict(childDict, root) });
+        };
+
+        // preserve payload at root if present
+        root.payload = dict[\payload];
+
+    }.value;
+
+    ("📥 Tree imported from " ++ path).postln;
+    this.mdlog(2, "CommandTree", "imported=" ++ path);
+    ^true;
+}
+
+
 
 	saveVersioned {
 		var jsonString;

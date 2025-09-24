@@ -141,12 +141,12 @@ MagicDisplayGUI_GridDemo : MagicDisplay {
 		// rootLayout.setMinRowHeight(1, 36);
 
 		// Put Choices (left) and Processors HUD (right) side-by-side on Row 4
-		rootLayout.add(choicesPanel, 4, 0);     // left column
-		rootLayout.add(bottomHudView, 4, 1);    // right column
+		// rootLayout.add(choicesPanel, 4, 0);     // left column
+		// rootLayout.add(bottomHudView, 4, 1);    // right column
 
 		// Tweaks for row/column growth
-		rootLayout.setRowStretch(4, 0);         // fixed height for bottom row
-		rootLayout.setMinRowHeight(4, hudRowH); // keep same height as before
+		// rootLayout.setRowStretch(4, 0);         // fixed height for bottom row
+		// rootLayout.setMinRowHeight(4, hudRowH); // keep same height as before
 
 
 		// ---- Row 2: countdown (FULL width) ----
@@ -257,8 +257,8 @@ MagicDisplayGUI_GridDemo : MagicDisplay {
 		/////////
 		buildBottomHud.value;
 
-		rootLayout.add(choicesPanel, 4, 0);   // left column
-		rootLayout.add(bottomHudView, 4, 1);  // right column
+		// rootLayout.add(choicesPanel, 4, 0);   // left column
+		// rootLayout.add(bottomHudView, 4, 1);  // right column
 		rootLayout.setRowStretch(4, 0);
 		rootLayout.setMinRowHeight(4, hudRowH);
 

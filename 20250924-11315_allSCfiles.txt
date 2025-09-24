@@ -159,7 +159,10 @@ CommandManager {
 		var explicitOk, savedOk;
 
 		currentState = \idle;
-		saver = CircularFileSave.new("myTree", "~/CommandTreeSavefiles", 10);
+		// saver = CircularFileSave.new("myTree", "~/CommandTreeSavefiles", 10);
+		saver = CircularFileSave.new("myTree", nil, 10);
+// or simply: saver = CircularFileSave.new("myTree");
+
 
 		stateDir  = Platform.userExtensionDir ++ "/LivePedalboardSuite/.state";
 		stateFile = stateDir ++ "/LastCommandTreePath.txt";
@@ -1959,13 +1962,20 @@ MIDIInputManager {
 		this.builder = argBuilder;
 		this.queue = MDCommandQueue.new;
 
-		this.launchpadHandler = argLaunchpad ?? LaunchpadHandler.new;
-		this.footControllerHandler = argFootController ?? FootControllerHandler.new(this);
+		// this.launchpadHandler = argLaunchpad ?? LaunchpadHandler.new;
+		// this.footControllerHandler = argFootController ?? FootControllerHandler.new(this);
 		//DEBUG:
 		("footControllerHandler manager is: " ++ footControllerHandler.inputManager).postln;
 
-		this.guitarHandler = argGuitarMIDI ?? GuitarMIDIHandler.new(this);
-		this.launchpadDAWHandler = argLaunchpadDAW ?? LaunchpadDAWHandler.new;
+		// this.guitarHandler = argGuitarMIDI ?? GuitarMIDIHandler.new(this);
+		// this.launchpadDAWHandler = argLaunchpadDAW ?? LaunchpadDAWHandler.new;
+
+
+		this.launchpadHandler      = argLaunchpad      ?? { LaunchpadHandler.new(this) };
+		this.footControllerHandler = argFootController ?? { FootControllerHandler.new(this) };
+		this.guitarHandler         = argGuitarMIDI     ?? { GuitarMIDIHandler.new(this) };
+		this.launchpadDAWHandler   = argLaunchpadDAW   ?? { LaunchpadDAWHandler.new(this) };
+
 
 		MIDIClient.init;
 		MIDIIn.connectAll;
@@ -2025,39 +2035,39 @@ MIDIInputManager {
 			//---
 
 
-      modes[\queue], {
-        var queueText, canonicalPath;
+			modes[\queue], {
+				var queueText, canonicalPath;
 
-        // NEW: derive canonical short path from current CommandTree selection
-        canonicalPath = parentCommandManager.canonicalPathFromBuilder(builder);
+				// NEW: derive canonical short path from current CommandTree selection
+				canonicalPath = parentCommandManager.canonicalPathFromBuilder(builder);
 
-        if (canonicalPath != lastEnqueuedPayload) { // reuse dedupe guard
-          ("Current canonical to queue: " ++ canonicalPath).postln;
-          queue.enqueueCommand(canonicalPath);
-          lastEnqueuedPayload = canonicalPath;
+				if (canonicalPath != lastEnqueuedPayload) { // reuse dedupe guard
+					("Current canonical to queue: " ++ canonicalPath).postln;
+					queue.enqueueCommand(canonicalPath);
+					lastEnqueuedPayload = canonicalPath;
 
-          if (builder.isAtLeaf) {
-            parentCommandManager.setStatus("🌿 Leaf → " ++ canonicalPath);
-          } {
-            parentCommandManager.setStatus("📥 Queued node: " ++ canonicalPath);
-          };
+					if (builder.isAtLeaf) {
+						parentCommandManager.setStatus("🌿 Leaf → " ++ canonicalPath);
+					} {
+						parentCommandManager.setStatus("📥 Queued node: " ++ canonicalPath);
+					};
 
-          queueText = queue.commandList.collect({ arg cmd; "- " ++ cmd.asString }).join("\n");
-          {
-            parentCommandManager.display.updateTextField(\state, "Mode: queue");
-            parentCommandManager.display.updateTextField(\queue, "Current Queue:\n" ++ queueText);
-            parentCommandManager.display.updateTextField(\lastCommand, "Last Added: " ++ canonicalPath);
-          }.defer;
+					queueText = queue.commandList.collect({ arg cmd; "- " ++ cmd.asString }).join("\n");
+					{
+						parentCommandManager.display.updateTextField(\state, "Mode: queue");
+						parentCommandManager.display.updateTextField(\queue, "Current Queue:\n" ++ queueText);
+						parentCommandManager.display.updateTextField(\lastCommand, "Last Added: " ++ canonicalPath);
+					}.defer;
 
-        } {
-          ("⚠️ Duplicate canonical ignored: " ++ canonicalPath).postln;
-          parentCommandManager.setStatus("⚠️ Duplicate canonical ignored");
-        };
+				} {
+					("⚠️ Duplicate canonical ignored: " ++ canonicalPath).postln;
+					parentCommandManager.setStatus("⚠️ Duplicate canonical ignored");
+				};
 
-        builder.resetNavigation;
-        "Added canonical to queue and restarted navigation.".postln;
-        this.setMode(modes[\prog]); // unchanged
-      },
+				builder.resetNavigation;
+				"Added canonical to queue and restarted navigation.".postln;
+				this.setMode(modes[\prog]); // unchanged
+			},
 
 			//---
 
@@ -3243,12 +3253,12 @@ MagicDisplayGUI_GridDemo : MagicDisplay {
 		// rootLayout.setMinRowHeight(1, 36);
 
 		// Put Choices (left) and Processors HUD (right) side-by-side on Row 4
-		rootLayout.add(choicesPanel, 4, 0);     // left column
-		rootLayout.add(bottomHudView, 4, 1);    // right column
+		// rootLayout.add(choicesPanel, 4, 0);     // left column
+		// rootLayout.add(bottomHudView, 4, 1);    // right column
 
 		// Tweaks for row/column growth
-		rootLayout.setRowStretch(4, 0);         // fixed height for bottom row
-		rootLayout.setMinRowHeight(4, hudRowH); // keep same height as before
+		// rootLayout.setRowStretch(4, 0);         // fixed height for bottom row
+		// rootLayout.setMinRowHeight(4, hudRowH); // keep same height as before
 
 
 		// ---- Row 2: countdown (FULL width) ----
@@ -3359,8 +3369,8 @@ MagicDisplayGUI_GridDemo : MagicDisplay {
 		/////////
 		buildBottomHud.value;
 
-		rootLayout.add(choicesPanel, 4, 0);   // left column
-		rootLayout.add(bottomHudView, 4, 1);  // right column
+		// rootLayout.add(choicesPanel, 4, 0);   // left column
+		// rootLayout.add(bottomHudView, 4, 1);  // right column
 		rootLayout.setRowStretch(4, 0);
 		rootLayout.setMinRowHeight(4, hudRowH);
 
