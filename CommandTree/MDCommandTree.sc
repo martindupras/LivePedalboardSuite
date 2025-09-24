@@ -1,3 +1,7 @@
+// MDCommandTree.sc
+// v1.0.1
+// MD 20250924-1022
+
 MDCommandTree {
 	var <>root, <>nodeLimit = 200, <>nodeCount = 0, <>nodeMap;
 	var <>saver;
@@ -57,10 +61,10 @@ MDCommandTree {
 		^node;
 	}
 
-	printTreePretty {
+/*	printTreePretty {
 		root.printTreePretty;
 		^this;
-	}
+	}*/
 
 	tagDepths {
 		root.tagByDepth(0);
@@ -160,7 +164,7 @@ MDCommandTree {
 		^nil
 	}
 
-	exportJSONFile { |path|
+/*	exportJSONFile { |path|
 		var jsonString, file;
 
 		jsonString = JSONlib.convertToJSON(root.asDictRecursively);
@@ -173,49 +177,49 @@ MDCommandTree {
 		} {
 			"⚠️ Failed to open file for writing.".warn;
 		}
-	}
+	}*/
 
-	importJSONFile { |path|
-		var jsonString, dict, newTree;
-
-		if (File.exists(path).not) {
-			"❌ File does not exist: %".format(path).postln;
-			^false;
-		};
-
-		jsonString = File(path, "r").readAllString;
-
-		if (jsonString.isNil or: { jsonString.isEmpty }) {
-			"⚠️ File is empty or unreadable.".postln;
-			^false;
-		};
-
-		dict = JSONlib.convertToSC(jsonString);
-
-		if (dict.isNil) {
-			"⚠️ Failed to parse JSON.".postln;
-			^false;
-		};
-
-		newTree = MDCommandTree.fromDict(dict);
-		this.root = newTree.root;
-		this.nodeMap = newTree.nodeMap;
-		this.nodeCount = newTree.nodeCount;
-
-		("📥 Tree imported from " ++ path).postln;
-		^true;
-	}
+	// importJSONFile { |path|
+	// 	var jsonString, dict, newTree;
+	//
+	// 	if (File.exists(path).not) {
+	// 		"❌ File does not exist: %".format(path).postln;
+	// 		^false;
+	// 	};
+	//
+	// 	jsonString = File(path, "r").readAllString;
+	//
+	// 	if (jsonString.isNil or: { jsonString.isEmpty }) {
+	// 		"⚠️ File is empty or unreadable.".postln;
+	// 		^false;
+	// 	};
+	//
+	// 	dict = JSONlib.convertToSC(jsonString);
+	//
+	// 	if (dict.isNil) {
+	// 		"⚠️ Failed to parse JSON.".postln;
+	// 		^false;
+	// 	};
+	//
+	// 	newTree = MDCommandTree.fromDict(dict);
+	// 	this.root = newTree.root;
+	// 	this.nodeMap = newTree.nodeMap;
+	// 	this.nodeCount = newTree.nodeCount;
+	//
+	// 	("📥 Tree imported from " ++ path).postln;
+	// 	^true;
+	// }
 
 	// NEW - added to manage circular saves
-	saveVersioned {
+/*	saveVersioned {
 		var json = JSONlib.convertToJSON(root.asDictRecursively);
 		saver.saveVersion(json);
 		"Tree saved to versioned file.".postln;
-	}
+	}*/
 	//---
 
 	// NEW - added to manage circular saves
-	loadLatestVersion {
+/*	loadLatestVersion {
 		var json = saver.latestVersion;
 		var dict, newTree;
 
@@ -238,7 +242,7 @@ MDCommandTree {
 
 		"📥 Tree loaded from latest version.".postln;
 		^true;
-	}
+	}*/
 	//---
 
 	// NEW - added to manage circular saves
@@ -251,7 +255,7 @@ MDCommandTree {
 
 
 
-	validateTree {
+/*	validateTree {
 		var seenNames = Set.new;
 		var valid = true;
 		nodeMap.values.do { |node|
@@ -262,7 +266,7 @@ MDCommandTree {
 			seenNames.add(node.name);
 		};
 		^valid;
-	}
+	}*/
 
 
 	// THIS IS NEW. This is so that (for now) we can copy the name of the node into the payload instance variable.
@@ -296,5 +300,121 @@ MDCommandTree {
 		^this;
 	}
 
+  printTreePretty {
+    root.printTreePretty;
+    this.mdlog(3, "CommandTree", "pretty-print finished");
+    ^this;
+  }
 
+  exportJSONFile { |path|
+    var jsonString, file;
+
+    jsonString = JSONlib.convertToJSON(root.asDictRecursively);
+    file = File(path, "w");
+
+    if (file.isOpen) {
+      file.write(jsonString);
+      file.close;
+      ("📤 Tree exported to " ++ path).postln;
+      this.mdlog(2, "CommandTree", "exported=" ++ path);
+    } {
+      "⚠️ Failed to open file for writing.".warn;
+      this.mdlog(1, "CommandTree", "failed open for write: " ++ path);
+    };
+    ^this
+  }
+
+  importJSONFile { |path|
+    var jsonString, dict, newTree;
+
+    if (File.exists(path).not) {
+      ("❌ File does not exist: %".format(path)).postln;
+      this.mdlog(0, "CommandTree", "file does not exist: " ++ path);
+      ^false;
+    };
+
+    jsonString = File(path, "r").readAllString;
+
+    if (jsonString.isNil or: { jsonString.isEmpty }) {
+      "⚠️ File is empty or unreadable.".postln;
+      this.mdlog(1, "CommandTree", "empty/unreadable: " ++ path);
+      ^false;
+    };
+
+    dict = JSONlib.convertToSC(jsonString);
+
+    if (dict.isNil) {
+      "⚠️ Failed to parse JSON.".postln;
+      this.mdlog(0, "CommandTree", "failed to parse: " ++ path);
+      ^false;
+    };
+
+    newTree = MDCommandTree.fromDict(dict);
+    this.root     = newTree.root;
+    this.nodeMap  = newTree.nodeMap;
+    this.nodeCount= newTree.nodeCount;
+
+    ("📥 Tree imported from " ++ path).postln;
+    this.mdlog(2, "CommandTree", "imported=" ++ path);
+    ^true;
+  }
+
+  saveVersioned {
+    var jsonString;
+
+    jsonString = JSONlib.convertToJSON(root.asDictRecursively);
+    saver.saveVersion(jsonString);
+    "Tree saved to versioned file.".postln;
+    this.mdlog(2, "CommandTree", "versioned save complete");
+  }
+
+  loadLatestVersion {
+    var jsonString, dict, newTree;
+
+    jsonString = saver.latestVersion;
+
+    if (jsonString.isNil or: { jsonString.isEmpty }) {
+      "⚠️ No saved version found.".postln;
+      this.mdlog(1, "CommandTree", "no saved version found");
+      ^false;
+    };
+
+    dict = JSONlib.convertToSC(jsonString);
+
+    if (dict.isNil) {
+      "⚠️ Failed to parse JSON.".postln;
+      this.mdlog(0, "CommandTree", "failed to parse saved JSON");
+      ^false;
+    };
+
+    newTree = MDCommandTree.fromDict(dict);
+    this.root     = newTree.root;
+    this.nodeMap  = newTree.nodeMap;
+    this.nodeCount= newTree.nodeCount;
+
+    "📥 Tree loaded from latest version.".postln;
+    this.mdlog(2, "CommandTree", "loaded latest version");
+    ^true;
+  }
+
+  validateTree {
+    var seenNames, validFlag;
+
+    seenNames = Set.new;
+    validFlag = true;
+
+    nodeMap.values.do({ |nodeRef|
+      if (seenNames.includes(nodeRef.name)) {
+        ("⚠️ Duplicate node name: " ++ nodeRef.name).postln;
+        this.mdlog(1, "CommandTree", "duplicate node name: " ++ nodeRef.name);
+        validFlag = false;
+      };
+      seenNames.add(nodeRef.name);
+    });
+
+    this.mdlog(validFlag.if(2,0), "CommandTree",
+      validFlag.if("✅ validation passed", "❌ validation failed"));
+
+    ^validFlag;
+  }
 }

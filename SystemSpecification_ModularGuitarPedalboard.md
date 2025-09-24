@@ -9,31 +9,31 @@ This system is a modular, software-based audio pedalboard designed for live perf
 
 ### 2.1. Audio Pedalboard Engine
 
-- **Signal Chains:**  
+- **Signal Chains:**
   The audio engine maintains two parallel signal chains (A and B), each consisting of a sequence of audio processors (effects) and a source. These chains are dynamically reconfigurable.
-- **Processors:**  
+- **Processors:**
   Each processor is a modular audio effect (e.g., delay, chorus, reverb, drive) that can be inserted, bypassed, or removed from a chain. All processors are designed to operate on a configurable number of channels (typically stereo).
-- **Chain Switching:**  
+- **Chain Switching:**
   The performer can crossfade between the two chains, ensuring smooth transitions. Only one chain is audible at a time, except during deliberate crossfades.
-- **Exclusivity:**  
+- **Exclusivity:**
   The system enforces that only the “current” chain is audible, muting the “next” chain at its source except during crossfades.
 
 ### 2.2. Hierarchical Command Navigation
 
-- **Command Tree:**  
+- **Command Tree:**
   All available commands (such as adding effects, switching chains, or changing sources) are organized in a hierarchical tree structure. Each node represents a command or a category of commands.
-- **Navigation by Guitar:**  
+- **Navigation by Guitar:**
   The performer navigates the tree by playing specific frets on each string. Each string corresponds to a level in the tree; the fret number selects a branch at that level.
-- **Command Queue:**  
+- **Command Queue:**
   As the performer navigates, the selected path is recorded as a sequence of tokens (e.g., `/audio/time-based/delay`). When navigation is complete (either at a leaf node or by explicit user action), the resulting command path is queued for execution.
 
 ### 2.3. Execution and Feedback
 
-- **Command Execution:**  
+- **Command Execution:**
   When the performer triggers execution (e.g., by pressing a footswitch or reaching a leaf node), the queued command is sent to the audio engine for processing.
-- **Partial Commands:**  
+- **Partial Commands:**
   The system allows for both complete (leaf node) and partial (intermediate node) command paths to be executed, enabling both generic and specific actions.
-- **User Feedback:**  
+- **User Feedback:**
   The system provides real-time feedback on the current navigation state, available choices, queued commands, and execution status via a display (console or GUI).
 
 ## 3. System Architecture
@@ -68,11 +68,13 @@ This system is a modular, software-based audio pedalboard designed for live perf
   - Status messages and errors
 - Updates the display in real time as navigation and execution progress.
 
-### 3.5 Command Tree Path Resolution (Runtime)
+## 3.5 Command Tree Path Resolution (Runtime)
+
 When no explicit path is provided to `LivePedalboardSystem.new(path)`, the JSON path is resolved with this precedence:
-1. `Platform.userExtensionDir/MDclasses/LivePedalboardSystem/MagicPedalboardCommandTree.json`
-2. `Platform.userExtensionDir/LivePedalboardSuite/LivePedalboardSystem/UserState/MagicPedalboardCommandTree.json`
-3. `Platform.userExtensionDir/LivePedalboardSuite/LivePedalboardSystem/MagicPedalboardCommandTree.json`
+
+1. `Platform.userExtensionDir/LivePedalboardSuite/LivePedalboardSystem/UserState/MagicPedalboardCommandTree.json`
+2. `Platform.userExtensionDir/LivePedalboardSuite/LivePedalboardSystem/MagicPedalboardCommandTree.json` _(repo default)_
+3. _(Legacy, deprecated; warning emitted)_ `Platform.userExtensionDir/MDclasses/LivePedalboardSystem/MagicPedalboardCommandTree.json`
 
 If none exist, the repo default path is returned and the import warns.
 
@@ -112,26 +114,26 @@ If none exist, the repo default path is returned and the import warns.
 
 ## 5. Design Principles
 
-- **Modularity:**  
+- **Modularity:**
   All components (audio processors, command nodes, device handlers) are modular and extensible.
-- **Robustness:**  
+- **Robustness:**
   The system is designed to recover gracefully from errors, with clear state management and reset capabilities.
-- **Real-Time Safety:**  
+- **Real-Time Safety:**
   All time-sensitive operations (audio, MIDI) are handled in a thread-safe manner, with UI updates deferred as needed.
-- **User-Centric Feedback:**  
+- **User-Centric Feedback:**
   The performer receives immediate, clear feedback at every step, supporting both novice and expert workflows.
-- **Testability:**  
+- **Testability:**
   The system supports headless (non-GUI) operation and automated acceptance tests using generated audio only.
 
 ## 6. Extensibility and Future Directions
 
-- **Additional Processors:**  
+- **Additional Processors:**
   New audio effects can be added by registering new processor modules.
-- **Custom Command Trees:**  
+- **Custom Command Trees:**
   The command hierarchy can be reconfigured or extended to support new workflows.
-- **Advanced Displays:**  
+- **Advanced Displays:**
   The user interface can be enhanced with richer visualizations, touch support, or remote control.
-- **Integration with Other Instruments:**  
+- **Integration with Other Instruments:**
   The navigation and command system can be adapted for other MIDI controllers or input devices.
 
 ## 7. Example Use Case
@@ -146,3 +148,5 @@ If none exist, the repo default path is returned and the import warns.
 ## 8. Summary
 
 This system enables expressive, hands-free control of a modular audio pedalboard using a guitar as a navigation device. Its hierarchical command structure, robust audio engine, and real-time feedback make it suitable for live performance, experimentation, and further extension.
+
+v0.9

@@ -1,6 +1,6 @@
 // LivePedalboardSystem-Pathing.sc
-// v0.3.0
-// MD 2025-09-22 10:44 BST
+// v0.3.1
+// MD 20250923-0959
 
 /*
 Purpose
@@ -33,37 +33,35 @@ Style
         ++ "/LivePedalboardSuite/LivePedalboardSystem/UserState/MagicPedalboardCommandTree.json";
     }
 
-    // Resolution: explicit → MDclasses → UserState → repo default
-    *resolveTreePath { |maybePath|
-        var p, mdOverride, usOverride, repoDefault;
+  *resolveTreePath { arg maybePath;
+    var candidateUserState, candidateRepoDefault, candidateMdLegacy, resolvedPath;
 
-        p = maybePath;
-        if (p.notNil) { ^p }; // caller took responsibility
+    // 0) explicit path (caller responsibility)
+    resolvedPath = maybePath;
+    if (resolvedPath.notNil) { ^resolvedPath };
 
-        mdOverride   = this.userOverrideMDclasses;
-        usOverride   = this.userOverrideUserState;
-        repoDefault  = this.defaultTreePath;
+    // 1) per-user override alongside the code (usually .gitignored)
+    candidateUserState   = Platform.userExtensionDir
+      ++ "/LivePedalboardSuite/LivePedalboardSystem/UserState/MagicPedalboardCommandTree.json";
 
-        if (File.exists(mdOverride)) { ^mdOverride };
-        if (File.exists(usOverride)) { ^usOverride };
-        if (File.exists(repoDefault)) { ^repoDefault };
+    // 2) repo default (shipped in Git / symlinked into Extensions)
+    candidateRepoDefault = Platform.userExtensionDir
+      ++ "/LivePedalboardSuite/LivePedalboardSystem/MagicPedalboardCommandTree.json";
 
-        // Nothing found → helpful message
-        ("[LPS] No CommandTree JSON found.\n"
-        ++ "Tried:\n  1) " ++ mdOverride
-        ++ "\n  2) " ++ usOverride
-        ++ "\n  3) " ++ repoDefault
-        ++ "\nCreate one of these files or pass a path to LivePedalboardSystem.new(path)."
-        ).warn;
+    // 3) legacy (deprecated) MDclasses location
+    candidateMdLegacy    = Platform.userExtensionDir
+      ++ "/MDclasses/LivePedalboardSystem/MagicPedalboardCommandTree.json";
 
-        ^repoDefault  // return something to avoid nil crashes; caller can handle missing file
-    }
+    if (File.exists(candidateUserState))   { ^candidateUserState };
+    if (File.exists(candidateRepoDefault)) { ^candidateRepoDefault };
+    if (File.exists(candidateMdLegacy)) {
+      MDMiniLogger.get.warn("Pathing",
+        "[deprecated] Using MDclasses copy: " ++ candidateMdLegacy);
+      ^candidateMdLegacy
+    };
 
-	// removed 20250923
-/*    // Ensure the constructor honours the resolver
-    *new { |maybePath|
-        ^super.newCopyArgs(
-            this.resolveTreePath(maybePath)
-        ).init;
-    }*/
+    // Last resort: return repoDefault even if missing; importer will warn gracefully.
+    ^candidateRepoDefault;
+  }
+
 }
