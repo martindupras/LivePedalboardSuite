@@ -4,7 +4,7 @@
 (
 var closeExisting, createGrid, bindAndFill;
 
-closeExisting = {
+/*closeExisting = {
     AppClock.sched(0.00, {
         var wins;
         wins = Window.allWindows.select({ arg w;
@@ -12,6 +12,21 @@ closeExisting = {
             nm.asString.beginsWith("MagicDisplayGUI")
         });
         wins.do(_.close);
+        nil
+    });
+};*/
+
+closeExisting = {
+    AppClock.sched(0.00, {
+        var windowList;
+
+        windowList = Window.allWindows.select({ arg w;
+            var nameString;
+            nameString = w.tryPerform(\name) ? "";
+            nameString.asString.beginsWith("MagicDisplayGUI")
+        });
+
+        windowList.do({ arg w; w.close });
         nil
     });
 };

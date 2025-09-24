@@ -134,7 +134,7 @@ tryEnsureAdapter = {
     logDiag.("adapter present at entry? " ++ haveAdapter);
     if(haveAdapter) { ^true };
     adapterPath = (Platform.userExtensionDir
-        ++ "/LivePedalboardSuite/MagicPedalboard/adapter_CommandTree_to_MagicPedalboard.scd").standardizePath;
+        ++ "/LivePedalboardSuite/Magicpedalboard/adapter_CommandTree_to_MagicPedalboard.scd").standardizePath;
     exists = File.exists(adapterPath);
     postKeyVals.("FDIAG: adapter path check", (path: adapterPath, exists: exists));
     if(exists) {

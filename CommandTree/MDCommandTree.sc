@@ -1,6 +1,6 @@
 // MDCommandTree.sc
 // v1.0.1
-// MD 20250924-1022
+// MD 20250924-1230
 
 MDCommandTree {
 	var <>root, <>nodeLimit = 200, <>nodeCount = 0, <>nodeMap;
@@ -11,7 +11,7 @@ MDCommandTree {
 	}
 
 
-	*fromDict { |dict|
+/*	*fromDict { |dict|
 		var tree;
 
 		// Use a default node limit, or extract from dict if available
@@ -25,8 +25,22 @@ MDCommandTree {
 		tree.root.payload = dict[\payload];
 
 		^tree;
-	}
+	}*/
 
+	*fromDict { |dict|
+		var tree;
+
+		tree = MDCommandTree.new(dict[\name], dict[\id], dict[\nodeLimit] ? 200);
+
+		if (dict[\children].isKindOf(Array)) {
+			dict[\children].do({ arg childDict;
+				tree.rebuildTreeFromDict(childDict, tree.root);
+			});
+		};
+
+		tree.root.payload = dict[\payload];
+		tree
+	}
 
 	init { |rootName, rootId, limit|
 		root = MDCommandNode.new(rootName, rootId);
@@ -71,7 +85,7 @@ MDCommandTree {
 		^this;
 	}
 
-	findNodeByName { |name|
+/*	findNodeByName { |name|
 		var found;
 		found = nodeMap.values.detect { |node| node.name == name };
 		if (found.notNil) {
@@ -81,9 +95,9 @@ MDCommandTree {
 			"⚠️ Node not found".postln;
 			^nil
 		}
-	}
+	}*/
 
-	getNodeByNamePath { |nameList|
+/*	getNodeByNamePath { |nameList|
 		var found;
 		found = root.getNodeByNamePath(nameList);
 		if (found.notNil) {
@@ -92,7 +106,7 @@ MDCommandTree {
 			("⚠️ Node not found at path: " ++ nameList.join(" → ")).postln;
 			^nil
 		}
-	}
+	}*/
 
 	addNode { |parentId, name, fret|
 		var newId, parentNode, newNode;
@@ -255,18 +269,7 @@ MDCommandTree {
 
 
 
-/*	validateTree {
-		var seenNames = Set.new;
-		var valid = true;
-		nodeMap.values.do { |node|
-			if (seenNames.includes(node.name)) {
-				("⚠️ Duplicate node name: " ++ node.name).postln;
-				valid = false;
-			};
-			seenNames.add(node.name);
-		};
-		^valid;
-	}*/
+
 
 
 	// THIS IS NEW. This is so that (for now) we can copy the name of the node into the payload instance variable.
@@ -300,104 +303,104 @@ MDCommandTree {
 		^this;
 	}
 
-  printTreePretty {
-    root.printTreePretty;
-    this.mdlog(3, "CommandTree", "pretty-print finished");
-    ^this;
-  }
+	printTreePretty {
+		root.printTreePretty;
+		this.mdlog(3, "CommandTree", "pretty-print finished");
+		^this;
+	}
 
-  exportJSONFile { |path|
-    var jsonString, file;
+	exportJSONFile { |path|
+		var jsonString, file;
 
-    jsonString = JSONlib.convertToJSON(root.asDictRecursively);
-    file = File(path, "w");
+		jsonString = JSONlib.convertToJSON(root.asDictRecursively);
+		file = File(path, "w");
 
-    if (file.isOpen) {
-      file.write(jsonString);
-      file.close;
-      ("📤 Tree exported to " ++ path).postln;
-      this.mdlog(2, "CommandTree", "exported=" ++ path);
-    } {
-      "⚠️ Failed to open file for writing.".warn;
-      this.mdlog(1, "CommandTree", "failed open for write: " ++ path);
-    };
-    ^this
-  }
+		if (file.isOpen) {
+			file.write(jsonString);
+			file.close;
+			("📤 Tree exported to " ++ path).postln;
+			this.mdlog(2, "CommandTree", "exported=" ++ path);
+		} {
+			"⚠️ Failed to open file for writing.".warn;
+			this.mdlog(1, "CommandTree", "failed open for write: " ++ path);
+		};
+		^this
+	}
 
-  importJSONFile { |path|
-    var jsonString, dict, newTree;
+	importJSONFile { |path|
+		var jsonString, dict, newTree;
 
-    if (File.exists(path).not) {
-      ("❌ File does not exist: %".format(path)).postln;
-      this.mdlog(0, "CommandTree", "file does not exist: " ++ path);
-      ^false;
-    };
+		if (File.exists(path).not) {
+			("❌ File does not exist: %".format(path)).postln;
+			this.mdlog(0, "CommandTree", "file does not exist: " ++ path);
+			^false;
+		};
 
-    jsonString = File(path, "r").readAllString;
+		jsonString = File(path, "r").readAllString;
 
-    if (jsonString.isNil or: { jsonString.isEmpty }) {
-      "⚠️ File is empty or unreadable.".postln;
-      this.mdlog(1, "CommandTree", "empty/unreadable: " ++ path);
-      ^false;
-    };
+		if (jsonString.isNil or: { jsonString.isEmpty }) {
+			"⚠️ File is empty or unreadable.".postln;
+			this.mdlog(1, "CommandTree", "empty/unreadable: " ++ path);
+			^false;
+		};
 
-    dict = JSONlib.convertToSC(jsonString);
+		dict = JSONlib.convertToSC(jsonString);
 
-    if (dict.isNil) {
-      "⚠️ Failed to parse JSON.".postln;
-      this.mdlog(0, "CommandTree", "failed to parse: " ++ path);
-      ^false;
-    };
+		if (dict.isNil) {
+			"⚠️ Failed to parse JSON.".postln;
+			this.mdlog(0, "CommandTree", "failed to parse: " ++ path);
+			^false;
+		};
 
-    newTree = MDCommandTree.fromDict(dict);
-    this.root     = newTree.root;
-    this.nodeMap  = newTree.nodeMap;
-    this.nodeCount= newTree.nodeCount;
+		newTree = MDCommandTree.fromDict(dict);
+		this.root     = newTree.root;
+		this.nodeMap  = newTree.nodeMap;
+		this.nodeCount= newTree.nodeCount;
 
-    ("📥 Tree imported from " ++ path).postln;
-    this.mdlog(2, "CommandTree", "imported=" ++ path);
-    ^true;
-  }
+		("📥 Tree imported from " ++ path).postln;
+		this.mdlog(2, "CommandTree", "imported=" ++ path);
+		^true;
+	}
 
-  saveVersioned {
-    var jsonString;
+	saveVersioned {
+		var jsonString;
 
-    jsonString = JSONlib.convertToJSON(root.asDictRecursively);
-    saver.saveVersion(jsonString);
-    "Tree saved to versioned file.".postln;
-    this.mdlog(2, "CommandTree", "versioned save complete");
-  }
+		jsonString = JSONlib.convertToJSON(root.asDictRecursively);
+		saver.saveVersion(jsonString);
+		"Tree saved to versioned file.".postln;
+		this.mdlog(2, "CommandTree", "versioned save complete");
+	}
 
-  loadLatestVersion {
-    var jsonString, dict, newTree;
+	loadLatestVersion {
+		var jsonString, dict, newTree;
 
-    jsonString = saver.latestVersion;
+		jsonString = saver.latestVersion;
 
-    if (jsonString.isNil or: { jsonString.isEmpty }) {
-      "⚠️ No saved version found.".postln;
-      this.mdlog(1, "CommandTree", "no saved version found");
-      ^false;
-    };
+		if (jsonString.isNil or: { jsonString.isEmpty }) {
+			"⚠️ No saved version found.".postln;
+			this.mdlog(1, "CommandTree", "no saved version found");
+			^false;
+		};
 
-    dict = JSONlib.convertToSC(jsonString);
+		dict = JSONlib.convertToSC(jsonString);
 
-    if (dict.isNil) {
-      "⚠️ Failed to parse JSON.".postln;
-      this.mdlog(0, "CommandTree", "failed to parse saved JSON");
-      ^false;
-    };
+		if (dict.isNil) {
+			"⚠️ Failed to parse JSON.".postln;
+			this.mdlog(0, "CommandTree", "failed to parse saved JSON");
+			^false;
+		};
 
-    newTree = MDCommandTree.fromDict(dict);
-    this.root     = newTree.root;
-    this.nodeMap  = newTree.nodeMap;
-    this.nodeCount= newTree.nodeCount;
+		newTree = MDCommandTree.fromDict(dict);
+		this.root     = newTree.root;
+		this.nodeMap  = newTree.nodeMap;
+		this.nodeCount= newTree.nodeCount;
 
-    "📥 Tree loaded from latest version.".postln;
-    this.mdlog(2, "CommandTree", "loaded latest version");
-    ^true;
-  }
+		"📥 Tree loaded from latest version.".postln;
+		this.mdlog(2, "CommandTree", "loaded latest version");
+		^true;
+	}
 
-  validateTree {
+/*  validateTree {
     var seenNames, validFlag;
 
     seenNames = Set.new;
@@ -416,5 +419,49 @@ MDCommandTree {
       validFlag.if("✅ validation passed", "❌ validation failed"));
 
     ^validFlag;
-  }
+  }*/
+
+	findNodeByName { |name|
+		var found;
+
+		found = nodeMap.values.detect({ arg nodeRef; nodeRef.name == name });
+		if (found.notNil) {
+			("🔍 Found node '" ++ found.name ++ "' at ID " ++ found.id).postln;
+			found
+		} {
+			"⚠️ Node not found".postln;
+			nil
+		}
+	}
+
+	getNodeByNamePath { |nameList|
+		var found;
+
+		found = root.getNodeByNamePath(nameList);
+		if (found.notNil) { found } {
+			("⚠️ Node not found at path: " ++ nameList.join(" → ")).postln;
+			nil
+		}
+	}
+
+	validateTree {
+		var seenNames, validFlag;
+
+		seenNames = Set.new;
+		validFlag = true;
+
+		nodeMap.values.do({ arg nodeRef;
+			if (seenNames.includes(nodeRef.name)) {
+				("⚠️ Duplicate node name: " ++ nodeRef.name).postln;
+				this.mdlog(1, "CommandTree", "duplicate node name: " ++ nodeRef.name);
+				validFlag = false;
+			};
+			seenNames.add(nodeRef.name);
+		});
+
+		this.mdlog(validFlag.if(2, 0), "CommandTree",
+			validFlag.if("✅ validation passed", "❌ validation failed"));
+
+		validFlag
+	}
 }

@@ -31,7 +31,7 @@
     adapterAvailable = (~ct_applyOSCPathToMPB.notNil);
     if(adapterAvailable.not) {
       adapterPath = (Platform.userExtensionDir
-        ++ "/LivePedalboardSuite/MagicPedalboard/adapter_CommandTree_to_MagicPedalboard.scd").standardizePath;
+        ++ "/LivePedalboardSuite/Magicpedalboard/adapter_CommandTree_to_MagicPedalboard.scd").standardizePath;
       if(File.exists(adapterPath)) {
         adapterPath.load;
         adapterAvailable = (~ct_applyOSCPathToMPB.notNil);

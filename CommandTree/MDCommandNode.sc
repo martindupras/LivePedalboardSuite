@@ -31,25 +31,25 @@ MDCommandNode {
 
 	// ───── Child Management ─────
 
-	removeChildByName { |nameToRemove|
+/*	removeChildByName { |nameToRemove|
 		var index = children.findIndex { |c| c.name == nameToRemove };
 		if (index.notNil) { children.removeAt(index); }
-	}
+	}*/
 
 
 	// ───── Child Lookup ─────
 
-	getChildByName { |name|
+/*	getChildByName { |name|
 		if (name.isKindOf(String).not) {
 			("❌ getChildByName error: name must be a String").warn;
 			^nil;
 		};
 		^children.detect { |c| c.name == name }
-	}
+	}*/
 
-	getChildById { |id| ^children.detect { |c| c.id == id } }
+	//getChildById { |id| ^children.detect { |c| c.id == id } }
 
-	getChildByFret { |fret| ^children.detect { |c| c.fret == fret } }
+	// getChildByFret { |fret| ^children.detect { |c| c.fret == fret } }
 
 	childNameExists { |name| ^children.any { |c| c.name == name } }
 
@@ -69,7 +69,7 @@ MDCommandNode {
 		("📍 Path: " ++ this.getPathToRoot.join(" → ")).postln;
 	}
 
-	getNodeByNamePath { |nameList|
+/*	getNodeByNamePath { |nameList|
 		var current = this;
 		nameList.do { |name|
 			current = current.getChildByName(name);
@@ -80,7 +80,7 @@ MDCommandNode {
 		};
 		("✅ Found node: " ++ current.name).postln;
 		^current
-	}
+	}*/
 
 	getDepth {
 		^this.parent.notNil.if({ this.parent.getDepth + 1 }, { 0 })
@@ -130,7 +130,7 @@ MDCommandNode {
 	}
 
 	// ───── Tree Display ─────
-	printTreePretty { |level = 0, isLast = true, prefix = ""|
+/*	printTreePretty { |level = 0, isLast = true, prefix = ""|
 		var sortedChildren, connector, newPrefix;
 
 		// Print current node
@@ -153,7 +153,29 @@ MDCommandNode {
 			var last = (i == (sortedChildren.size - 1));
 			child.printTreePretty(level + 1, last, newPrefix);
 		};
-	}
+	}*/
+
+	printTreePretty { |level = 0, isLast = true, prefix = ""|
+    var childList, connector, nextPrefix;
+
+    connector = if (level == 0) { "" } { if (isLast) { "└── " } { "├── " } };
+    (prefix ++ connector ++ this.name
+        ++ " (fret: " ++ this.fret
+        ++ ", id: " ++ this.id
+        ++ ", payload: " ++ this.payload ++ ")").postln;
+
+    nextPrefix = if (level == 0) { "" } { prefix ++ if (isLast) { "    " } { "│   " } };
+    childList = this.children;
+
+    childList.do({ arg child, index;
+        var lastFlag;
+        lastFlag = (index == (childList.size - 1));
+        child.printTreePretty(level + 1, lastFlag, nextPrefix);
+    });
+
+    this
+}
+
 
 	// ───── Serialization for exporting ─────
 
@@ -223,6 +245,68 @@ MDCommandNode {
 		} {
 			"⚠️ ID not found".postln;
 			this.mdlog(1, "CommandNode", "id not found: " ++ idToRemove);
+		}
+	}
+
+
+
+
+
+
+	removeChildByName { |nameToRemove|
+		var index;
+
+		index = children.findIndex({ arg c; c.name == nameToRemove });
+		if (index.notNil) { children.removeAt(index) };
+		this
+	}
+
+	getChildByName { |name|
+		var result;
+
+		if (name.isKindOf(String).not) {
+			"❌ getChildByName error: name must be a String".warn;
+			result = nil;
+		} {
+			result = children.detect({ arg c; c.name == name });
+		};
+		result
+	}
+
+	getChildById { |id|
+		var result;
+		result = children.detect({ arg c; c.id == id });
+		result
+	}
+
+	getChildByFret { |fret|
+		var result;
+		result = children.detect({ arg c; c.fret == fret });
+		result
+	}
+
+	getNodeByNamePath { |nameList|
+		var current, ok;
+
+		current = this;
+		ok = true;
+
+		nameList.do({ arg segmentName;
+			var nextNode;
+			nextNode = current.getChildByName(segmentName);
+			if (nextNode.isNil) {
+				"❌ Node not found at path segment: ".post; segmentName.postln;
+				ok = false;
+			} {
+				current = nextNode;
+			};
+		});
+
+		if (ok) {
+			("✅ Found node: " ++ current.name).postln;
+			current
+		} {
+			nil
 		}
 	}
 }

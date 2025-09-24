@@ -17,7 +17,8 @@ CommandManager {
 	var <>saver;
 	var <>queueExportCallback;
 
-	var launchpadHandler, footControllerHandler, guitarHandler;
+	var launchpadHandlerRef, footHandlerRef, guitarHandlerRef, dawHandlerRef;
+
 	var <>launchpadID, <>footControllerID, <>guitarID;
 
 	*new { arg treePath;
@@ -53,10 +54,16 @@ CommandManager {
 		this.createBuilder;
 		this.createCommandQueue;
 
-		midiManager = MIDIInputManager.new(builder, nil, nil, nil);
+		// midiManager = MIDIInputManager.new(builder, nil, nil, nil);
+		midiManager = MIDIInputManager.new(builder, nil, nil, nil, nil);
+
 		midiManager.parentCommandManager = this;
+
+
 		^this
 	}
+
+
 
 	// --- Build pieces --------------------------------------------------------
 
@@ -154,7 +161,7 @@ CommandManager {
 	}
 
 
-	updateDisplay {
+/*	updateDisplay {
 		var guiRef, modeText, choiceLines;
 
 		guiRef = display;   // may be nil
@@ -184,9 +191,36 @@ CommandManager {
 		}.defer;
 
 		^this
-	}
+	}*/
 
+// updated 20250924-1209
+	updateDisplay {
+    var guiRef, modeText, choiceLines;
+    guiRef = display; // may be nil
+    if (guiRef.isNil) { ^this };
+    modeText = "Mode: " ++ (currentState ? \idle).asString;
 
+    // build "fret X → Name" lines from the builder's current node
+    choiceLines = if (builder.notNil and: { builder.currentNode.notNil }) {
+        builder.currentNode.children.collect({ arg ch;
+            ("fret " ++ ch.fret.asString ++ " → " ++ ch.name.asString)
+        })
+    } { [] };
+
+    {
+        if (guiRef.respondsTo(\showExpectation)) {
+            guiRef.showExpectation(modeText, 0);
+        };
+        if (guiRef.respondsTo(\updateTextField)) {
+            guiRef.updateTextField(\state, modeText);
+            guiRef.updateTextField(\choices, choiceLines.join("\n"));
+        };
+        if (guiRef.respondsTo(\setOperations)) {
+            guiRef.setOperations(choiceLines);
+        };
+    }.defer;
+    ^this
+}
 
 }
 

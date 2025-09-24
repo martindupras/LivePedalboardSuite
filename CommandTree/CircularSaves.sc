@@ -6,23 +6,34 @@
 
 
 CircularFileSave {
-    var <>prefix, <>folderPath, <>maxVersions, <fileList;
+	var <>prefix, <>folderPath, <>maxVersions, <fileList;
 
-    *new { |prefix = "myTree", folderPath = "~/TreeSaves", maxVersions = 10|
+/*    *new { |prefix = "myTree", folderPath = "~/TreeSaves", maxVersions = 10|
         ^super.new.init(prefix, folderPath, maxVersions);
-    }
+    }*/
 
-    init { |prefix, folderPath, maxVersions|
-        this.prefix = prefix;
-        this.folderPath = folderPath.standardizePath;
-        this.maxVersions = maxVersions;
-        this.ensureFolderExists;
-        this.refreshFileList;
-    }
+	*new { |prefix = "myTree", folderPath, maxVersions = 10|
+		var userStateFolder;
 
-    ensureFolderExists {
-        File.mkdir(folderPath);
-    }
+		userStateFolder = (Platform.userExtensionDir
+			++ "/LivePedalboardSuite/LivePedalboardSystem/UserState/TreeSaves").standardizePath;
+
+		folderPath = (folderPath ? userStateFolder).standardizePath;
+		super.new.init(prefix, folderPath, maxVersions)
+	}
+
+
+	init { |prefix, folderPath, maxVersions|
+		this.prefix = prefix;
+		this.folderPath = folderPath.standardizePath;
+		this.maxVersions = maxVersions;
+		this.ensureFolderExists;
+		this.refreshFileList;
+	}
+
+	ensureFolderExists {
+		File.mkdir(folderPath);
+	}
 
 /*    refreshFileList {
         fileList = PathName(folderPath).entries.select { |f|
@@ -31,68 +42,84 @@ CircularFileSave {
     }*/
 
 	// 20250922
-refreshFileList {
-    var pn, entries;
-    pn = PathName(folderPath.standardizePath);
-    if (pn.isFolder.not) { File.mkdir(pn.fullPath) };
+/*	refreshFileList {
+		var pn, entries;
+		pn = PathName(folderPath.standardizePath);
+		if (pn.isFolder.not) { File.mkdir(pn.fullPath) };
 
-    entries = pn.entries
-        .select(_.isFile)
-        .select({ |p| p.fileName.beginsWith(prefix) and: { p.fileName.endsWith(".json") } });
+		entries = pn.entries
+		.select(_.isFile)
+		.select({ |p| p.fileName.beginsWith(prefix) and: { p.fileName.endsWith(".json") } });
 
-    // robust boolean comparator; no key-function; no .at on PathName
-    entries = entries.asArray.sort({ |a, b| a.fileName > b.fileName });
+		// robust boolean comparator; no key-function; no .at on PathName
+		entries = entries.asArray.sort({ |a, b| a.fileName > b.fileName });
 
-    fileList = entries; // keep PathName objects; callers can use .fullPath / .fileName
-    ^this
+		fileList = entries; // keep PathName objects; callers can use .fullPath / .fileName
+		^this
+	}*/
+// 20250924
+	refreshFileList {
+    var pathNameRef, entries;
+
+    pathNameRef = PathName(folderPath.standardizePath);
+    if (pathNameRef.isFolder.not) { File.mkdir(pathNameRef.fullPath) };
+
+    entries = pathNameRef.entries
+        .select({ arg entry; entry.isFile })
+        .select({ arg pn; pn.fileName.beginsWith(prefix) and: { pn.fileName.endsWith(".json") } });
+
+    // newest-first assuming timestamped filenames
+    entries = entries.asArray.sort({ arg a, b; a.fileName > b.fileName });
+
+    fileList = entries;
+    this
 }
 
 
+	saveVersion { |content|
+		var timestamp = Date.getDate.stamp;
+		var filename = "%-%".format(prefix, timestamp) ++ ".json";
+		var path = folderPath +/+ filename;
 
-    saveVersion { |content|
-        var timestamp = Date.getDate.stamp;
-        var filename = "%-%".format(prefix, timestamp) ++ ".json";
-        var path = folderPath +/+ filename;
+		File.use(path, "w", { |f| f.write(content) });
 
-        File.use(path, "w", { |f| f.write(content) });
+		fileList.addFirst(PathName(path));
 
-        fileList.addFirst(PathName(path));
+		if(fileList.size > maxVersions) {
+			var toDelete = fileList.copyRange(maxVersions, fileList.size - 1);
+			toDelete.do(_.delete);
+			fileList = fileList.copyRange(0, maxVersions - 1);
+		};
 
-        if(fileList.size > maxVersions) {
-            var toDelete = fileList.copyRange(maxVersions, fileList.size - 1);
-            toDelete.do(_.delete);
-            fileList = fileList.copyRange(0, maxVersions - 1);
-        };
+		path.postln;
+	}
 
-        path.postln;
-    }
+	listVersions {
+		fileList.collect(_.fileName).do(_.postln);
+	}
 
-    listVersions {
-        fileList.collect(_.fileName).do(_.postln);
-    }
+	loadVersion { |index|
+		var file, content;
 
-    loadVersion { |index|
-        var file, content;
+		if(index >= fileList.size or: { index < 0 }) {
+			"Invalid index: % (available: 0 to %)".format(index, fileList.size - 1).warn;
+			^nil;
+		};
 
-        if(index >= fileList.size or: { index < 0 }) {
-            "Invalid index: % (available: 0 to %)".format(index, fileList.size - 1).warn;
-            ^nil;
-        };
+		file = fileList[index];
+		if(file.isNil) {
+			"No file found at index %".format(index).warn;
+			^nil;
+		};
 
-        file = fileList[index];
-        if(file.isNil) {
-            "No file found at index %".format(index).warn;
-            ^nil;
-        };
+		File.use(file.fullPath, "r", { |f|
+			content = f.readAllString;
+		});
+		^content;
+	}
 
-        File.use(file.fullPath, "r", { |f|
-            content = f.readAllString;
-        });
-        ^content;
-    }
-
-    latestVersion {
-        ^this.loadVersion(0);
-    }
+	latestVersion {
+		^this.loadVersion(0);
+	}
 }
 

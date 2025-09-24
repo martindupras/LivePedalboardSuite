@@ -32,7 +32,7 @@ statusDisplayRef  = ~system.statusDisplay;
 adapterAvailable = (~ct_applyOSCPathToMPB.notNil);
 if(adapterAvailable.not) {
   candidatePaths = [
-    (Platform.userExtensionDir ++ "/LivePedalboardSuite/MagicPedalboard/adapter_CommandTree_to_MagicPedalboard.scd").standardizePath
+    (Platform.userExtensionDir ++ "/LivePedalboardSuite/Magicpedalboard/adapter_CommandTree_to_MagicPedalboard.scd").standardizePath
   ];
   candidatePaths.do({ |fullPathString|
     if(adapterAvailable.not and: { File.exists(fullPathString) }) {

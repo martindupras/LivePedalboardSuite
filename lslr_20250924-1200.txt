@@ -1,0 +1,235 @@
+total 824
+-rw-r--r--   1 martindupras  staff  205443 24 Sep 12:00 20250924-1200_allSCDfiles.txt
+-rw-r--r--   1 martindupras  staff  173215 24 Sep 12:00 20250924-1200_allSCfiles.txt
+drwxr-xr-x@ 30 martindupras  staff     960 24 Sep 10:48 CommandTree
+-rwxr-xr-x   1 martindupras  staff    4512 21 Sep 23:08 concat-files.sh
+drwxr-xr-x@ 17 martindupras  staff     544 24 Sep 11:57 LivePedalboardSystem
+-rw-r--r--   1 martindupras  staff       0 24 Sep 12:01 lslr_20250924-1200.txt
+drwxr-xr-x@ 36 martindupras  staff    1152 24 Sep 11:58 MagicPedalboard
+drwxr-xr-x@  4 martindupras  staff     128 21 Sep 22:22 MDMiniLogger
+-rw-r--r--@  1 martindupras  staff    3095 23 Sep 17:03 README.md
+-rw-r--r--@  1 martindupras  staff    3096 23 Sep 17:02 README.txt
+-rw-r--r--@  1 martindupras  staff    2450 23 Sep 17:07 StartHere.md
+-rw-r--r--@  1 martindupras  staff    2445 23 Sep 16:59 StartHere.txt
+-rw-r--r--@  1 martindupras  staff    8743 24 Sep 10:54 SystemSpecification_ModularGuitarPedalboard.md
+drwxr-xr-x   4 martindupras  staff     128 22 Sep 16:53 temp files
+drwxr-xr-x  35 martindupras  staff    1120 24 Sep 11:27 utilities
+
+./CommandTree:
+total 232
+drwxr-xr-x  6 martindupras  staff   192 24 Sep 09:32 archived
+-rw-r--r--@ 1 martindupras  staff  1126 22 Sep 09:15 CircularFileSave_SortByMTime.sc_obsolete
+-rw-r--r--@ 1 martindupras  staff  2608 22 Sep 11:36 CircularSaves.sc
+-rw-r--r--@ 1 martindupras  staff  1481 21 Sep 22:22 CircularSaves.sc.zip
+-rw-r--r--@ 1 martindupras  staff  5325 22 Sep 15:41 CommandManager.sc
+drwxr-xr-x@ 7 martindupras  staff   224 24 Sep 10:46 Logging
+-rw-r--r--@ 1 martindupras  staff  3645 21 Sep 22:22 martinTreeEditor.scd
+-rw-r--r--@ 1 martindupras  staff  1031 24 Sep 10:49 MDCommandBuilder_Compat_Ext.sc
+-rw-r--r--@ 1 martindupras  staff  7712 24 Sep 10:19 MDCommandBuilder.sc
+-rw-r--r--@ 1 martindupras  staff  1109 21 Sep 22:22 MDCommandBuilderTest.scd
+-rw-r--r--@ 1 martindupras  staff  1342 21 Sep 22:22 MDCommandNode test.scd
+-rw-r--r--@ 1 martindupras  staff  1417 22 Sep 09:13 MDCommandNode_FixIntegrity+DepthTag.sc
+-rw-r--r--@ 1 martindupras  staff  5662 24 Sep 10:36 MDCommandNode.sc
+-rw-r--r--@ 1 martindupras  staff  3228 21 Sep 22:22 MDCommandNodeTest20250731.scd
+-rw-r--r--@ 1 martindupras  staff  2117 21 Sep 22:22 MDCommandQueue.sc
+-rw-r--r--@ 1 martindupras  staff  3800 21 Sep 22:22 MDCommandSystemTest20250804.scd
+-rw-r--r--@ 1 martindupras  staff  4055 21 Sep 22:22 MDCommandSystemTest20250812.scd
+-rw-r--r--@ 1 martindupras  staff  9424 24 Sep 10:28 MDCommandTree.sc
+-rw-r--r--@ 1 martindupras  staff  3465 21 Sep 22:22 MIDIHandlers.sc
+-rw-r--r--@ 1 martindupras  staff  7290 23 Sep 12:25 MIDIInputManager.sc
+drwxr-xr-x@ 3 martindupras  staff    96 23 Sep 17:11 out
+-rw-r--r--@ 1 martindupras  staff  1645 21 Sep 22:22 test_circularSaves20250826.scd
+-rw-r--r--@ 1 martindupras  staff   243 21 Sep 22:22 testCircularSave_20250819.scd
+drwxr-xr-x@ 5 martindupras  staff   160 22 Sep 09:53 Tests
+-rw-r--r--@ 1 martindupras  staff   306 21 Sep 22:22 TestUserDisplay.scd
+-rw-r--r--@ 1 martindupras  staff  1030 21 Sep 22:22 testVerbosity.scd
+-rw-r--r--@ 1 martindupras  staff   856 21 Sep 22:22 Verbosity.sc
+
+./CommandTree/archived:
+total 32
+-rw-r--r--@ 1 martindupras  staff  1248 22 Sep 10:50 CommandManager_PathPersistence.sc_OBSOLETE
+-rw-r--r--@ 1 martindupras  staff   373 22 Sep 09:22 LivePedalboardSystem_MetersDelegate.sc_OBSOLETE
+-rw-r--r--@ 1 martindupras  staff   182 21 Sep 22:22 MDCommandQueue.scd
+-rw-r--r--@ 1 martindupras  staff  1428 21 Sep 22:22 UserDisplay.sc_OBSOLETE
+
+./CommandTree/Logging:
+total 48
+-rw-rw-r--@ 1 martindupras  staff  3991 23 Sep 12:23 CommandManagerLogging.sc
+-rw-rw-r--@ 1 martindupras  staff  2473 22 Sep 10:22 MDCommandBuilderLogging.sc_OBSOLETE
+-rw-rw-r--@ 1 martindupras  staff  2905 22 Sep 10:22 MDCommandNodeLogging.sc_OBSOLETE
+-rw-rw-r--@ 1 martindupras  staff  4563 22 Sep 10:22 MDCommandTreeLogging.sc_OBSOLETE
+-rw-rw-r--@ 1 martindupras  staff   667 22 Sep 10:21 MDLogFacade.sc
+
+./CommandTree/out:
+total 0
+
+./CommandTree/Tests:
+total 32
+-rw-rw-r--@ 1 martindupras  staff   631 22 Sep 08:52 TestLogging_CommandBuilder.scd
+-rw-rw-r--@ 1 martindupras  staff  4462 23 Sep 09:17 TestLogging_CommandTree.scd
+-rw-rw-r--@ 1 martindupras  staff   458 22 Sep 08:52 TestLogging_FullBringUp.scd
+
+./LivePedalboardSystem:
+total 136
+-rw-r--r--@ 1 martindupras  staff   937 21 Sep 15:40 CommandTreeStructure.xml
+-rw-r--r--@ 1 martindupras  staff  1831 22 Sep 21:47 CommandTreeStructureDiagram.scd
+-rw-r--r--@ 1 martindupras  staff  5411 21 Sep 15:28 DevelopmentPlan_20250922.md
+-rw-r--r--@ 1 martindupras  staff  1870 21 Sep 16:22 LivePedalboardSystem_README.md
+-rw-r--r--  1 martindupras  staff  1758 24 Sep 11:23 LivePedalboardSystem-AdapterBridge.sc
+-rw-r--r--@ 1 martindupras  staff  1758 23 Sep 13:24 LivePedalboardSystem-AdapterBridge.sc.bak
+-rw-r--r--@ 1 martindupras  staff  2388 24 Sep 10:00 LivePedalboardSystem-Pathing.sc
+-rw-r--r--@ 1 martindupras  staff  9851 23 Sep 15:29 LivePedalboardSystem.sc
+-rw-r--r--@ 1 martindupras  staff  2846 22 Sep 22:22 LPS_CommandQueueToMPB_Adapter.sc_disabled
+-rw-r--r--@ 1 martindupras  staff  6368 21 Sep 15:54 MagicPedalboardCommandTree_older.json
+-rw-r--r--@ 1 martindupras  staff  2970 23 Sep 09:18 MagicPedalboardCommandTree.json
+-rw-r--r--@ 1 martindupras  staff  2970 24 Sep 10:25 MagicPedalboardCommandTree.json.tmp
+-rw-r--r--@ 1 martindupras  staff  1320 23 Sep 15:02 Start_LivePedalboardSystem.scd
+drwxr-xr-x  6 martindupras  staff   192 24 Sep 11:58 Tests
+
+./LivePedalboardSystem/Tests:
+total 56
+-rw-r--r--@ 1 martindupras  staff  10259 23 Sep 16:26 Demo_Today_Playbook_FallbackOnly.scd
+-rw-r--r--@ 1 martindupras  staff   6044 23 Sep 15:48 Fallback_Acceptance_PassFail_Delayed.scd
+-rw-r--r--@ 1 martindupras  staff   4279 23 Sep 15:32 Fallback_Acceptance_PassFail.scd
+
+./MagicPedalboard:
+total 400
+-rw-r--r--@ 1 martindupras  staff  10188 18 Sep 15:11 adapter_CommandTree_to_MagicPedalboard.scd
+-rw-r--r--@ 1 martindupras  staff    830 18 Sep 16:27 Adapter_UIHook_Install.scd
+-rw-r--r--@ 1 martindupras  staff    934 16 Sep 15:55 bootstrap_audio_and_fx_min.scd
+drwxr-xr-x  3 martindupras  staff     96 23 Sep 09:44 compat
+-rw-r--r--@ 1 martindupras  staff   1186 16 Sep 09:34 demo_apply_after_fix.scd
+-rw-r--r--@ 1 martindupras  staff   1298 16 Sep 09:29 demo_commandtree_apply_hotfix.scd
+-rw-r--r--@ 1 martindupras  staff   3016 16 Sep 09:11 demo_commandtree_apply_now.scd
+-rw-r--r--@ 1 martindupras  staff   3041 16 Sep 08:39 demo_commandtree_milestone.scd
+-rw-r--r--@ 1 martindupras  staff   1847 18 Sep 09:46 demo_commandtree_preformed_queues.scd
+-rw-r--r--@ 1 martindupras  staff   1396 18 Sep 11:58 Demo_Install_MinProcessors.scd
+-rw-r--r--@ 1 martindupras  staff    906 17 Sep 11:37 Diag_BusChannel_Map.scd
+drwxr-xr-x  8 martindupras  staff    256 18 Sep 15:27 docs and references
+-rw-r--r--@ 1 martindupras  staff   2284 16 Sep 09:08 editor_commandtree_add_demo_verbs.scd
+-rw-r--r--@ 1 martindupras  staff   4975 18 Sep 09:10 MagicDisplay.sc
+-rw-r--r--@ 1 martindupras  staff   5475 19 Sep 07:55 MagicDisplayGUI_Ext_VisualOnly.sc
+-rw-r--r--@ 1 martindupras  staff    538 22 Sep 22:14 MagicDisplayGUI_GridDemo_Ext_SetOperations.sc
+-rw-r--r--@ 1 martindupras  staff  17269 22 Sep 17:33 MagicDisplayGUI_GridDemo.sc
+-rw-r--r--@ 1 martindupras  staff  25889 18 Sep 15:10 MagicDisplayGUI.sc
+-rw-r--r--@ 1 martindupras  staff    250 21 Sep 17:09 MagicPedalboard.sc
+-rw-r--r--@ 1 martindupras  staff  27622 22 Sep 19:55 MagicPedalboardNew.sc
+-rw-r--r--@ 1 martindupras  staff   4187 21 Sep 18:15 MagicPedalboardTestRunner.sc
+-rw-r--r--@ 1 martindupras  staff   1907 18 Sep 11:22 MagicProcessorLibrary_defs.scd
+-rw-r--r--@ 1 martindupras  staff   1654 14 Sep 11:36 MagicProcessorLibrary.sc
+-rw-r--r--@ 1 martindupras  staff    824 17 Sep 12:33 Manage_MagicDisplayGUI_Singleton.scd
+drwxr-xr-x  8 martindupras  staff    256 21 Sep 10:58 MPBTest
+drwxr-xr-x  3 martindupras  staff     96 15 Sep 14:09 old but good
+-rw-r--r--@ 1 martindupras  staff    718 17 Sep 13:00 QuickRestore_AudioAndExclusive.scd
+-rw-r--r--@ 1 martindupras  staff   3865 15 Sep 17:29 README_DesignAndAPI_20250915.md
+-rw-r--r--@ 1 martindupras  staff   3746 19 Sep 10:29 README_MagicPedalboard_Demo.md
+-rw-r--r--@ 1 martindupras  staff   1315 15 Sep 17:16 README20250915.md
+-rw-r--r--@ 1 martindupras  staff    605 16 Sep 14:20 retargetMeters.scd
+-rw-r--r--@ 1 martindupras  staff   2253 16 Sep 15:46 switchDelayCheck.scd
+-rw-r--r--@ 1 martindupras  staff   1221 16 Sep 10:01 utils_mpb_force_reconnect.scd
+
+./MagicPedalboard/compat:
+total 8
+-rw-r--r--@ 1 martindupras  staff  1049 23 Sep 09:44 Compat_MagicDisplayGUI_QueueUi_Ext.sc
+
+./MagicPedalboard/docs and references:
+total 48
+-rw-r--r--@ 1 martindupras  staff   491 13 Sep 10:37 cheatsheet.scd
+-rw-r--r--@ 1 martindupras  staff  2285 12 Sep 15:49 README.md
+-rw-r--r--@ 1 martindupras  staff  4420 12 Sep 16:37 README2.md
+-rw-r--r--@ 1 martindupras  staff   493 15 Sep 10:23 RUNBOOK.md
+-rw-r--r--@ 1 martindupras  staff   350 15 Sep 09:15 usingLibraryWithMagicPedalboard.scd
+
+./MagicPedalboard/MPBTest:
+total 0
+drwxr-xr-x  4 martindupras  staff  128 21 Sep 11:10 _archive
+drwxr-xr-x  6 martindupras  staff  192 20 Sep 19:55 Classes
+drwxr-xr-x  5 martindupras  staff  160 21 Sep 11:16 docs
+drwxr-xr-x@ 4 martindupras  staff  128 21 Sep 11:14 MPBTest
+drwxr-xr-x  8 martindupras  staff  256 20 Sep 19:55 Scripts
+
+./MagicPedalboard/MPBTest/_archive:
+total 0
+drwxr-xr-x  2 martindupras  staff  64 20 Sep 20:13 2025-09-20
+
+./MagicPedalboard/MPBTest/_archive/2025-09-20:
+total 0
+
+./MagicPedalboard/MPBTest/Classes:
+total 48
+-rw-r--r--@ 1 martindupras  staff  1062 20 Sep 18:49 MPBTest_AcceptanceSuites.sc
+-rw-r--r--@ 1 martindupras  staff  1270 20 Sep 18:48 MPBTest_Assertions.sc
+-rw-r--r--@ 1 martindupras  staff  5912 20 Sep 19:13 MPBTest_BringUp.sc
+-rw-r--r--@ 1 martindupras  staff  6546 20 Sep 19:31 MPBTest_Scenario.sc
+
+./MagicPedalboard/MPBTest/docs:
+total 24
+-rw-r--r--@ 1 martindupras  staff  1509 20 Sep 20:39 README_MPBTest.md
+-rw-r--r--@ 1 martindupras  staff   402 21 Sep 11:16 WorkingState_250921-111637.json
+-rw-r--r--@ 1 martindupras  staff   426 21 Sep 11:16 WorkingState_250921-111637.md
+
+./MagicPedalboard/MPBTest/MPBTest:
+total 0
+drwxr-xr-x@ 2 martindupras  staff  64 21 Sep 10:58 docs
+
+./MagicPedalboard/MPBTest/MPBTest/docs:
+total 0
+
+./MagicPedalboard/MPBTest/Scripts:
+total 56
+-rw-r--r--@ 1 martindupras  staff  1008 20 Sep 19:12 MPBTest_CloseRecreateBind_GUI_GridDemo.scd
+-rw-r--r--@ 1 martindupras  staff   948 20 Sep 18:52 MPBTest_FreshBootBringUp_Now.scd
+-rw-r--r--@ 1 martindupras  staff  1007 20 Sep 19:12 MPBTest_RebindAndFillGUI.scd
+-rw-r--r--@ 1 martindupras  staff  4583 21 Sep 11:00 MPBTest_Record_WorkingState.scd
+-rw-r--r--@ 1 martindupras  staff  1819 20 Sep 19:31 MPBTest_Run_HealthCheck.scd
+-rw-r--r--@ 1 martindupras  staff   582 20 Sep 18:49 MPBTest_Run_OneGo.scd
+
+./MagicPedalboard/old but good:
+total 16
+-rw-r--r--@ 1 martindupras  staff  5862 12 Sep 15:27 Test_MagicPedalboardNew_v0_15_3_GUI_Operations.scd
+
+./MDMiniLogger:
+total 16
+-rw-r--r--@ 1 martindupras  staff  2268 21 Sep 22:22 MDMiniLogger.sc
+-rw-r--r--@ 1 martindupras  staff   952 21 Sep 22:22 test_MDMiniLogger.scd
+
+./temp files:
+total 16
+-rw-r--r--@ 1 martindupras  staff  1380 22 Sep 15:19 BringBack_UserChoicesWindow.scd
+-rw-r--r--@ 1 martindupras  staff  1259 22 Sep 16:53 TempGUIChoicesWindows.scd
+
+./utilities:
+total 368
+-rw-r--r--@ 1 martindupras  staff    150 23 Sep 08:36 ControlLogVerbosity.scd
+-rw-r--r--@ 1 martindupras  staff   1794 23 Sep 10:23 DEMO20250923_FIXED.scd
+-rw-r--r--@ 1 martindupras  staff    781 23 Sep 10:08 DEMO20250923.scd
+-rw-r--r--@ 1 martindupras  staff   6234 23 Sep 09:15 Editor_AddCommands_Branch_Canonical.scd
+-rw-r--r--  1 martindupras  staff  10378 24 Sep 11:27 Fallback_Diag_OneShot.scd
+-rw-r--r--@ 1 martindupras  staff  10378 23 Sep 15:24 Fallback_Diag_OneShot.scd.bak
+-rw-r--r--@ 1 martindupras  staff   2392 23 Sep 16:17 FallbackDemo_ManualSequence.scd
+-rw-r--r--@ 1 martindupras  staff   1132 23 Sep 12:50 GUI_QuickFix_Choices_Contrast.scd
+-rw-r--r--@ 1 martindupras  staff   6466 23 Sep 12:49 Inspect_And_Queue_AddDelay_AutoRoute.scd
+-rw-r--r--@ 1 martindupras  staff   1632 23 Sep 12:55 Inspect_CommandTree_Under_Chain.scd
+-rw-r--r--@ 1 martindupras  staff    978 23 Sep 14:46 Install_LightweightMeterPrinters.scd
+-rw-r--r--  1 martindupras  staff   1911 24 Sep 11:27 Install_QueueExport_AdapterBridge.scd
+-rw-r--r--@ 1 martindupras  staff   1911 23 Sep 13:20 Install_QueueExport_AdapterBridge.scd.bak
+-rw-r--r--@ 1 martindupras  staff   2047 23 Sep 14:46 Install_QuietProxyMeters_Core.scd
+-rw-r--r--@ 1 martindupras  staff   1953 23 Sep 14:10 Install_QuietProxyMeters.scd
+-rw-r--r--@ 1 martindupras  staff   1225 23 Sep 13:52 Meters_Diagnostic_Bootstrap_FIX.scd
+-rw-r--r--@ 1 martindupras  staff   1588 23 Sep 12:50 Meters_QuickCheck_And_Enable.scd
+-rw-r--r--@ 1 martindupras  staff   4171 22 Sep 14:38 MIDI_Input_Tests_20250922.scd
+-rw-r--r--@ 1 martindupras  staff   4765 22 Sep 14:44 MIDI_Input_Tests2_20250922.scd
+-rw-r--r--@ 1 martindupras  staff   3220 22 Sep 14:20 MIDI_Log_Console.scd
+-rw-r--r--@ 1 martindupras  staff   1184 22 Sep 14:23 MIDI_Log_RefreshAndConnect.scd
+-rw-r--r--@ 1 martindupras  staff   1258 23 Sep 14:48 Queue_AddDelay_DirectCanonical.scd
+-rw-r--r--@ 1 martindupras  staff    423 23 Sep 10:02 Report_ChainPlayFlags.scd
+-rw-r--r--  1 martindupras  staff   7563 24 Sep 11:27 SimNav_Bridge_ApplyLeafPayload_CommandsOnly.scd
+-rw-r--r--@ 1 martindupras  staff   7563 23 Sep 10:05 SimNav_Bridge_ApplyLeafPayload_CommandsOnly.scd.bak
+-rw-r--r--@ 1 martindupras  staff   2872 23 Sep 10:22 SimNav_Bridge_ApplyLeafPayload_FIX.scd
+-rw-r--r--  1 martindupras  staff   3022 24 Sep 11:27 SimNav_Bridge_ApplyLeafPayload.scd
+-rw-r--r--@ 1 martindupras  staff   3022 23 Sep 09:21 SimNav_Bridge_ApplyLeafPayload.scd.bak
+-rw-r--r--@ 1 martindupras  staff   7275 23 Sep 12:52 Simulate_CommandTree_Queue_AddDelay_Robust.scd
+-rw-r--r--@ 1 martindupras  staff   7520 23 Sep 12:46 Simulate_CommandTree_Queue_AddDelay.scd
+-rw-r--r--@ 1 martindupras  staff   7982 23 Sep 12:58 Simulate_Step2_NavigateAndQueue_AddDelay.scd
+-rw-r--r--@ 1 martindupras  staff   2451 22 Sep 22:25 Test_MagicPedalboard_MIDI_Simulation.scd
+-rw-r--r--@ 1 martindupras  staff   1871 23 Sep 10:02 Verify_Baseline_CurrentAudible_NextSilent.scd

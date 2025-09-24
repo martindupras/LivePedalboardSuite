@@ -25,8 +25,8 @@ ensureAdapter = {
   var candidates, i, p;
   if(~ct_applyOSCPathToMPB.isNil) {
     candidates = List[
-      Platform.userExtensionDir ++ "/LivePedalboardSuite/MagicPedalboard/adapter_CommandTree_to_MagicPedalboard.scd",
-      Platform.userExtensionDir ++ "/LivePedalboardSuite/MagicPedalboard/adapter_commandtree_to_magicpedalboard.scd"
+      Platform.userExtensionDir ++ "/LivePedalboardSuite/Magicpedalboard/adapter_CommandTree_to_MagicPedalboard.scd",
+      Platform.userExtensionDir ++ "/LivePedalboardSuite/Magicpedalboard/adapter_commandtree_to_magicpedalboard.scd"
     ];
     i = 0;
     while({ i < candidates.size }, {
