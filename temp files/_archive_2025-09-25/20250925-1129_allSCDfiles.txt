@@ -2796,6 +2796,140 @@ ensurePath.(["commands","setSource","testmelody"], [10,4,1]);
 ~ct_writeJsonWithPayloads.(~tree, jsonPath, true, saveFolder, savePrefix);
 )
 
+===== MagicPedalboard/MagicDisplayGUI_GridDemo_Ext_ContrastFix.scd =====
+// MagicDisplayGUI_GridDemo_Ext_ContrastFix.scd
+// v0.1.0
+// MD 2025-09-24 23:55 BST
+
+/*
+Purpose
+- Ensure the Choices panel uses light text on a dark background.
+Style
+- Class extension only; var-first; AppClock UI; no server.sync.
+*/
+
++ MagicDisplayGUI_GridDemo {
+
+  fixChoicesContrast { arg fg = Color(0.96,0.96,0.96), bg = Color(0.12,0.12,0.12,0.92);
+    var apply;
+    apply = {
+      if(choicesPanel.notNil) { choicesPanel.background = bg };
+      if(choicesTitle.notNil) { choicesTitle.stringColor = fg };
+      if(choicesText.notNil)  { choicesText.stringColor  = fg };
+    };
+    AppClock.sched(0.0, { apply.value; nil });
+    ^this
+  }
+
+  // Keep existing behavior but guarantee readable \choices text
+  updateTextField { arg box, msg;
+    var doIt;
+    doIt = {
+      if(box == \choices) {
+        if(choicesText.notNil) {
+          choicesText.string = msg.asString;
+          choicesText.stringColor = Color(0.96,0.96,0.96);  // light text
+          if(choicesTitle.notNil) { choicesTitle.stringColor = Color(0.96,0.96,0.96) };
+        };
+      }{
+        if(expectationView.notNil) {
+          expectationView.string = "[" ++ box.asString ++ "] " ++ msg.asString;
+        };
+      };
+    };
+    AppClock.sched(0.0, { doIt.value; nil });
+    ^this
+  }
+}
+
+===== MagicPedalboard/MagicDisplayGUI_GridDemo_Ext_Meters.scd =====
+// MagicDisplayGUI_GridDemo_Ext_Meters.scd
+// v0.3.0
+// MD 2025-09-24 23:56 BST
+
+/*
+Purpose
+- Provide enableMeters(true): listen to /ampA and /ampB (from SendReply.kr)
+  and draw two moving bars in meterStrip.
+Style
+- Class extension only; var-first; AppClock for UI; no server.sync.
+*/
+
++ MagicDisplayGUI_GridDemo {
+
+  enableMeters { arg on = true;
+    var state, setupUI, install, remove;
+
+    // Simple per-window state (no ivars added)
+    state = (
+      valA: 0.0,   // 0..1 (A bar)
+      valB: 0.0,   // 0..1 (B bar)
+      rxA:  nil,   // OSCdef handles
+      rxB:  nil
+    );
+
+    setupUI = {
+      if(meterStrip.notNil) {
+        meterStrip.drawFunc = { |view|
+          var b = view.bounds, pad = 8, w = b.width - (pad*2), h = b.height;
+          var barH = ((h - (pad*2) - 4)/2).clip(8,14);
+          var top1 = pad, top2 = pad + barH + 4;
+          var a = state[\valA].clip(0,1), bb = state[\valB].clip(0,1);
+
+          // backgrounds
+          Pen.color = Color(0.2,0.2,0.2,0.15); Pen.addRect(Rect(pad, top1, w, barH)); Pen.fill;
+          Pen.color = Color(0.2,0.2,0.2,0.15); Pen.addRect(Rect(pad, top2, w, barH)); Pen.fill;
+
+          // dynamic fills
+          Pen.color = Color(0.20, 0.70, 0.20); Pen.addRect(Rect(pad, top1, w * a,  barH)); Pen.fill;  // A
+          Pen.color = Color(0.20, 0.40, 0.90); Pen.addRect(Rect(pad, top2, w * bb, barH)); Pen.fill;  // B
+
+          // border
+          Pen.color = Color.gray(0.5); Pen.strokeRect(Rect(0.5, 0.5, b.width-1, b.height-1));
+        };
+      };
+    };
+
+    install = {
+      setupUI.value;
+
+      // IMPORTANT: these paths must match the ones used in SendReply.kr
+      state[\rxA] = OSCdef(\mdAmpA, { |msg|
+        // SendReply places floats after some metadata; first value is msg[3]
+        var l = (msg.size > 3).if({ msg[3] }, { 0 }).asFloat;
+        var r = (msg.size > 4).if({ msg[4] }, { l }).asFloat;
+        // quick smoothing
+        state[\valA] = (state[\valA] * 0.7) + (max(l, r) * 0.3);
+        AppClock.sched(0.0, { if(meterStrip.notNil){ meterStrip.refresh }; nil });
+      }, '/ampA');
+
+      state[\rxB] = OSCdef(\mdAmpB, { |msg|
+        var l = (msg.size > 3).if({ msg[3] }, { 0 }).asFloat;
+        var r = (msg.size > 4).if({ msg[4] }, { l }).asFloat;
+        var mean = ((l + r) * 0.5).clip(0,1);
+        state[\valB] = (state[\valB] * 0.7) + (mean * 0.3);
+        AppClock.sched(0.0, { if(meterStrip.notNil){ meterStrip.refresh }; nil });
+      }, '/ampB');
+    };
+
+    remove = {
+      if(state[\rxA].notNil) { state[\rxA].free; state[\rxA] = nil };
+      if(state[\rxB].notNil) { state[\rxB].free; state[\rxB] = nil };
+      if(meterStrip.notNil) {
+        meterStrip.drawFunc = { |view|
+          var b = view.bounds;
+          Pen.color = Color.gray(0.7);
+          Pen.strokeRect(Rect(0.5,0.5,b.width-1,b.height-1));
+        };
+        meterStrip.refresh;
+      };
+    };
+
+    AppClock.sched(0.0, { if(on) { install.value } { remove.value }; nil });
+    ^this
+  }
+}
+
 ===== MagicPedalboard/MagicProcessorLibrary_defs.scd =====
 /* MagicProcessorLibrary_defs.scd
    Register a few defaults. Keep this file small and readable.
@@ -3648,6 +3782,1992 @@ recoverIfSilent.value;
 
     log.("forceReconnect done. current=" ++ effCur ++ "  next=" ++ effNext);
 };
+)
+
+===== MagicPedalboard/WindowDisplayExamples/ SixPanes_Layout_VH.scd =====
+/////////////////////////////////////////////////////////////
+// SixPanes_Layout_VH.scd
+// v0.1.0
+// MD 2025-09-25 13:35
+//
+// Purpose / Style:
+// - GUI-only: draw 6 "pane" rectangles (colored borders) arranged with VLayout/HLayout.
+// - No audio, no Ndefs, no server. Pure Qt layout.
+// - Rules: var-first; descriptive lowercase names; no non-local returns; known-good SC syntax.
+/////////////////////////////////////////////////////////////
+
+(
+var window, windowRect, windowBg, paneFill, cellPadding;
+var titleFont, bodyFont, paneColors, paneTitles;
+var makePane, row1, row2, row3, rootLayout;
+
+// ---------- close prior MagicDisplayGUI windows ----------
+Window.allWindows.do({ |w|
+    var nameString;
+    nameString = w.name.asString;
+    if(nameString.beginsWith("MagicDisplayGUI"), { { w.close }.defer });
+});
+
+// ---------- window & styles ----------
+windowRect = Rect(80, 60, 1200, 850);
+window = Window("MagicDisplayGUI SixPanes VHLayout", windowRect).alwaysOnTop_(true);
+windowBg = Color(0.08, 0.08, 0.09);
+paneFill  = Color(0.15, 0.15, 0.18);
+window.view.background_(windowBg);
+cellPadding = 10;
+
+titleFont = Font("Helvetica-Bold", 16);
+bodyFont  = Font("Menlo", 12);
+
+// six distinct colors and titles
+paneColors = [Color.red, Color.green, Color.blue, Color.yellow, Color.magenta, Color.cyan];
+paneTitles = ["top-left","top-right","middle-left","middle-right","bottom-left","bottom-right"];
+
+// ---------- pane factory: a container with colored border and two text lines ----------
+makePane = { |titleString, borderColor|
+    var pane, border, titleText, bodyText;
+    pane = UserView()  // no parent yet; layout will parent it
+        .background_(paneFill)
+        .minSize_(Size(500, 230)); // give layout something decent to work with
+
+    border = UserView(pane)
+        .resize_(1)
+        .drawFunc_({ |v|
+            var rect;
+            rect = Rect(1, 1, v.bounds.width - 2, v.bounds.height - 2);
+            Pen.fillColor = Color(0.11, 0.11, 0.12);
+            Pen.strokeColor = borderColor;
+            Pen.width = 2;
+            Pen.fillRect(rect);
+            Pen.strokeRect(rect);
+        });
+
+    titleText = StaticText()
+        .string_(titleString)
+        .font_(titleFont)
+        .stringColor_(Color.white);
+
+    bodyText = StaticText()
+        .string_("Pane: " ++ titleString ++ "\nGUI-only layout test.")
+        .font_(bodyFont)
+        .stringColor_(Color(0.85, 0.9, 0.95));
+
+    // inner stack inside each pane (title above body)
+    pane.layout_(VLayout(
+        // top margin shim
+        UserView().minHeight_(6),
+        titleText,
+        UserView().minHeight_(4),
+        bodyText,
+        // bottom stretch
+        nil
+    ));
+
+    pane
+};
+
+// ---------- build six panes ----------
+row1 = HLayout(
+    makePane.(paneTitles[0], paneColors[0]),
+    UserView().minWidth_(cellPadding), // spacer
+    makePane.(paneTitles[1], paneColors[1])
+);
+
+row2 = HLayout(
+    makePane.(paneTitles[2], paneColors[2]),
+    UserView().minWidth_(cellPadding),
+    makePane.(paneTitles[3], paneColors[3])
+);
+
+row3 = HLayout(
+    makePane.(paneTitles[4], paneColors[4]),
+    UserView().minWidth_(cellPadding),
+    makePane.(paneTitles[5], paneColors[5])
+);
+
+// ---------- root layout: 3 rows stacked, with vertical spacers ----------
+rootLayout = VLayout(
+    UserView().minHeight_(cellPadding), // top margin
+    row1,
+    UserView().minHeight_(cellPadding),
+    row2,
+    UserView().minHeight_(cellPadding),
+    row3,
+    UserView().minHeight_(cellPadding)  // bottom margin
+);
+
+// install the layout on the window
+window.layout_(rootLayout);
+window.front;
+)
+
+===== MagicPedalboard/WindowDisplayExamples/examplesSlidersButtons.scd =====
+// examplesSlidersButtons.scd
+// taken from Eli Fieldsteel book examples for chatper 8.
+
+(
+Window("Layout Management", Rect(100, 100, 250, 500)).front
+.layout_(
+	VLayout(
+		HLayout(Knob(), Knob(), Knob(), Knob()),
+		HLayout(Slider(), Slider(), Slider(), Slider()),
+		Slider2D(),
+		Button()
+	)
+);
+)
+===== MagicPedalboard/WindowDisplayExamples/SixPanes_GridLayout_MeterSim.scd =====
+/////////////////////////////////////////////////////////////
+// SixPanes_GridLayout_MeterSim.scd
+// v0.2.0
+// MD 2025-09-25 13:55
+//
+// Purpose / Style:
+// - GUI-only: 6 panes in GridLayout (3x2); top-left pane contains a simulated meter.
+// - No audio, no Ndefs. Pure Qt UI.
+// - Rules: var-first; descriptive lowercase names; no non-local returns; known-good SC syntax.
+/////////////////////////////////////////////////////////////
+
+(
+var window, windowRect, windowBg, paneFill;
+var titleFont, bodyFont, paneColors, paneTitles;
+var makePane, makePaneWithMeter, p;
+var meterView, meterRoutine;
+
+// ---------- close prior MagicDisplayGUI windows ----------
+Window.allWindows.do({ |w| var nameString; nameString = w.name.asString; if(nameString.beginsWith("MagicDisplayGUI"), { { w.close }.defer }); });
+
+// ---------- window & styles ----------
+windowRect = Rect(80, 60, 1200, 850);
+window = Window("MagicDisplayGUI GridLayout + Sim Meter", windowRect).alwaysOnTop_(true);
+windowBg = Color(0.08, 0.08, 0.09);
+paneFill = Color(0.15, 0.15, 0.18);
+window.view.background_(windowBg);
+
+titleFont = Font("Helvetica-Bold", 16);
+bodyFont  = Font("Menlo", 12);
+paneColors = [Color.red, Color.green, Color.blue, Color.yellow, Color.magenta, Color.cyan];
+paneTitles = ["top-left","top-right","middle-left","middle-right","bottom-left","bottom-right"];
+
+p = Array.newClear(6);
+
+// ---------- factories ----------
+makePane = { |titleString, borderColor|
+    var pane, titleText, bodyText, textColumn;
+    pane = UserView().background_(paneFill).minSize_(Size(520, 230));
+    pane.drawFunc = { |v|
+        var r;
+        r = Rect(1, 1, v.bounds.width - 2, v.bounds.height - 2);
+        Pen.fillColor = Color(0.11, 0.11, 0.12);
+        Pen.strokeColor = borderColor;
+        Pen.width = 2;
+        Pen.fillRect(r);
+        Pen.strokeRect(r);
+    };
+    titleText = StaticText().string_(titleString).font_(titleFont).stringColor_(Color.white);
+    bodyText  = StaticText().string_("Pane: " ++ titleString ++ "\nGUI-only layout test.").font_(bodyFont).stringColor_(Color(0.85,0.9,0.95));
+    textColumn = UserView();
+    textColumn.layout_(VLayout(UserView().minHeight_(6), titleText, UserView().minHeight_(4), bodyText, nil));
+    pane.layout_(VLayout(UserView().minHeight_(6), textColumn, nil));
+    pane
+};
+
+makePaneWithMeter = { |titleString, borderColor|
+    var pane, titleText, bodyText, textColumn, meterBox;
+    pane = UserView().background_(paneFill).minSize_(Size(520, 230));
+    pane.drawFunc = { |v|
+        var r;
+        r = Rect(1, 1, v.bounds.width - 2, v.bounds.height - 2);
+        Pen.fillColor = Color(0.11, 0.11, 0.12);
+        Pen.strokeColor = borderColor;
+        Pen.width = 2;
+        Pen.fillRect(r);
+        Pen.strokeRect(r);
+    };
+    titleText = StaticText().string_(titleString).font_(titleFont).stringColor_(Color.white);
+    bodyText  = StaticText().string_("Pane: " ++ titleString ++ "\nSimulated meter on the right.").font_(bodyFont).stringColor_(Color(0.85,0.9,0.95));
+    meterView = LevelIndicator().warning_(0.7).critical_(0.95).minSize_(Size(18, 180));
+    textColumn = UserView().layout_(VLayout(UserView().minHeight_(6), titleText, UserView().minHeight_(4), bodyText, nil));
+    meterBox   = UserView().layout_(VLayout(UserView().minHeight_(6), meterView, nil));
+    pane.layout_(HLayout(UserView().minWidth_(6), textColumn, UserView().minWidth_(10), meterBox, UserView().minWidth_(6)));
+    pane
+};
+
+// ---------- build six panes (index 0 gets the meter) ----------
+p[0] = makePaneWithMeter.(paneTitles[0], paneColors[0]); // top-left with meter
+p[1] = makePane.(paneTitles[1], paneColors[1]);
+p[2] = makePane.(paneTitles[2], paneColors[2]);
+p[3] = makePane.(paneTitles[3], paneColors[3]);
+p[4] = makePane.(paneTitles[4], paneColors[4]);
+p[5] = makePane.(paneTitles[5], paneColors[5]);
+
+// ---------- install grid 3x2 ----------
+window.layout_(GridLayout.rows(
+    [ p[0], p[1] ],
+    [ p[2], p[3] ],
+    [ p[4], p[5] ]
+));
+window.front;
+
+// ---------- simulated meter animation (no audio) ----------
+meterRoutine = Routine({
+    var updateInterval, phase, val, noise;
+    updateInterval = 0.05;
+    phase = 0.0;
+    loop {
+        val = ((sin(phase) + 1.0) * 0.5).linlin(0.0, 1.0, 0.05, 0.92);
+        noise = (0.10.rand2).clip(-0.08, 0.08);
+        val = (val + noise).clip(0.0, 1.0);
+        { if(meterView.notNil, { meterView.value_(val) }) }.defer;
+        phase = phase + 0.15;
+        updateInterval.wait;
+    }
+}).play(AppClock);
+
+// ---------- cleanup ----------
+window.onClose_({
+    if(meterRoutine.notNil, { meterRoutine.stop });
+});
+)
+
+===== MagicPedalboard/WindowDisplayExamples/SixPanes_GridLayout_TwoMeters_Descriptive.scd =====
+/////////////////////////////////////////////////////////////
+// SixPanes_GridLayout_TwoMeters_Descriptive.scd
+// v0.4.0
+// MD 2025-09-25 14:36
+//
+// Purpose / Style:
+// - GUI-only: 6 panes arranged with GridLayout; top-left and top-right have simulated meters.
+// - Rules: var-first; descriptive lowercase variable names; no single-letter variables; no non-local returns.
+// - No audio, no Ndefs.
+/////////////////////////////////////////////////////////////
+
+(
+var window, windowRect, windowBackgroundColor, paneFillColor;
+var titleFont, bodyFont, paneBorderColors, paneTitles;
+var makeTextPane, makeMeterPaneForKey, paneArray;
+var meterViewA, meterViewB, meterRoutine;
+
+// ---------- close prior MagicDisplayGUI windows ----------
+Window.allWindows.do({ |existingWindow|
+    var nameString;
+    nameString = existingWindow.name.asString;
+    if(nameString.beginsWith("MagicDisplayGUI"), { { existingWindow.close }.defer });
+});
+
+// ---------- window & styles ----------
+windowRect = Rect(80, 60, 1200, 850);
+window = Window("MagicDisplayGUI GridLayout + Two Sim Meters", windowRect).alwaysOnTop_(true);
+windowBackgroundColor = Color(0.08, 0.08, 0.09);
+paneFillColor = Color(0.15, 0.15, 0.18);
+window.view.background_(windowBackgroundColor);
+
+titleFont = Font("Helvetica-Bold", 16);
+bodyFont  = Font("Menlo", 12);
+paneBorderColors = [Color.red, Color.green, Color.blue, Color.yellow, Color.magenta, Color.cyan];
+paneTitles = ["top-left","top-right","middle-left","middle-right","bottom-left","bottom-right"];
+
+// ---------- factories ----------
+makeTextPane = { |paneTitleString, borderColor|
+    var paneView, titleTextView, bodyTextView, textColumnView;
+    paneView = UserView().background_(paneFillColor).minSize_(Size(520, 230));
+    paneView.drawFunc = { |drawView|
+        var borderRect;
+        borderRect = Rect(1, 1, drawView.bounds.width - 2, drawView.bounds.height - 2);
+        Pen.fillColor = Color(0.11, 0.11, 0.12);
+        Pen.strokeColor = borderColor;
+        Pen.width = 2;
+        Pen.fillRect(borderRect);
+        Pen.strokeRect(borderRect);
+    };
+    titleTextView = StaticText().string_(paneTitleString).font_(titleFont).stringColor_(Color.white);
+    bodyTextView  = StaticText().string_("Pane: " ++ paneTitleString ++ "\nGUI-only layout test.")
+        .font_(bodyFont).stringColor_(Color(0.85, 0.9, 0.95));
+    textColumnView = UserView().layout_(VLayout(UserView().minHeight_(6), titleTextView, UserView().minHeight_(4), bodyTextView, nil));
+    paneView.layout_(VLayout(UserView().minHeight_(6), textColumnView, nil));
+    paneView
+};
+
+// Meter pane; meterKeySymbol is \A or \B
+makeMeterPaneForKey = { |paneTitleString, borderColor, meterKeySymbol|
+    var paneView, titleTextView, bodyTextView, textColumnView, meterColumnView, localMeterView;
+    paneView = UserView().background_(paneFillColor).minSize_(Size(520, 230));
+    paneView.drawFunc = { |drawView|
+        var borderRect;
+        borderRect = Rect(1, 1, drawView.bounds.width - 2, drawView.bounds.height - 2);
+        Pen.fillColor = Color(0.11, 0.11, 0.12);
+        Pen.strokeColor = borderColor;
+        Pen.width = 2;
+        Pen.fillRect(borderRect);
+        Pen.strokeRect(borderRect);
+    };
+    titleTextView = StaticText().string_(paneTitleString).font_(titleFont).stringColor_(Color.white);
+    bodyTextView  = StaticText().string_("Pane: " ++ paneTitleString ++ "\nSimulated meter on the right.")
+        .font_(bodyFont).stringColor_(Color(0.85, 0.9, 0.95));
+    textColumnView = UserView().layout_(VLayout(UserView().minHeight_(6), titleTextView, UserView().minHeight_(4), bodyTextView, nil));
+    localMeterView = LevelIndicator().warning_(0.7).critical_(0.95).minSize_(Size(18, 180));
+    if(meterKeySymbol == \A, { meterViewA = localMeterView }, { meterViewB = localMeterView });
+    meterColumnView = UserView().layout_(VLayout(UserView().minHeight_(6), localMeterView, nil));
+    paneView.layout_(HLayout(UserView().minWidth_(6), textColumnView, UserView().minWidth_(10), meterColumnView, UserView().minWidth_(6)));
+    paneView
+};
+
+// ---------- build six panes ----------
+paneArray = Array.newClear(6);
+paneArray[0] = makeMeterPaneForKey.(paneTitles[0], paneBorderColors[0], \A); // top-left with meter A
+paneArray[1] = makeMeterPaneForKey.(paneTitles[1], paneBorderColors[1], \B); // top-right with meter B
+paneArray[2] = makeTextPane.(paneTitles[2], paneBorderColors[2]);
+paneArray[3] = makeTextPane.(paneTitles[3], paneBorderColors[3]);
+paneArray[4] = makeTextPane.(paneTitles[4], paneBorderColors[4]);
+paneArray[5] = makeTextPane.(paneTitles[5], paneBorderColors[5]);
+
+// ---------- grid layout 3x2 ----------
+window.layout_(GridLayout.rows(
+    [ paneArray[0], paneArray[1] ],
+    [ paneArray[2], paneArray[3] ],
+    [ paneArray[4], paneArray[5] ]
+));
+window.front;
+
+// ---------- simulated meters (single routine updates both) ----------
+meterRoutine = Routine({
+    var updateIntervalSeconds, phaseA, phaseB, valueA, valueB, noiseA, noiseB;
+    updateIntervalSeconds = 0.05;
+    phaseA = 0.0; phaseB = 0.9;
+    loop {
+        valueA = ((sin(phaseA) + 1.0) * 0.5).linlin(0.0, 1.0, 0.05, 0.92);
+        valueB = ((sin(phaseB) + 1.0) * 0.5).linlin(0.0, 1.0, 0.05, 0.92);
+        noiseA = (0.10.rand2).clip(-0.08, 0.08);
+        noiseB = (0.10.rand2).clip(-0.08, 0.08);
+        valueA = (valueA + noiseA).clip(0.0, 1.0);
+        valueB = (valueB + noiseB).clip(0.0, 1.0);
+        {
+            if(meterViewA.notNil, { meterViewA.value_(valueA) });
+            if(meterViewB.notNil, { meterViewB.value_(valueB) });
+        }.defer;
+        phaseA = phaseA + 0.15;
+        phaseB = phaseB + 0.11;
+        updateIntervalSeconds.wait;
+    }
+}).play(AppClock);
+
+// ---------- cleanup ----------
+window.onClose_({
+    if(meterRoutine.notNil, { meterRoutine.stop });
+});
+)
+
+===== MagicPedalboard/WindowDisplayExamples/SixPanes_GridLayout_TwoMeters_RealA_Descriptive.scd =====
+/////////////////////////////////////////////////////////////
+// SixPanes_GridLayout_TwoMeters_RealA_Descriptive.scd
+// v0.5.0
+// MD 2025-09-25 14:54
+//
+// Purpose / Style:
+// - GUI-only layout (GridLayout 3x2) with two meters in the top row.
+// - Meter A (top-left) is real (Ndef test source -> control bus); Meter B (top-right) is simulated.
+// - Rules: var-first; descriptive lowercase names; no single-letter variables; no non-local returns; no server.sync.
+// - Cleans up Ndef and buses on window close.
+/////////////////////////////////////////////////////////////
+
+(
+var window, windowRect, windowBackgroundColor, paneFillColor;
+var titleFont, bodyFont, meterLabelFont, paneBorderColors, paneTitles;
+var buildTextPane, buildMeterPane, paneArray;
+
+var meterViewA, meterViewB, meterRoutine, serverBootRoutine;
+var amplitudeBusA;
+
+// ---------- close prior MagicDisplayGUI windows ----------
+Window.allWindows.do({ |existingWindow|
+    var existingNameString;
+    existingNameString = existingWindow.name.asString;
+    if(existingNameString.beginsWith("MagicDisplayGUI"), { { existingWindow.close }.defer });
+});
+
+// ---------- window & styles ----------
+windowRect = Rect(80, 60, 1200, 850);
+window = Window("MagicDisplayGUI Grid + Real A / Sim B", windowRect).alwaysOnTop_(true);
+windowBackgroundColor = Color(0.08, 0.08, 0.09);
+paneFillColor = Color(0.15, 0.15, 0.18);
+window.view.background_(windowBackgroundColor);
+
+titleFont = Font("Helvetica-Bold", 16);
+bodyFont  = Font("Menlo", 12);
+meterLabelFont = Font("Helvetica-Bold", 13);
+
+paneBorderColors = [Color.red, Color.green, Color.blue, Color.yellow, Color.magenta, Color.cyan];
+paneTitles = ["top-left","top-right","middle-left","middle-right","bottom-left","bottom-right"];
+
+// ---------- factories ----------
+buildTextPane = { |paneTitleString, borderColor|
+    var paneView, titleTextView, bodyTextView, textColumnView;
+    paneView = UserView().background_(paneFillColor).minSize_(Size(520, 230));
+    paneView.drawFunc = { |drawView|
+        var borderRect;
+        borderRect = Rect(1, 1, drawView.bounds.width - 2, drawView.bounds.height - 2);
+        Pen.fillColor = Color(0.11, 0.11, 0.12);
+        Pen.strokeColor = borderColor;
+        Pen.width = 2;
+        Pen.fillRect(borderRect);
+        Pen.strokeRect(borderRect);
+    };
+    titleTextView = StaticText().string_(paneTitleString).font_(titleFont).stringColor_(Color.white);
+    bodyTextView  = StaticText().string_("Pane: " ++ paneTitleString ++ "\nGUI-only layout test.")
+        .font_(bodyFont).stringColor_(Color(0.85, 0.9, 0.95));
+    textColumnView = UserView().layout_(VLayout(UserView().minHeight_(6), titleTextView, UserView().minHeight_(4), bodyTextView, nil));
+    paneView.layout_(VLayout(UserView().minHeight_(6), textColumnView, nil));
+    paneView
+};
+
+buildMeterPane = { |paneTitleString, borderColor, labelTextString|
+    var paneView, titleTextView, bodyTextView, textColumnView;
+    var meterLabelView, meterColumnView, localMeterView;
+    paneView = UserView().background_(paneFillColor).minSize_(Size(520, 230));
+    paneView.drawFunc = { |drawView|
+        var borderRect;
+        borderRect = Rect(1, 1, drawView.bounds.width - 2, drawView.bounds.height - 2);
+        Pen.fillColor = Color(0.11, 0.11, 0.12);
+        Pen.strokeColor = borderColor;
+        Pen.width = 2;
+        Pen.fillRect(borderRect);
+        Pen.strokeRect(borderRect);
+    };
+    titleTextView = StaticText().string_(paneTitleString).font_(titleFont).stringColor_(Color.white);
+    bodyTextView  = StaticText().string_("Pane: " ++ paneTitleString ++ "\nMeter " ++ labelTextString ++ " is shown on the right.")
+        .font_(bodyFont).stringColor_(Color(0.85, 0.9, 0.95));
+    textColumnView = UserView().layout_(VLayout(UserView().minHeight_(6), titleTextView, UserView().minHeight_(4), bodyTextView, nil));
+    meterLabelView = StaticText().string_(labelTextString).font_(meterLabelFont).stringColor_(Color.white).align_(\center);
+    localMeterView = LevelIndicator().warning_(0.7).critical_(0.95).minSize_(Size(20, 180));
+    if(labelTextString == "A", { meterViewA = localMeterView }, { meterViewB = localMeterView });
+    meterColumnView = UserView().layout_(VLayout(UserView().minHeight_(4), meterLabelView, UserView().minHeight_(4), localMeterView, nil));
+    paneView.layout_(HLayout(UserView().minWidth_(6), textColumnView, UserView().minWidth_(10), meterColumnView, UserView().minWidth_(6)));
+    paneView
+};
+
+// ---------- build 3x2 grid: top row has meters ----------
+paneArray = Array.newClear(6);
+paneArray[0] = buildMeterPane.(paneTitles[0], paneBorderColors[0], "A"); // top-left real
+paneArray[1] = buildMeterPane.(paneTitles[1], paneBorderColors[1], "B"); // top-right simulated
+paneArray[2] = buildTextPane.(paneTitles[2], paneBorderColors[2]);
+paneArray[3] = buildTextPane.(paneTitles[3], paneBorderColors[3]);
+paneArray[4] = buildTextPane.(paneTitles[4], paneBorderColors[4]);
+paneArray[5] = buildTextPane.(paneTitles[5], paneBorderColors[5]);
+
+window.layout_(GridLayout.rows(
+    [ paneArray[0], paneArray[1] ],
+    [ paneArray[2], paneArray[3] ],
+    [ paneArray[4], paneArray[5] ]
+));
+window.front;
+
+// ---------- bring up real meter A (Ndef) and simulated meter B ----------
+serverBootRoutine = Routine({
+    var updateIntervalSeconds, phaseB, simulatedValueB, simulatedNoiseB;
+
+    s.waitForBoot({
+        var defaultNumChannels;
+        defaultNumChannels = 2;
+
+        s.initTree;
+        s.defaultGroup.freeAll;
+
+        amplitudeBusA = Bus.control(s, 1);
+
+        Ndef(\meterSourceA, {
+            var leftFrequency, rightFrequency, stereoSignal, monoSignal, amplitudeValue, meterBusIndex;
+            leftFrequency  = 220 + LFTri.kr(0.10).range(-20,  20);
+            rightFrequency = 330 + LFTri.kr(0.13).range(-30,  30);
+            stereoSignal   = [Saw.ar(leftFrequency), Saw.ar(rightFrequency)] * 0.07;
+            monoSignal     = stereoSignal.sum * 0.5;
+            amplitudeValue = Amplitude.ar(monoSignal, 0.01, 0.30).clip(0.0, 1.5);
+            meterBusIndex  = \meterBus.kr(0);
+            Out.kr(meterBusIndex, amplitudeValue);
+            (stereoSignal.tanh * 0.9)
+        });
+
+        Ndef(\meterSourceA).set(\meterBus, amplitudeBusA.index);
+        Ndef(\meterSourceA).play;
+    });
+
+    updateIntervalSeconds = 0.05;
+    phaseB = 0.0;
+
+    meterRoutine = Routine({
+        loop {
+            amplitudeBusA.get({ |busValueA|
+                var mappedValueA;
+                mappedValueA = busValueA.clip(0.0, 1.0);
+                { if(meterViewA.notNil, { meterViewA.value_(mappedValueA) }) }.defer;
+            });
+
+            simulatedValueB = ((sin(phaseB) + 1.0) * 0.5).linlin(0.0, 1.0, 0.05, 0.92);
+            simulatedNoiseB = (0.10.rand2).clip(-0.08, 0.08);
+            simulatedValueB = (simulatedValueB + simulatedNoiseB).clip(0.0, 1.0);
+            { if(meterViewB.notNil, { meterViewB.value_(simulatedValueB) }) }.defer;
+
+            phaseB = phaseB + 0.12;
+            updateIntervalSeconds.wait;
+        }
+    }).play(AppClock);
+}).play(AppClock);
+
+// ---------- cleanup ----------
+window.onClose_({
+    if(meterRoutine.notNil, { meterRoutine.stop });
+    if(serverBootRoutine.notNil, { serverBootRoutine.stop });
+    if(amplitudeBusA.notNil, { amplitudeBusA.free });
+    if(Ndef.all.at(\meterSourceA).notNil, {
+        Ndef(\meterSourceA).stop;
+        Ndef(\meterSourceA).clear;
+    });
+});
+)
+
+===== MagicPedalboard/WindowDisplayExamples/SixPanes_GridLayout_TwoMeters_SteppedDB_Sound.scd =====
+/////////////////////////////////////////////////////////////
+// SixPanes_GridLayout_TwoMeters_SteppedDB_Sound.scd
+// v0.7.0
+// MD 2025-09-25 15:24
+//
+// Purpose / Style:
+// - GUI-only layout (GridLayout 3x2) with 2 meters in the top row.
+// - Audible test source (Ndef) plays; its amplitude steps in 10 dB increments every second.
+// - Meters A and B both follow the same stepped level.
+// - Rules: var-first; descriptive lowercase names; no single-letter variables;
+//   no non-local returns; no server.sync; known-good Qt syntax.
+/////////////////////////////////////////////////////////////
+
+(
+var window, windowRect, windowBackgroundColor, paneFillColor;
+var titleFont, bodyFont, meterLabelFont, paneBorderColors, paneTitles;
+var buildTextPane, buildMeterPane, paneArray;
+
+var meterViewA, meterViewB, meterStepRoutine, serverBringUpRoutine;
+var dbStepValues, stepIntervalSeconds;
+var amplitudeBusA;
+
+// ---------- close prior MagicDisplayGUI windows ----------
+Window.allWindows.do({ |existingWindow|
+    var existingNameString;
+    existingNameString = existingWindow.name.asString;
+    if(existingNameString.beginsWith("MagicDisplayGUI"), { { existingWindow.close }.defer });
+});
+
+// ---------- window & styles ----------
+windowRect = Rect(80, 60, 1200, 850);
+window = Window("MagicDisplayGUI GridLayout + Stepped dB (with sound)", windowRect).alwaysOnTop_(true);
+windowBackgroundColor = Color(0.08, 0.08, 0.09);
+paneFillColor = Color(0.15, 0.15, 0.18);
+window.view.background_(windowBackgroundColor);
+
+titleFont      = Font("Helvetica-Bold", 16);
+bodyFont       = Font("Menlo", 12);
+meterLabelFont = Font("Helvetica-Bold", 13);
+
+paneBorderColors = [Color.red, Color.green, Color.blue, Color.yellow, Color.magenta, Color.cyan];
+paneTitles       = ["top-left","top-right","middle-left","middle-right","bottom-left","bottom-right"];
+
+// ---------- stepped-meters parameters ----------
+dbStepValues        = [-60, -50, -40, -30, -20, -10, 0];
+stepIntervalSeconds = 1.0;
+
+// ---------- factories ----------
+buildTextPane = { |paneTitleString, borderColor|
+    var paneView, titleTextView, bodyTextView, textColumnView;
+    paneView = UserView().background_(paneFillColor).minSize_(Size(520, 230));
+    paneView.drawFunc = { |drawView|
+        var borderRect;
+        borderRect = Rect(1, 1, drawView.bounds.width - 2, drawView.bounds.height - 2);
+        Pen.fillColor = Color(0.11, 0.11, 0.12);
+        Pen.strokeColor = borderColor;
+        Pen.width = 2;
+        Pen.fillRect(borderRect);
+        Pen.strokeRect(borderRect);
+    };
+    titleTextView = StaticText().string_(paneTitleString).font_(titleFont).stringColor_(Color.white);
+    bodyTextView  = StaticText().string_("Pane: " ++ paneTitleString ++ "\nLayout row with text.")
+        .font_(bodyFont).stringColor_(Color(0.85, 0.9, 0.95));
+    textColumnView = UserView().layout_(VLayout(UserView().minHeight_(6), titleTextView, UserView().minHeight_(4), bodyTextView, nil));
+    paneView.layout_(VLayout(UserView().minHeight_(6), textColumnView, nil));
+    paneView
+};
+
+buildMeterPane = { |paneTitleString, borderColor, labelTextString|
+    var paneView, titleTextView, bodyTextView, textColumnView, meterLabelView, localMeterView, meterColumnView;
+    paneView = UserView().background_(paneFillColor).minSize_(Size(520, 230));
+    paneView.drawFunc = { |drawView|
+        var borderRect;
+        borderRect = Rect(1, 1, drawView.bounds.width - 2, drawView.bounds.height - 2);
+        Pen.fillColor = Color(0.11, 0.11, 0.12);
+        Pen.strokeColor = borderColor;
+        Pen.width = 2;
+        Pen.fillRect(borderRect);
+        Pen.strokeRect(borderRect);
+    };
+    titleTextView = StaticText().string_(paneTitleString).font_(titleFont).stringColor_(Color.white);
+    bodyTextView  = StaticText().string_("Pane: " ++ paneTitleString ++ "\nMeter " ++ labelTextString ++ " steps in 10 dB increments.")
+        .font_(bodyFont).stringColor_(Color(0.85, 0.9, 0.95));
+    textColumnView = UserView().layout_(VLayout(UserView().minHeight_(6), titleTextView, UserView().minHeight_(4), bodyTextView, nil));
+    meterLabelView = StaticText().string_(labelTextString).font_(meterLabelFont).stringColor_(Color.white).align_(\center);
+    localMeterView = LevelIndicator().warning_(0.7).critical_(0.95).minSize_(Size(20, 180));
+    if(labelTextString == "A", { meterViewA = localMeterView }, { meterViewB = localMeterView });
+    meterColumnView = UserView().layout_(VLayout(UserView().minHeight_(4), meterLabelView, UserView().minHeight_(4), localMeterView, nil));
+    paneView.layout_(HLayout(UserView().minWidth_(6), textColumnView, UserView().minWidth_(10), meterColumnView, UserView().minWidth_(6)));
+    paneView
+};
+
+// ---------- assemble grid (top row has meters) ----------
+paneArray = Array.newClear(6);
+paneArray[0] = buildMeterPane.(paneTitles[0], paneBorderColors[0], "A");
+paneArray[1] = buildMeterPane.(paneTitles[1], paneBorderColors[1], "B");
+paneArray[2] = buildTextPane.(paneTitles[2], paneBorderColors[2]);
+paneArray[3] = buildTextPane.(paneTitles[3], paneBorderColors[3]);
+paneArray[4] = buildTextPane.(paneTitles[4], paneBorderColors[4]);
+paneArray[5] = buildTextPane.(paneTitles[5], paneBorderColors[5]);
+
+window.layout_(GridLayout.rows(
+    [ paneArray[0], paneArray[1] ],
+    [ paneArray[2], paneArray[3] ],
+    [ paneArray[4], paneArray[5] ]
+));
+window.front;
+
+// ---------- AUDIO bring-up (audible Ndef + stepped amplitude) ----------
+serverBringUpRoutine = Routine({
+    s.waitForBoot({
+        var defaultNumChannels, leftFrequency, rightFrequency;
+        defaultNumChannels = 2;
+        s.initTree; s.defaultGroup.freeAll;
+
+        amplitudeBusA = Bus.control(s, 1);
+
+        Ndef(\stepToneA, {
+            var stereoSignal, monoSignal, amplitudeLinear, meterBusIndex;
+            leftFrequency  = 220 + LFTri.kr(0.10).range(-20, 20);
+            rightFrequency = 330 + LFTri.kr(0.13).range(-30, 30);
+            stereoSignal   = (VarSaw.ar([leftFrequency, rightFrequency], 0.0, 0.35) * 0.5).tanh * 0.15;
+
+            amplitudeLinear = Lag.kr(\amp.kr(0.05), 0.02); // smooth the steps
+            stereoSignal    = stereoSignal * amplitudeLinear;
+
+            monoSignal    = stereoSignal.sum * 0.5;
+            meterBusIndex = \meterBus.kr(0);
+            Out.kr(meterBusIndex, Amplitude.ar(monoSignal, 0.01, 0.30).clip(0.0, 1.5));
+
+            stereoSignal
+        });
+
+        Ndef(\stepToneA).set(\meterBus, amplitudeBusA.index, \amp, 0.05);
+        Ndef(\stepToneA).play;
+    });
+}).play(AppClock);
+
+// ---------- STEP meters + audible amplitude ----------
+meterStepRoutine = Routine({
+    var stepIndex, stepCount, currentDb, currentLinear;
+    stepIndex = 0;
+    stepCount = dbStepValues.size;
+    loop {
+        currentDb     = dbStepValues.wrapAt(stepIndex);
+        currentLinear = currentDb.dbamp.clip(0.0, 1.0);
+
+        { if(meterViewA.notNil, { meterViewA.value_(currentLinear) });
+          if(meterViewB.notNil, { meterViewB.value_(currentLinear) }); }.defer;
+
+        Ndef(\stepToneA).set(\amp, currentLinear);
+
+        stepIndex = stepIndex + 1;
+        stepIntervalSeconds.wait;
+    }
+}).play(AppClock);
+
+// ---------- cleanup ----------
+window.onClose_({
+    if(meterStepRoutine.notNil, { meterStepRoutine.stop });
+    if(serverBringUpRoutine.notNil, { serverBringUpRoutine.stop });
+    if(amplitudeBusA.notNil, { amplitudeBusA.free });
+    if(Ndef.all.at(\stepToneA).notNil, { Ndef(\stepToneA).stop; Ndef(\stepToneA).clear; });
+});
+)
+
+===== MagicPedalboard/WindowDisplayExamples/SixPanes_GridLayout_TwoMeters.scd =====
+/////////////////////////////////////////////////////////////
+// SixPanes_GridLayout_TwoMeters.scd
+// v0.3.1
+// MD 2025-09-25 14:20
+//
+// Purpose / Style:
+// - GUI-only: 6 panes in a GridLayout (3x2).
+// - Top-left and top-right contain simulated meters (no audio).
+// - Rules: var-first; descriptive lowercase names; no non-local returns; known-good SC syntax.
+/////////////////////////////////////////////////////////////
+
+(
+var window, windowRect, windowBg, paneFill;
+var titleFont, bodyFont, paneColors, paneTitles;
+var makeTextPane, makeMeterPane, p;
+var meterViewA, meterViewB, meterRoutine;
+
+// ---------- close prior MagicDisplayGUI windows ----------
+Window.allWindows.do({ |w|
+    var nameString;
+    nameString = w.name.asString;
+    if(nameString.beginsWith("MagicDisplayGUI"), { { w.close }.defer });
+});
+
+// ---------- window & styles ----------
+windowRect = Rect(80, 60, 1200, 850);
+window = Window("MagicDisplayGUI GridLayout + Two Sim Meters", windowRect).alwaysOnTop_(true);
+windowBg = Color(0.08, 0.08, 0.09);
+paneFill = Color(0.15, 0.15, 0.18);
+window.view.background_(windowBg);
+
+titleFont = Font("Helvetica-Bold", 16);
+bodyFont  = Font("Menlo", 12);
+paneColors = [Color.red, Color.green, Color.blue, Color.yellow, Color.magenta, Color.cyan];
+paneTitles = ["top-left","top-right","middle-left","middle-right","bottom-left","bottom-right"];
+
+// ---------- factories ----------
+makeTextPane = { |titleString, borderColor|
+    var pane, titleText, bodyText, textColumn;
+    pane = UserView().background_(paneFill).minSize_(Size(520, 230));
+    pane.drawFunc = { |v|
+        var r;
+        r = Rect(1, 1, v.bounds.width - 2, v.bounds.height - 2);
+        Pen.fillColor = Color(0.11, 0.11, 0.12);
+        Pen.strokeColor = borderColor;
+        Pen.width = 2;
+        Pen.fillRect(r);
+        Pen.strokeRect(r);
+    };
+    titleText = StaticText().string_(titleString).font_(titleFont).stringColor_(Color.white);
+    bodyText  = StaticText().string_("Pane: " ++ titleString ++ "\nGUI-only layout test.")
+        .font_(bodyFont).stringColor_(Color(0.85,0.9,0.95));
+    textColumn = UserView().layout_(VLayout(UserView().minHeight_(6), titleText, UserView().minHeight_(4), bodyText, nil));
+    pane.layout_(VLayout(UserView().minHeight_(6), textColumn, nil));
+    pane
+};
+
+// returns [pane, meterView]
+makeMeterPane = { |titleString, borderColor|
+    var pane, titleText, bodyText, textColumn, meterBox, meterView;
+    pane = UserView().background_(paneFill).minSize_(Size(520, 230));
+    pane.drawFunc = { |v|
+        var r;
+        r = Rect(1, 1, v.bounds.width - 2, v.bounds.height - 2);
+        Pen.fillColor = Color(0.11, 0.11, 0.12);
+        Pen.strokeColor = borderColor;
+        Pen.width = 2;
+        Pen.fillRect(r);
+        Pen.strokeRect(r);
+    };
+    titleText = StaticText().string_(titleString).font_(titleFont).stringColor_(Color.white);
+    bodyText  = StaticText().string_("Pane: " ++ titleString ++ "\nSimulated meter on the right.")
+        .font_(bodyFont).stringColor_(Color(0.85,0.9,0.95));
+    meterView = LevelIndicator().warning_(0.7).critical_(0.95).minSize_(Size(18, 180));
+    textColumn = UserView().layout_(VLayout(UserView().minHeight_(6), titleText, UserView().minHeight_(4), bodyText, nil));
+    meterBox   = UserView().layout_(VLayout(UserView().minHeight_(6), meterView, nil));
+    pane.layout_(HLayout(UserView().minWidth_(6), textColumn, UserView().minWidth_(10), meterBox, UserView().minWidth_(6)));
+    [pane, meterView]
+};
+
+// ---------- build six panes ----------
+p = Array.newClear(6);
+var pane, m;
+
+#pane, m = makeMeterPane.(paneTitles[0], paneColors[0]); p[0] = pane; meterViewA = m; // top-left
+#pane, m = makeMeterPane.(paneTitles[1], paneColors[1]); p[1] = pane; meterViewB = m; // top-right
+p[2] = makeTextPane.(paneTitles[2], paneColors[2]);
+p[3] = makeTextPane.(paneTitles[3], paneColors[3]);
+p[4] = makeTextPane.(paneTitles[4], paneColors[4]);
+p[5] = makeTextPane.(paneTitles[5], paneColors[5]);
+
+// ---------- grid layout 3x2 ----------
+window.layout_(GridLayout.rows(
+    [ p[0], p[1] ],
+    [ p[2], p[3] ],
+    [ p[4], p[5] ]
+));
+window.front;
+
+// ---------- simulated meters (single routine updates both) ----------
+meterRoutine = Routine({
+    var updateInterval, phaseA, phaseB, valA, valB, noiseA, noiseB;
+    updateInterval = 0.05;
+    phaseA = 0.0; phaseB = 0.9;
+    loop {
+        valA = ((sin(phaseA) + 1.0) * 0.5).linlin(0.0, 1.0, 0.05, 0.92);
+        valB = ((sin(phaseB) + 1.0) * 0.5).linlin(0.0, 1.0, 0.05, 0.92);
+        noiseA = (0.10.rand2).clip(-0.08, 0.08);
+        noiseB = (0.10.rand2).clip(-0.08, 0.08);
+        valA = (valA + noiseA).clip(0.0, 1.0);
+        valB = (valB + noiseB).clip(0.0, 1.0);
+        {
+            if(meterViewA.notNil, { meterViewA.value_(valA) });
+            if(meterViewB.notNil, { meterViewB.value_(valB) });
+        }.defer;
+        phaseA = phaseA + 0.15;
+        phaseB = phaseB + 0.11;
+        updateInterval.wait;
+    }
+}).play(AppClock);
+
+// ---------- cleanup ----------
+window.onClose_({
+    if(meterRoutine.notNil, { meterRoutine.stop });
+});
+)
+
+===== MagicPedalboard/WindowDisplayExamples/SixPanes_Layout_Grid.scd =====
+/////////////////////////////////////////////////////////////
+// SixPanes_Layout_Grid.scd
+// v0.1.0
+// MD 2025-09-25 13:35
+//
+// Purpose / Style:
+// - GUI-only: six colored panes arranged with GridLayout (3 rows x 2 columns).
+// - Rules: var-first; descriptive lowercase names; no non-local returns; known-good SC syntax.
+/////////////////////////////////////////////////////////////
+
+(
+var window, windowRect, windowBg, paneFill;
+var titleFont, bodyFont, paneColors, paneTitles, makePane;
+var p = Array.newClear(6);
+
+// ---------- close prior MagicDisplayGUI windows ----------
+Window.allWindows.do({ |w| var nameString; nameString = w.name.asString; if(nameString.beginsWith("MagicDisplayGUI"), { { w.close }.defer }); });
+
+// ---------- window ----------
+windowRect = Rect(80, 60, 1200, 850);
+window = Window("MagicDisplayGUI SixPanes GridLayout", windowRect).alwaysOnTop_(true);
+windowBg = Color(0.08, 0.08, 0.09);
+paneFill = Color(0.15, 0.15, 0.18);
+window.view.background_(windowBg);
+
+// ---------- styles ----------
+titleFont = Font("Helvetica-Bold", 16);
+bodyFont  = Font("Menlo", 12);
+paneColors = [Color.red, Color.green, Color.blue, Color.yellow, Color.magenta, Color.cyan];
+paneTitles = ["top-left","top-right","middle-left","middle-right","bottom-left","bottom-right"];
+
+// ---------- pane factory ----------
+makePane = { |titleString, borderColor|
+    var pane, border, titleText, bodyText;
+    pane = UserView().background_(paneFill).minSize_(Size(500, 230));
+    border = UserView(pane).resize_(1).drawFunc_({ |v|
+        var rect; rect = Rect(1, 1, v.bounds.width - 2, v.bounds.height - 2);
+        Pen.fillColor = Color(0.11,0.11,0.12); Pen.strokeColor = borderColor; Pen.width = 2;
+        Pen.fillRect(rect); Pen.strokeRect(rect);
+    });
+    titleText = StaticText().string_(titleString).font_(titleFont).stringColor_(Color.white);
+    bodyText  = StaticText().string_("Pane: " ++ titleString ++ "\nGUI-only layout test.").font_(bodyFont).stringColor_(Color(0.85,0.9,0.95));
+    pane.layout_(VLayout(UserView().minHeight_(6), titleText, UserView().minHeight_(4), bodyText, nil));
+    pane
+};
+
+// ---------- build array of six panes ----------
+6.do({ |i| p[i] = makePane.(paneTitles[i], paneColors[i]) });
+
+// ---------- grid layout: 3 rows × 2 columns ----------
+window.layout_(GridLayout.rows(
+    [ p[0], p[1] ],
+    [ p[2], p[3] ],
+    [ p[4], p[5] ]
+));
+
+window.front;
+)
+
+===== MagicPedalboard/WindowDisplayExamples/SixPanes_Layout_VH.scd =====
+/////////////////////////////////////////////////////////////
+// SixPanes_Layout_VH.scd
+// v0.1.0
+// MD 2025-09-25 13:35
+//
+// Purpose / Style:
+// - GUI-only: draw 6 "pane" rectangles (colored borders) arranged with VLayout/HLayout.
+// - No audio, no Ndefs, no server. Pure Qt layout.
+// - Rules: var-first; descriptive lowercase names; no non-local returns; known-good SC syntax.
+/////////////////////////////////////////////////////////////
+
+(
+var window, windowRect, windowBg, paneFill, cellPadding;
+var titleFont, bodyFont, paneColors, paneTitles;
+var makePane, row1, row2, row3, rootLayout;
+
+// ---------- close prior MagicDisplayGUI windows ----------
+Window.allWindows.do({ |w|
+    var nameString;
+    nameString = w.name.asString;
+    if(nameString.beginsWith("MagicDisplayGUI"), { { w.close }.defer });
+});
+
+// ---------- window & styles ----------
+windowRect = Rect(80, 60, 1200, 850);
+window = Window("MagicDisplayGUI SixPanes VHLayout", windowRect).alwaysOnTop_(true);
+windowBg = Color(0.08, 0.08, 0.09);
+paneFill  = Color(0.15, 0.15, 0.18);
+window.view.background_(windowBg);
+cellPadding = 10;
+
+titleFont = Font("Helvetica-Bold", 16);
+bodyFont  = Font("Menlo", 12);
+
+// six distinct colors and titles
+paneColors = [Color.red, Color.green, Color.blue, Color.yellow, Color.magenta, Color.cyan];
+paneTitles = ["top-left","top-right","middle-left","middle-right","bottom-left","bottom-right"];
+
+// ---------- pane factory: a container with colored border and two text lines ----------
+makePane = { |titleString, borderColor|
+    var pane, border, titleText, bodyText;
+    pane = UserView()  // no parent yet; layout will parent it
+        .background_(paneFill)
+        .minSize_(Size(500, 230)); // give layout something decent to work with
+
+    border = UserView(pane)
+        .resize_(1)
+        .drawFunc_({ |v|
+            var rect;
+            rect = Rect(1, 1, v.bounds.width - 2, v.bounds.height - 2);
+            Pen.fillColor = Color(0.11, 0.11, 0.12);
+            Pen.strokeColor = borderColor;
+            Pen.width = 2;
+            Pen.fillRect(rect);
+            Pen.strokeRect(rect);
+        });
+
+    titleText = StaticText()
+        .string_(titleString)
+        .font_(titleFont)
+        .stringColor_(Color.white);
+
+    bodyText = StaticText()
+        .string_("Pane: " ++ titleString ++ "\nGUI-only layout test.")
+        .font_(bodyFont)
+        .stringColor_(Color(0.85, 0.9, 0.95));
+
+    // inner stack inside each pane (title above body)
+    pane.layout_(VLayout(
+        // top margin shim
+        UserView().minHeight_(6),
+        titleText,
+        UserView().minHeight_(4),
+        bodyText,
+        // bottom stretch
+        nil
+    ));
+
+    pane
+};
+
+// ---------- build six panes ----------
+row1 = HLayout(
+    makePane.(paneTitles[0], paneColors[0]),
+    UserView().minWidth_(cellPadding), // spacer
+    makePane.(paneTitles[1], paneColors[1])
+);
+
+row2 = HLayout(
+    makePane.(paneTitles[2], paneColors[2]),
+    UserView().minWidth_(cellPadding),
+    makePane.(paneTitles[3], paneColors[3])
+);
+
+row3 = HLayout(
+    makePane.(paneTitles[4], paneColors[4]),
+    UserView().minWidth_(cellPadding),
+    makePane.(paneTitles[5], paneColors[5])
+);
+
+// ---------- root layout: 3 rows stacked, with vertical spacers ----------
+rootLayout = VLayout(
+    UserView().minHeight_(cellPadding), // top margin
+    row1,
+    UserView().minHeight_(cellPadding),
+    row2,
+    UserView().minHeight_(cellPadding),
+    row3,
+    UserView().minHeight_(cellPadding)  // bottom margin
+);
+
+// install the layout on the window
+window.layout_(rootLayout);
+window.front;
+)
+
+===== MagicPedalboard/WindowDisplayExamples/SixPanes_VHLayout_MeterSim.scd =====
+/////////////////////////////////////////////////////////////
+// SixPanes_VHLayout_MeterSim.scd
+// v0.2.0
+// MD 2025-09-25 13:55
+//
+// Purpose / Style:
+// - GUI-only: 6 panes arranged with VLayout/HLayout; top-left pane contains a simulated meter.
+// - No audio, no Ndefs. Pure Qt UI.
+// - Rules: var-first; descriptive lowercase names; no non-local returns; known-good SC syntax.
+/////////////////////////////////////////////////////////////
+
+(
+var window, windowRect, windowBg, paneFill, cellPadding;
+var titleFont, bodyFont, paneColors, paneTitles;
+var makePane, makePaneWithMeter, row1, row2, row3, rootLayout;
+var meterView, meterRoutine;
+
+// ---------- close prior MagicDisplayGUI windows ----------
+Window.allWindows.do({ |w|
+    var nameString;
+    nameString = w.name.asString;
+    if(nameString.beginsWith("MagicDisplayGUI"), { { w.close }.defer });
+});
+
+// ---------- window & styles ----------
+windowRect = Rect(80, 60, 1200, 850);
+window = Window("MagicDisplayGUI VHLayout + Sim Meter", windowRect).alwaysOnTop_(true);
+windowBg = Color(0.08, 0.08, 0.09);
+paneFill = Color(0.15, 0.15, 0.18);
+window.view.background_(windowBg);
+cellPadding = 10;
+
+titleFont = Font("Helvetica-Bold", 16);
+bodyFont  = Font("Menlo", 12);
+
+paneColors = [Color.red, Color.green, Color.blue, Color.yellow, Color.magenta, Color.cyan];
+paneTitles = ["top-left","top-right","middle-left","middle-right","bottom-left","bottom-right"];
+
+// ---------- pane factories ----------
+// Plain pane (no meter)
+makePane = { |titleString, borderColor|
+    var pane, titleText, bodyText, textColumn;
+    pane = UserView().background_(paneFill).minSize_(Size(520, 230));
+    pane.drawFunc = { |v|
+        var r;
+        r = Rect(1, 1, v.bounds.width - 2, v.bounds.height - 2);
+        Pen.fillColor = Color(0.11, 0.11, 0.12);
+        Pen.strokeColor = borderColor;
+        Pen.width = 2;
+        Pen.fillRect(r);
+        Pen.strokeRect(r);
+    };
+
+    titleText = StaticText().string_(titleString).font_(titleFont).stringColor_(Color.white);
+    bodyText  = StaticText()
+        .string_("Pane: " ++ titleString ++ "\nGUI-only layout test.")
+        .font_(bodyFont).stringColor_(Color(0.85, 0.9, 0.95));
+
+    textColumn = UserView();
+    textColumn.layout_(VLayout(
+        UserView().minHeight_(6),
+        titleText,
+        UserView().minHeight_(4),
+        bodyText,
+        nil
+    ));
+
+    pane.layout_(VLayout(
+        UserView().minHeight_(6),
+        textColumn,
+        nil
+    ));
+
+    pane
+};
+
+// Pane with meter on the right side
+makePaneWithMeter = { |titleString, borderColor|
+    var pane, titleText, bodyText, textColumn, meterBox;
+    pane = UserView().background_(paneFill).minSize_(Size(520, 230));
+    pane.drawFunc = { |v|
+        var r;
+        r = Rect(1, 1, v.bounds.width - 2, v.bounds.height - 2);
+        Pen.fillColor = Color(0.11, 0.11, 0.12);
+        Pen.strokeColor = borderColor;
+        Pen.width = 2;
+        Pen.fillRect(r);
+        Pen.strokeRect(r);
+    };
+
+    titleText = StaticText().string_(titleString).font_(titleFont).stringColor_(Color.white);
+    bodyText  = StaticText()
+        .string_("Pane: " ++ titleString ++ "\nSimulated meter on the right.")
+        .font_(bodyFont).stringColor_(Color(0.85, 0.9, 0.95));
+
+    textColumn = UserView();
+    textColumn.layout_(VLayout(
+        UserView().minHeight_(6),
+        titleText,
+        UserView().minHeight_(4),
+        bodyText,
+        nil
+    ));
+
+    // vertical level indicator
+    meterView = LevelIndicator()
+        .warning_(0.7).critical_(0.95)
+        .minSize_(Size(18, 180));
+
+    meterBox = UserView();
+    meterBox.layout_(VLayout(
+        UserView().minHeight_(6),
+        meterView,
+        nil
+    ));
+
+    pane.layout_(HLayout(
+        UserView().minWidth_(6),
+        textColumn,
+        UserView().minWidth_(10), // spacer between text and meter
+        meterBox,
+        UserView().minWidth_(6)
+    ));
+
+    pane
+};
+
+// ---------- build rows (top-left uses the meter) ----------
+row1 = HLayout(
+    makePaneWithMeter.(paneTitles[0], paneColors[0]), // top-left with meter
+    UserView().minWidth_(cellPadding),
+    makePane.(paneTitles[1], paneColors[1])
+);
+
+row2 = HLayout(
+    makePane.(paneTitles[2], paneColors[2]),
+    UserView().minWidth_(cellPadding),
+    makePane.(paneTitles[3], paneColors[3])
+);
+
+row3 = HLayout(
+    makePane.(paneTitles[4], paneColors[4]),
+    UserView().minWidth_(cellPadding),
+    makePane.(paneTitles[5], paneColors[5])
+);
+
+// ---------- root layout ----------
+rootLayout = VLayout(
+    UserView().minHeight_(cellPadding),
+    row1,
+    UserView().minHeight_(cellPadding),
+    row2,
+    UserView().minHeight_(cellPadding),
+    row3,
+    UserView().minHeight_(cellPadding)
+);
+window.layout_(rootLayout);
+window.front;
+
+// ---------- simulated meter animation (no audio) ----------
+meterRoutine = Routine({
+    var updateInterval, phase, val, noise;
+    updateInterval = 0.05;
+    phase = 0.0;
+    loop {
+        // simple sine-driven value with a hint of noise, clipped to [0,1]
+        val = ((sin(phase) + 1.0) * 0.5).linlin(0.0, 1.0, 0.05, 0.92);
+        noise = (0.10.rand2).clip(-0.08, 0.08);
+        val = (val + noise).clip(0.0, 1.0);
+        { if(meterView.notNil, { meterView.value_(val) }) }.defer;
+        phase = phase + 0.15;
+        updateInterval.wait;
+    }
+}).play(AppClock);
+
+// ---------- cleanup ----------
+window.onClose_({
+    if(meterRoutine.notNil, { meterRoutine.stop });
+});
+)
+
+===== MagicPedalboard/WindowDisplayExamples/SixPanes_VHLayout_TwoMeters_Descriptive.scd =====
+/////////////////////////////////////////////////////////////
+// SixPanes_VHLayout_TwoMeters_Descriptive.scd
+// v0.4.0
+// MD 2025-09-25 14:36
+//
+// Purpose / Style:
+// - GUI-only: 6 panes arranged with VLayout/HLayout; top-left and top-right have simulated meters.
+// - Rules: var-first; descriptive lowercase variable names; no single-letter variables; no non-local returns.
+// - No audio, no Ndefs.
+/////////////////////////////////////////////////////////////
+
+(
+var window, windowRect, windowBackgroundColor, paneFillColor, cellPadding;
+var titleFont, bodyFont, paneBorderColors, paneTitles;
+var makeTextPane, makeMeterPaneForKey, rowTop, rowMiddle, rowBottom, rootLayout;
+var meterViewA, meterViewB, meterRoutine;
+
+// ---------- close prior MagicDisplayGUI windows ----------
+Window.allWindows.do({ |existingWindow|
+    var nameString;
+    nameString = existingWindow.name.asString;
+    if(nameString.beginsWith("MagicDisplayGUI"), { { existingWindow.close }.defer });
+});
+
+// ---------- window & styles ----------
+windowRect = Rect(80, 60, 1200, 850);
+window = Window("MagicDisplayGUI VHLayout + Two Sim Meters", windowRect).alwaysOnTop_(true);
+windowBackgroundColor = Color(0.08, 0.08, 0.09);
+paneFillColor = Color(0.15, 0.15, 0.18);
+window.view.background_(windowBackgroundColor);
+cellPadding = 10;
+
+titleFont = Font("Helvetica-Bold", 16);
+bodyFont  = Font("Menlo", 12);
+
+paneBorderColors = [Color.red, Color.green, Color.blue, Color.yellow, Color.magenta, Color.cyan];
+paneTitles = ["top-left","top-right","middle-left","middle-right","bottom-left","bottom-right"];
+
+// ---------- factories ----------
+// Text-only pane
+makeTextPane = { |paneTitleString, borderColor|
+    var paneView, titleTextView, bodyTextView, textColumnView;
+    paneView = UserView().background_(paneFillColor).minSize_(Size(520, 230));
+    paneView.drawFunc = { |drawView|
+        var borderRect;
+        borderRect = Rect(1, 1, drawView.bounds.width - 2, drawView.bounds.height - 2);
+        Pen.fillColor = Color(0.11, 0.11, 0.12);
+        Pen.strokeColor = borderColor;
+        Pen.width = 2;
+        Pen.fillRect(borderRect);
+        Pen.strokeRect(borderRect);
+    };
+    titleTextView = StaticText().string_(paneTitleString).font_(titleFont).stringColor_(Color.white);
+    bodyTextView  = StaticText().string_("Pane: " ++ paneTitleString ++ "\nGUI-only layout test.")
+        .font_(bodyFont).stringColor_(Color(0.85, 0.9, 0.95));
+    textColumnView = UserView().layout_(VLayout(UserView().minHeight_(6), titleTextView, UserView().minHeight_(4), bodyTextView, nil));
+    paneView.layout_(VLayout(UserView().minHeight_(6), textColumnView, nil));
+    paneView
+};
+
+// Meter pane; meterKeySymbol is \A or \B (decides which global meterView to write)
+makeMeterPaneForKey = { |paneTitleString, borderColor, meterKeySymbol|
+    var paneView, titleTextView, bodyTextView, textColumnView, meterColumnView, localMeterView;
+    paneView = UserView().background_(paneFillColor).minSize_(Size(520, 230));
+    paneView.drawFunc = { |drawView|
+        var borderRect;
+        borderRect = Rect(1, 1, drawView.bounds.width - 2, drawView.bounds.height - 2);
+        Pen.fillColor = Color(0.11, 0.11, 0.12);
+        Pen.strokeColor = borderColor;
+        Pen.width = 2;
+        Pen.fillRect(borderRect);
+        Pen.strokeRect(borderRect);
+    };
+    titleTextView = StaticText().string_(paneTitleString).font_(titleFont).stringColor_(Color.white);
+    bodyTextView  = StaticText().string_("Pane: " ++ paneTitleString ++ "\nSimulated meter on the right.")
+        .font_(bodyFont).stringColor_(Color(0.85, 0.9, 0.95));
+    textColumnView = UserView().layout_(VLayout(UserView().minHeight_(6), titleTextView, UserView().minHeight_(4), bodyTextView, nil));
+    localMeterView = LevelIndicator().warning_(0.7).critical_(0.95).minSize_(Size(18, 180));
+    if(meterKeySymbol == \A, { meterViewA = localMeterView }, { meterViewB = localMeterView });
+    meterColumnView = UserView().layout_(VLayout(UserView().minHeight_(6), localMeterView, nil));
+    paneView.layout_(HLayout(UserView().minWidth_(6), textColumnView, UserView().minWidth_(10), meterColumnView, UserView().minWidth_(6)));
+    paneView
+};
+
+// ---------- build rows (top row uses meters) ----------
+rowTop = HLayout(
+    makeMeterPaneForKey.(paneTitles[0], paneBorderColors[0], \A), // top-left
+    UserView().minWidth_(cellPadding),
+    makeMeterPaneForKey.(paneTitles[1], paneBorderColors[1], \B)  // top-right
+);
+
+rowMiddle = HLayout(
+    makeTextPane.(paneTitles[2], paneBorderColors[2]),
+    UserView().minWidth_(cellPadding),
+    makeTextPane.(paneTitles[3], paneBorderColors[3])
+);
+
+rowBottom = HLayout(
+    makeTextPane.(paneTitles[4], paneBorderColors[4]),
+    UserView().minWidth_(cellPadding),
+    makeTextPane.(paneTitles[5], paneBorderColors[5])
+);
+
+// ---------- root layout ----------
+rootLayout = VLayout(
+    UserView().minHeight_(cellPadding),
+    rowTop,
+    UserView().minHeight_(cellPadding),
+    rowMiddle,
+    UserView().minHeight_(cellPadding),
+    rowBottom,
+    UserView().minHeight_(cellPadding)
+);
+window.layout_(rootLayout);
+window.front;
+
+// ---------- simulated meters (single routine updates both) ----------
+meterRoutine = Routine({
+    var updateIntervalSeconds, phaseA, phaseB, valueA, valueB, noiseA, noiseB;
+    updateIntervalSeconds = 0.05;
+    phaseA = 0.0; phaseB = 0.9;
+    loop {
+        valueA = ((sin(phaseA) + 1.0) * 0.5).linlin(0.0, 1.0, 0.05, 0.92);
+        valueB = ((sin(phaseB) + 1.0) * 0.5).linlin(0.0, 1.0, 0.05, 0.92);
+        noiseA = (0.10.rand2).clip(-0.08, 0.08);
+        noiseB = (0.10.rand2).clip(-0.08, 0.08);
+        valueA = (valueA + noiseA).clip(0.0, 1.0);
+        valueB = (valueB + noiseB).clip(0.0, 1.0);
+        {
+            if(meterViewA.notNil, { meterViewA.value_(valueA) });
+            if(meterViewB.notNil, { meterViewB.value_(valueB) });
+        }.defer;
+        phaseA = phaseA + 0.15;
+        phaseB = phaseB + 0.11;
+        updateIntervalSeconds.wait;
+    }
+}).play(AppClock);
+
+// ---------- cleanup ----------
+window.onClose_({
+    if(meterRoutine.notNil, { meterRoutine.stop });
+});
+)
+
+===== MagicPedalboard/WindowDisplayExamples/SixPanes_VHLayout_TwoMeters_RealA_Descriptive.scd =====
+/////////////////////////////////////////////////////////////
+// SixPanes_VHLayout_TwoMeters_RealA_Descriptive.scd
+// v0.5.0
+// MD 2025-09-25 14:54
+//
+// Purpose / Style:
+// - GUI-only layout (VLayout + HLayout) with two meters in the top row.
+// - Meter A (top-left) shows a real level from a tiny Ndef test source.
+// - Meter B (top-right) is simulated (sine + noise) to verify GUI update path.
+// - Rules: var-first; descriptive lowercase names; no single-letter variables; no non-local returns; no server.sync.
+// - Cleans up Ndef and buses on window close.
+/////////////////////////////////////////////////////////////
+
+(
+var window, windowRect, windowBackgroundColor, paneFillColor, cellPadding;
+var titleFont, bodyFont, paneBorderColors, paneTitles;
+var buildTextPane, buildMeterPane, rowTop, rowMiddle, rowBottom, rootLayout;
+
+var meterViewA, meterViewB, meterRoutine;           // GUI meter widgets + updater
+var serverBootRoutine;                               // guard: keep GUI responsive
+var amplitudeBusA;                                   // control bus for real meter A
+var meterLabelFont;                                  // tiny label above meters
+
+// ---------- close prior MagicDisplayGUI windows ----------
+Window.allWindows.do({ |existingWindow|
+    var existingNameString;
+    existingNameString = existingWindow.name.asString;
+    if(existingNameString.beginsWith("MagicDisplayGUI"), { { existingWindow.close }.defer });
+});
+
+// ---------- window & styles ----------
+windowRect = Rect(80, 60, 1200, 850);
+window = Window("MagicDisplayGUI VH + Real A / Sim B", windowRect).alwaysOnTop_(true);
+windowBackgroundColor = Color(0.08, 0.08, 0.09);
+paneFillColor = Color(0.15, 0.15, 0.18);
+window.view.background_(windowBackgroundColor);
+cellPadding = 10;
+
+titleFont = Font("Helvetica-Bold", 16);
+bodyFont  = Font("Menlo", 12);
+meterLabelFont = Font("Helvetica-Bold", 13);
+
+paneBorderColors = [Color.red, Color.green, Color.blue, Color.yellow, Color.magenta, Color.cyan];
+paneTitles = ["top-left","top-right","middle-left","middle-right","bottom-left","bottom-right"];
+
+// ---------- factories ----------
+// Text-only pane
+buildTextPane = { |paneTitleString, borderColor|
+    var paneView, titleTextView, bodyTextView, textColumnView;
+
+    paneView = UserView().background_(paneFillColor).minSize_(Size(520, 230));
+    paneView.drawFunc = { |drawView|
+        var borderRect;
+        borderRect = Rect(1, 1, drawView.bounds.width - 2, drawView.bounds.height - 2);
+        Pen.fillColor = Color(0.11, 0.11, 0.12);
+        Pen.strokeColor = borderColor;
+        Pen.width = 2;
+        Pen.fillRect(borderRect);
+        Pen.strokeRect(borderRect);
+    };
+
+    titleTextView = StaticText()
+        .string_(paneTitleString)
+        .font_(titleFont)
+        .stringColor_(Color.white);
+
+    bodyTextView  = StaticText()
+        .string_("Pane: " ++ paneTitleString ++ "\nGUI-only layout test.")
+        .font_(bodyFont)
+        .stringColor_(Color(0.85, 0.9, 0.95));
+
+    textColumnView = UserView().layout_(VLayout(
+        UserView().minHeight_(6),
+        titleTextView,
+        UserView().minHeight_(4),
+        bodyTextView,
+        nil
+    ));
+
+    paneView.layout_(VLayout(
+        UserView().minHeight_(6),
+        textColumnView,
+        nil
+    ));
+
+    paneView
+};
+
+// Pane with meter and label (labelTextString = "A" or "B")
+// Returns: the pane view; assigns meterViewA/meterViewB internally
+buildMeterPane = { |paneTitleString, borderColor, labelTextString|
+    var paneView, titleTextView, bodyTextView, textColumnView;
+    var meterLabelView, meterColumnView, localMeterView;
+
+    paneView = UserView().background_(paneFillColor).minSize_(Size(520, 230));
+    paneView.drawFunc = { |drawView|
+        var borderRect;
+        borderRect = Rect(1, 1, drawView.bounds.width - 2, drawView.bounds.height - 2);
+        Pen.fillColor = Color(0.11, 0.11, 0.12);
+        Pen.strokeColor = borderColor;
+        Pen.width = 2;
+        Pen.fillRect(borderRect);
+        Pen.strokeRect(borderRect);
+    };
+
+    titleTextView = StaticText()
+        .string_(paneTitleString)
+        .font_(titleFont)
+        .stringColor_(Color.white);
+
+    bodyTextView  = StaticText()
+        .string_("Pane: " ++ paneTitleString ++ "\nMeter " ++ labelTextString ++ " is shown on the right.")
+        .font_(bodyFont)
+        .stringColor_(Color(0.85, 0.9, 0.95));
+
+    textColumnView = UserView().layout_(VLayout(
+        UserView().minHeight_(6),
+        titleTextView,
+        UserView().minHeight_(4),
+        bodyTextView,
+        nil
+    ));
+
+    meterLabelView = StaticText()
+        .string_(labelTextString)
+        .font_(meterLabelFont)
+        .stringColor_(Color.white)
+        .align_(\center);
+
+    localMeterView = LevelIndicator()
+        .warning_(0.7)
+        .critical_(0.95)
+        .minSize_(Size(20, 180));
+
+    if(labelTextString == "A", { meterViewA = localMeterView }, { meterViewB = localMeterView });
+
+    meterColumnView = UserView().layout_(VLayout(
+        UserView().minHeight_(4),
+        meterLabelView,
+        UserView().minHeight_(4),
+        localMeterView,
+        nil
+    ));
+
+    paneView.layout_(HLayout(
+        UserView().minWidth_(6),
+        textColumnView,
+        UserView().minWidth_(10),
+        meterColumnView,
+        UserView().minWidth_(6)
+    ));
+
+    paneView
+};
+
+// ---------- build rows (top row uses meters) ----------
+rowTop = HLayout(
+    buildMeterPane.(paneTitles[0], paneBorderColors[0], "A"), // top-left: meter A (real)
+    UserView().minWidth_(cellPadding),
+    buildMeterPane.(paneTitles[1], paneBorderColors[1], "B")  // top-right: meter B (simulated)
+);
+
+rowMiddle = HLayout(
+    buildTextPane.(paneTitles[2], paneBorderColors[2]),
+    UserView().minWidth_(cellPadding),
+    buildTextPane.(paneTitles[3], paneBorderColors[3])
+);
+
+rowBottom = HLayout(
+    buildTextPane.(paneTitles[4], paneBorderColors[4]),
+    UserView().minWidth_(cellPadding),
+    buildTextPane.(paneTitles[5], paneBorderColors[5])
+);
+
+// ---------- root layout ----------
+rootLayout = VLayout(
+    UserView().minHeight_(cellPadding),
+    rowTop,
+    UserView().minHeight_(cellPadding),
+    rowMiddle,
+    UserView().minHeight_(cellPadding),
+    rowBottom,
+    UserView().minHeight_(cellPadding)
+);
+
+window.layout_(rootLayout);
+window.front;
+
+// ---------- bring up real meter A (Ndef) and simulated meter B ----------
+serverBootRoutine = Routine({
+    var updateIntervalSeconds, phaseB, simulatedValueB, simulatedNoiseB;
+
+    // 1) Boot + minimal server prep
+    s.waitForBoot({
+        var defaultNumChannels;
+        defaultNumChannels = 2;
+
+        s.initTree;
+        s.defaultGroup.freeAll;
+
+        // 2) Control bus for meter A
+        amplitudeBusA = Bus.control(s, 1);
+
+        // 3) Tiny test source -> real meter A (no OutputProxy indexing; no server.sync)
+        Ndef(\meterSourceA, {
+            var leftFrequency, rightFrequency, stereoSignal, monoSignal, amplitudeValue;
+            var meterBusIndex;
+            leftFrequency  = 220 + LFTri.kr(0.10).range(-20,  20);
+            rightFrequency = 330 + LFTri.kr(0.13).range(-30,  30);
+            stereoSignal   = [Saw.ar(leftFrequency), Saw.ar(rightFrequency)] * 0.07;
+            monoSignal     = stereoSignal.sum * 0.5;
+            amplitudeValue = Amplitude.ar(monoSignal, 0.01, 0.30).clip(0.0, 1.5);
+            meterBusIndex  = \meterBus.kr(0);   // language sets this before/around play
+            Out.kr(meterBusIndex, amplitudeValue);
+            (stereoSignal.tanh * 0.9)
+        });
+
+        // set meter bus, then play quietly to out
+        Ndef(\meterSourceA).set(\meterBus, amplitudeBusA.index);
+        Ndef(\meterSourceA).play;
+    });
+
+    // 4) Update both meters on AppClock (A from control bus, B simulated)
+    updateIntervalSeconds = 0.05;
+    phaseB = 0.0;
+
+    meterRoutine = Routine({
+        loop {
+            // real meter A (read from control bus written by Ndef)
+            amplitudeBusA.get({ |busValueA|
+                var mappedValueA;
+                mappedValueA = busValueA.clip(0.0, 1.0);
+                { if(meterViewA.notNil, { meterViewA.value_(mappedValueA) }) }.defer;
+            });
+
+            // simulated meter B (sine + noise)
+            simulatedValueB = ((sin(phaseB) + 1.0) * 0.5).linlin(0.0, 1.0, 0.05, 0.92);
+            simulatedNoiseB = (0.10.rand2).clip(-0.08, 0.08);
+            simulatedValueB = (simulatedValueB + simulatedNoiseB).clip(0.0, 1.0);
+            { if(meterViewB.notNil, { meterViewB.value_(simulatedValueB) }) }.defer;
+
+            phaseB = phaseB + 0.12;
+            updateIntervalSeconds.wait;
+        }
+    }).play(AppClock);
+}).play(AppClock);
+
+// ---------- cleanup ----------
+window.onClose_({
+    if(meterRoutine.notNil, { meterRoutine.stop });
+    if(serverBootRoutine.notNil, { serverBootRoutine.stop });
+    if(amplitudeBusA.notNil, { amplitudeBusA.free });
+    if(Ndef.all.at(\meterSourceA).notNil, {
+        Ndef(\meterSourceA).stop;
+        Ndef(\meterSourceA).clear;
+    });
+});
+)
+
+===== MagicPedalboard/WindowDisplayExamples/SixPanes_VHLayout_TwoMeters_SteppedDB_Sound.scd =====
+/////////////////////////////////////////////////////////////
+// SixPanes_VHLayout_TwoMeters_SteppedDB_Sound.scd
+// v0.7.0
+// MD 2025-09-25 15:24
+//
+// Purpose / Style:
+// - GUI-only layout (VLayout + HLayout) with 2 meters in the top row.
+// - Audible test source (Ndef) plays a soft stereo tone whose amplitude
+//   steps through dB values once per second (default: [-60,-50,...,0] dB).
+// - Meters A and B show the same stepped level (so you hear the same step).
+// - Rules: var-first; descriptive lowercase names; no single-letter variables;
+//   no non-local returns; no server.sync; known-good Qt syntax.
+/////////////////////////////////////////////////////////////
+
+(
+var window, windowRect, windowBackgroundColor, paneFillColor, cellPadding;
+var titleFont, bodyFont, meterLabelFont, paneBorderColors, paneTitles;
+var buildTextPane, buildMeterPane, rowTop, rowMiddle, rowBottom, rootLayout;
+
+var meterViewA, meterViewB, meterStepRoutine, serverBringUpRoutine;
+var dbStepValues, stepIntervalSeconds;
+var amplitudeBusA;
+
+// ---------- close prior MagicDisplayGUI windows ----------
+Window.allWindows.do({ |existingWindow|
+    var existingNameString;
+    existingNameString = existingWindow.name.asString;
+    if(existingNameString.beginsWith("MagicDisplayGUI"), { { existingWindow.close }.defer });
+});
+
+// ---------- window & styles ----------
+windowRect = Rect(80, 60, 1200, 850);
+window = Window("MagicDisplayGUI VHLayout + Stepped dB (with sound)", windowRect).alwaysOnTop_(true);
+windowBackgroundColor = Color(0.08, 0.08, 0.09);
+paneFillColor = Color(0.15, 0.15, 0.18);
+window.view.background_(windowBackgroundColor);
+cellPadding = 10;
+
+titleFont      = Font("Helvetica-Bold", 16);
+bodyFont       = Font("Menlo", 12);
+meterLabelFont = Font("Helvetica-Bold", 13);
+
+paneBorderColors = [Color.red, Color.green, Color.blue, Color.yellow, Color.magenta, Color.cyan];
+paneTitles       = ["top-left","top-right","middle-left","middle-right","bottom-left","bottom-right"];
+
+// ---------- stepped-meters parameters ----------
+dbStepValues        = [-60, -50, -40, -30, -20, -10, 0]; // edit as you like
+stepIntervalSeconds = 1.0;                                // 1 second per step
+
+// ---------- factories ----------
+buildTextPane = { |paneTitleString, borderColor|
+    var paneView, titleTextView, bodyTextView, textColumnView;
+    paneView = UserView().background_(paneFillColor).minSize_(Size(520, 230));
+    paneView.drawFunc = { |drawView|
+        var borderRect;
+        borderRect = Rect(1, 1, drawView.bounds.width - 2, drawView.bounds.height - 2);
+        Pen.fillColor = Color(0.11, 0.11, 0.12);
+        Pen.strokeColor = borderColor;
+        Pen.width = 2;
+        Pen.fillRect(borderRect);
+        Pen.strokeRect(borderRect);
+    };
+    titleTextView = StaticText().string_(paneTitleString).font_(titleFont).stringColor_(Color.white);
+    bodyTextView  = StaticText().string_("Pane: " ++ paneTitleString ++ "\nLayout row with text.")
+        .font_(bodyFont).stringColor_(Color(0.85, 0.9, 0.95));
+    textColumnView = UserView().layout_(VLayout(UserView().minHeight_(6), titleTextView, UserView().minHeight_(4), bodyTextView, nil));
+    paneView.layout_(VLayout(UserView().minHeight_(6), textColumnView, nil));
+    paneView
+};
+
+// Pane with labeled meter ("A" or "B"); assigns to meterViewA / meterViewB
+buildMeterPane = { |paneTitleString, borderColor, labelTextString|
+    var paneView, titleTextView, bodyTextView, textColumnView, meterLabelView, localMeterView, meterColumnView;
+    paneView = UserView().background_(paneFillColor).minSize_(Size(520, 230));
+    paneView.drawFunc = { |drawView|
+        var borderRect;
+        borderRect = Rect(1, 1, drawView.bounds.width - 2, drawView.bounds.height - 2);
+        Pen.fillColor = Color(0.11, 0.11, 0.12);
+        Pen.strokeColor = borderColor;
+        Pen.width = 2;
+        Pen.fillRect(borderRect);
+        Pen.strokeRect(borderRect);
+    };
+    titleTextView = StaticText().string_(paneTitleString).font_(titleFont).stringColor_(Color.white);
+    bodyTextView  = StaticText().string_("Pane: " ++ paneTitleString ++ "\nMeter " ++ labelTextString ++ " steps in 10 dB increments.")
+        .font_(bodyFont).stringColor_(Color(0.85, 0.9, 0.95));
+    textColumnView = UserView().layout_(VLayout(UserView().minHeight_(6), titleTextView, UserView().minHeight_(4), bodyTextView, nil));
+    meterLabelView = StaticText().string_(labelTextString).font_(meterLabelFont).stringColor_(Color.white).align_(\center);
+    localMeterView = LevelIndicator().warning_(0.7).critical_(0.95).minSize_(Size(20, 180));
+    if(labelTextString == "A", { meterViewA = localMeterView }, { meterViewB = localMeterView });
+    meterColumnView = UserView().layout_(VLayout(UserView().minHeight_(4), meterLabelView, UserView().minHeight_(4), localMeterView, nil));
+    paneView.layout_(HLayout(UserView().minWidth_(6), textColumnView, UserView().minWidth_(10), meterColumnView, UserView().minWidth_(6)));
+    paneView
+};
+
+// ---------- build rows (top has two meters) ----------
+rowTop = HLayout(
+    buildMeterPane.(paneTitles[0], paneBorderColors[0], "A"),
+    UserView().minWidth_(cellPadding),
+    buildMeterPane.(paneTitles[1], paneBorderColors[1], "B")
+);
+
+rowMiddle = HLayout(
+    buildTextPane.(paneTitles[2], paneBorderColors[2]),
+    UserView().minWidth_(cellPadding),
+    buildTextPane.(paneTitles[3], paneBorderColors[3])
+);
+
+rowBottom = HLayout(
+    buildTextPane.(paneTitles[4], paneBorderColors[4]),
+    UserView().minWidth_(cellPadding),
+    buildTextPane.(paneTitles[5], paneBorderColors[5])
+);
+
+// ---------- root layout ----------
+rootLayout = VLayout(
+    UserView().minHeight_(cellPadding),
+    rowTop,
+    UserView().minHeight_(cellPadding),
+    rowMiddle,
+    UserView().minHeight_(cellPadding),
+    rowBottom,
+    UserView().minHeight_(cellPadding)
+);
+window.layout_(rootLayout);
+window.front;
+
+// ---------- AUDIO bring-up (small audible Ndef + AMP stepping) ----------
+serverBringUpRoutine = Routine({
+    var defaultNumChannels;
+    s.waitForBoot({
+        defaultNumChannels = 2;
+        s.initTree;
+        s.defaultGroup.freeAll;
+
+        amplitudeBusA = Bus.control(s, 1);
+
+        // Test source with controlled amplitude (stepped)
+        Ndef(\stepToneA, {
+            var leftFrequency, rightFrequency, stereoSignal, monoSignal, amplitudeLinear, meterBusIndex;
+            // slow-moving, gentle timbre
+            leftFrequency  = 220 + LFTri.kr(0.10).range(-20,  20);
+            rightFrequency = 330 + LFTri.kr(0.13).range(-30,  30);
+            stereoSignal   = (VarSaw.ar([leftFrequency, rightFrequency], 0.0, 0.35) * 0.5).tanh * 0.15;
+
+            amplitudeLinear = Lag.kr(\amp.kr(0.05), 0.02); // prevent clicks on level steps
+            stereoSignal    = stereoSignal * amplitudeLinear;
+
+            // drive a meter bus so GUI can also poll (optional)
+            monoSignal   = stereoSignal.sum * 0.5;
+            meterBusIndex = \meterBus.kr(0);
+            Out.kr(meterBusIndex, Amplitude.ar(monoSignal, 0.01, 0.30).clip(0.0, 1.5));
+
+            stereoSignal
+        });
+
+        Ndef(\stepToneA).set(\meterBus, amplitudeBusA.index, \amp, 0.05);
+        Ndef(\stepToneA).play;
+    });
+}).play(AppClock);
+
+// ---------- STEP both meters + audible level every 1s ----------
+meterStepRoutine = Routine({
+    var stepIndex, stepCount, currentDb, currentLinear;
+    stepIndex = 0;
+    stepCount = dbStepValues.size;
+    loop {
+        currentDb     = dbStepValues.wrapAt(stepIndex);     // e.g. -60 .. 0 dB
+        currentLinear = currentDb.dbamp.clip(0.0, 1.0);     // convert to 0..1
+
+        // update meters
+        {
+            if(meterViewA.notNil, { meterViewA.value_(currentLinear) });
+            if(meterViewB.notNil, { meterViewB.value_(currentLinear) });
+        }.defer;
+
+        // update audible amplitude
+        Ndef(\stepToneA).set(\amp, currentLinear);
+
+        stepIndex = stepIndex + 1;
+        stepIntervalSeconds.wait;
+    }
+}).play(AppClock);
+
+// ---------- cleanup ----------
+window.onClose_({
+    if(meterStepRoutine.notNil, { meterStepRoutine.stop });
+    if(serverBringUpRoutine.notNil, { serverBringUpRoutine.stop });
+    if(amplitudeBusA.notNil, { amplitudeBusA.free });
+    if(Ndef.all.at(\stepToneA).notNil, { Ndef(\stepToneA).stop; Ndef(\stepToneA).clear; });
+});
+)
+
+===== MagicPedalboard/WindowDisplayExamples/SixPanes_VHLayout_TwoMeters.scd =====
+/////////////////////////////////////////////////////////////
+// SixPanes_VHLayout_TwoMeters.scd
+// v0.3.0
+// MD 2025-09-25 14:08
+//
+// Purpose / Style:
+// - GUI-only: 6 panes arranged with VLayout/HLayout; top-left and top-right contain simulated meters.
+// - No audio, no Ndefs. Pure Qt UI.
+// - Rules: var-first; descriptive lowercase names; no non-local returns; known-good SC syntax.
+/////////////////////////////////////////////////////////////
+
+(
+var window, windowRect, windowBg, paneFill, cellPadding;
+var titleFont, bodyFont, paneColors, paneTitles;
+var makePane, makePaneWithMeter, row1, row2, row3, rootLayout;
+var meterViews, meterRoutine;
+
+// ---------- close prior MagicDisplayGUI windows ----------
+Window.allWindows.do({ |w|
+    var nameString;
+    nameString = w.name.asString;
+    if(nameString.beginsWith("MagicDisplayGUI"), { { w.close }.defer });
+});
+
+// ---------- window & styles ----------
+windowRect = Rect(80, 60, 1200, 850);
+window = Window("MagicDisplayGUI VHLayout + Two Sim Meters", windowRect).alwaysOnTop_(true);
+windowBg = Color(0.08, 0.08, 0.09);
+paneFill = Color(0.15, 0.15, 0.18);
+window.view.background_(windowBg);
+cellPadding = 10;
+
+titleFont = Font("Helvetica-Bold", 16);
+bodyFont  = Font("Menlo", 12);
+
+paneColors = [Color.red, Color.green, Color.blue, Color.yellow, Color.magenta, Color.cyan];
+paneTitles = ["top-left","top-right","middle-left","middle-right","bottom-left","bottom-right"];
+
+// store two meter views [A, B]
+meterViews = Array.newClear(2);
+
+// ---------- pane factories ----------
+// Plain pane (no meter)
+makePane = { |titleString, borderColor|
+    var pane, titleText, bodyText, textColumn;
+    pane = UserView().background_(paneFill).minSize_(Size(520, 230));
+    pane.drawFunc = { |v|
+        var r;
+        r = Rect(1, 1, v.bounds.width - 2, v.bounds.height - 2);
+        Pen.fillColor = Color(0.11, 0.11, 0.12);
+        Pen.strokeColor = borderColor;
+        Pen.width = 2;
+        Pen.fillRect(r);
+        Pen.strokeRect(r);
+    };
+
+    titleText = StaticText().string_(titleString).font_(titleFont).stringColor_(Color.white);
+    bodyText  = StaticText()
+        .string_("Pane: " ++ titleString ++ "\nGUI-only layout test.")
+        .font_(bodyFont).stringColor_(Color(0.85, 0.9, 0.95));
+
+    textColumn = UserView();
+    textColumn.layout_(VLayout(
+        UserView().minHeight_(6),
+        titleText,
+        UserView().minHeight_(4),
+        bodyText,
+        nil
+    ));
+
+    pane.layout_(VLayout(
+        UserView().minHeight_(6),
+        textColumn,
+        nil
+    ));
+
+    pane
+};
+
+// Pane with meter; meterIndex: 0 for top-left (A), 1 for top-right (B)
+makePaneWithMeter = { |titleString, borderColor, meterIndex|
+    var pane, titleText, bodyText, textColumn, meterBox, meterView;
+    pane = UserView().background_(paneFill).minSize_(Size(520, 230));
+    pane.drawFunc = { |v|
+        var r;
+        r = Rect(1, 1, v.bounds.width - 2, v.bounds.height - 2);
+        Pen.fillColor = Color(0.11, 0.11, 0.12);
+        Pen.strokeColor = borderColor;
+        Pen.width = 2;
+        Pen.fillRect(r);
+        Pen.strokeRect(r);
+    };
+
+    titleText = StaticText().string_(titleString).font_(titleFont).stringColor_(Color.white);
+    bodyText  = StaticText()
+        .string_("Pane: " ++ titleString ++ "\nSimulated meter on the right.")
+        .font_(bodyFont).stringColor_(Color(0.85, 0.9, 0.95));
+
+    textColumn = UserView();
+    textColumn.layout_(VLayout(
+        UserView().minHeight_(6),
+        titleText,
+        UserView().minHeight_(4),
+        bodyText,
+        nil
+    ));
+
+    // vertical level indicator
+    meterView = LevelIndicator()
+        .warning_(0.7).critical_(0.95)
+        .minSize_(Size(18, 180));
+
+    meterViews.put(meterIndex, meterView);
+
+    meterBox = UserView();
+    meterBox.layout_(VLayout(
+        UserView().minHeight_(6),
+        meterView,
+        nil
+    ));
+
+    pane.layout_(HLayout(
+        UserView().minWidth_(6),
+        textColumn,
+        UserView().minWidth_(10), // spacer between text and meter
+        meterBox,
+        UserView().minWidth_(6)
+    ));
+
+    pane
+};
+
+// ---------- build rows (top-left & top-right use meters) ----------
+row1 = HLayout(
+    makePaneWithMeter.(paneTitles[0], paneColors[0], 0), // top-left meter A
+    UserView().minWidth_(cellPadding),
+    makePaneWithMeter.(paneTitles[1], paneColors[1], 1)  // top-right meter B
+);
+
+row2 = HLayout(
+    makePane.(paneTitles[2], paneColors[2]),
+    UserView().minWidth_(cellPadding),
+    makePane.(paneTitles[3], paneColors[3])
+);
+
+row3 = HLayout(
+    makePane.(paneTitles[4], paneColors[4]),
+    UserView().minWidth_(cellPadding),
+    makePane.(paneTitles[5], paneColors[5])
+);
+
+// ---------- root layout ----------
+rootLayout = VLayout(
+    UserView().minHeight_(cellPadding),
+    row1,
+    UserView().minHeight_(cellPadding),
+    row2,
+    UserView().minHeight_(cellPadding),
+    row3,
+    UserView().minHeight_(cellPadding)
+);
+window.layout_(rootLayout);
+window.front;
+
+// ---------- simulated meters (single AppClock routine for both) ----------
+meterRoutine = Routine({
+    var updateInterval, phaseA, phaseB, valA, valB, noiseA, noiseB;
+    updateInterval = 0.05;
+    phaseA = 0.0; phaseB = 1.2; // offset so A and B differ
+    loop {
+        valA = ((sin(phaseA) + 1.0) * 0.5).linlin(0.0, 1.0, 0.05, 0.92);
+        valB = ((sin(phaseB) + 1.0) * 0.5).linlin(0.0, 1.0, 0.05, 0.92);
+        noiseA = (0.10.rand2).clip(-0.08, 0.08);
+        noiseB = (0.10.rand2).clip(-0.08, 0.08);
+        valA = (valA + noiseA).clip(0.0, 1.0);
+        valB = (valB + noiseB).clip(0.0, 1.0);
+        {
+            if(meterViews[0].notNil, { meterViews[0].value_(valA) });
+            if(meterViews[1].notNil, { meterViews[1].value_(valB) });
+        }.defer;
+        phaseA = phaseA + 0.15;
+        phaseB = phaseB + 0.11;
+        updateInterval.wait;
+    }
+}).play(AppClock);
+
+// ---------- cleanup ----------
+window.onClose_({
+    if(meterRoutine.notNil, { meterRoutine.stop });
+});
 )
 
 ===== MDMiniLogger/test_MDMiniLogger.scd =====
