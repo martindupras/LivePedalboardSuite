@@ -206,11 +206,12 @@ MagicDisplayGUI_GridDemo : MagicDisplay {
 
 			choicesTitle = StaticText(choicesPanel)
 			.string_("Choices")
-			.stringColor_(Color(0.12, 0.12, 0.12));
+			.stringColor_(Color(0.96, 0.96, 0.96));  // was Color(0.12,0.12,0.12) ... what a pain that was.
 
 			choicesText  = TextView(choicesPanel)
 			.string_("—")
 			.editable_(false)
+			.stringColor_(Color(0.96,0.96,0.96))     // add this line
 			.hasVerticalScroller_(true)
 			.background_(Color(0.98, 0.98, 0.98, 0.96))  // very light
 			.stringColor_(Color(0.10, 0.10, 0.10))       // near-black text

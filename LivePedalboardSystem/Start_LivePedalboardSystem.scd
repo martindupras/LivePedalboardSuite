@@ -33,8 +33,13 @@ Style
         ~system = systemRef;
         ~system.bringUpAll;
 
-        //New: install the queue→adapter bridge (SHORT canonicals → MPB)
-        ~system.installAdapterBridge;
+
+
+	    ~system.installAdapterBridge;         // ← MUST be before enableAutoMeters
+
+
+	    // *** NEW: inline meter taps + post-switch auto-reinstall + GUI re-arm
+    ~system.enableAutoMeters(18, 0.35);
     }.defer;
 )
 

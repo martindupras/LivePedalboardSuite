@@ -1,0 +1,242 @@
+// MagicDisplayGUI_GridDemo_Ext_Landmarks.sc
+// v0.1.0
+// MD 2025-09-24 23:59 BST
+
+/*
+Purpose
+- Draw strong, colored landmarks INSIDE the right CURRENT/NEXT panel (middle-right column):
+  • Fuchsia outline for the right panel bounds
+  • Cyan outline for header row
+  • Lime outline for list row
+  • Yellow outline for eff row
+  • Orange filled "marker" just below the eff row (to confirm final target area)
+- No layout mutations; overlays are positioned with absolute bounds on rightPanel.
+- Var-first and descriptive variable names everywhere; only known-good SC syntax.
+
+API
+- rp_showLandmarks(show=true, markerHeight=24)
+- rp_hideLandmarks()
+- rp_raiseLandmarks()
+- rp_postRightPanelLayoutReport()
+*/
+
++ MagicDisplayGUI_GridDemo {
+
+  // ---------- helpers to find/remove named children on rightPanel ----------
+  rp_findChildByName { arg childNameString;
+    var foundView, childView, nameMaybe;
+
+    foundView = nil;
+    if(rightPanel.notNil) {
+      rightPanel.children.do({ arg childViewLocal;
+        nameMaybe = childViewLocal.tryPerform(\name);
+        if(nameMaybe == childNameString) { foundView = childViewLocal };
+      });
+    };
+    ^foundView
+  }
+
+  rp_removeChildByName { arg childNameString;
+    var foundView;
+
+    foundView = this.rp_findChildByName(childNameString);
+    if(foundView.notNil) { foundView.remove };
+    ^this
+  }
+
+  rp_removeAllLandmarkOverlays {
+    var overlayNames;
+
+    overlayNames = [
+      "MDG_RP_BORDER",
+      "MDG_RP_HDR",
+      "MDG_RP_LIST",
+      "MDG_RP_EFF",
+      "MDG_RP_MARKER"
+    ];
+
+    overlayNames.do({ arg nameString; this.rp_removeChildByName(nameString) });
+    ^this
+  }
+
+  // ---------- show or hide all landmarks (and marker) ----------
+  rp_showLandmarks { arg show = true, markerHeight = 24;
+    var ensureFunc;
+
+    if(rightPanel.isNil) { "rp_showLandmarks: rightPanel is nil".warn; ^this };
+
+    ensureFunc = {
+      var panelBounds, headerBounds, listBounds, effBounds;
+      var borderView, headerView, listView, effView, markerView;
+      var leftInset, rightInset, topGap, markerRect;
+
+      // remove any previous overlays first
+      this.rp_removeAllLandmarkOverlays;
+
+      if(show.not) { ^this };
+
+      // cache bounds (same parent: rightPanel)
+      panelBounds = rightPanel.bounds;
+      headerBounds = (this.respondsTo(\rightHeader) and: { rightHeader.notNil }).if({ rightHeader.bounds }, { Rect(0,0,0,0) });
+      listBounds   = (this.respondsTo(\rightListView) and: { rightListView.notNil }).if({ rightListView.bounds }, { Rect(0,0,0,0) });
+      effBounds    = (rightEff.notNil).if({ rightEff.bounds }, { Rect(0,0,0,0) });
+
+      // 1) right panel border (fuchsia)
+      borderView = UserView(rightPanel).name_("MDG_RP_BORDER");
+      borderView.background = Color.clear;
+      borderView.bounds = Rect(0, 0, panelBounds.width, panelBounds.height);
+      borderView.drawFunc = { arg viewLocal;
+        var viewBounds;
+        viewBounds = viewLocal.bounds;
+        Pen.color  = Color(1.0, 0.0, 1.0, 0.60);  // fuchsia
+        Pen.width  = 3;
+        Pen.strokeRect(Rect(1, 1, viewBounds.width - 2, viewBounds.height - 2));
+      };
+      borderView.front;
+
+      // 2) header outline (cyan)
+      if(headerBounds.width > 0 and: { headerBounds.height > 0 }) {
+        headerView = UserView(rightPanel).name_("MDG_RP_HDR");
+        headerView.background = Color.clear;
+        headerView.bounds = headerBounds;
+        headerView.drawFunc = { arg viewLocal;
+          var viewBounds;
+          viewBounds = viewLocal.bounds;
+          Pen.color  = Color(0.0, 1.0, 1.0, 0.70);  // cyan
+          Pen.width  = 3;
+          Pen.strokeRect(Rect(1, 1, viewBounds.width - 2, viewBounds.height - 2));
+        };
+        headerView.front;
+      };
+
+      // 3) list outline (lime)
+      if(listBounds.width > 0 and: { listBounds.height > 0 }) {
+        listView = UserView(rightPanel).name_("MDG_RP_LIST");
+        listView.background = Color.clear;
+        listView.bounds = listBounds;
+        listView.drawFunc = { arg viewLocal;
+          var viewBounds;
+          viewBounds = viewLocal.bounds;
+          Pen.color  = Color(0.0, 1.0, 0.0, 0.70);  // lime
+          Pen.width  = 3;
+          Pen.strokeRect(Rect(1, 1, viewBounds.width - 2, viewBounds.height - 2));
+        };
+        listView.front;
+      };
+
+      // 4) eff outline (yellow)
+      if(effBounds.width > 0 and: { effBounds.height > 0 }) {
+        effView = UserView(rightPanel).name_("MDG_RP_EFF");
+        effView.background = Color.clear;
+        effView.bounds = effBounds;
+        effView.drawFunc = { arg viewLocal;
+          var viewBounds;
+          viewBounds = viewLocal.bounds;
+          Pen.color  = Color(1.0, 1.0, 0.0, 0.85);  // yellow
+          Pen.width  = 3;
+          Pen.strokeRect(Rect(1, 1, viewBounds.width - 2, viewBounds.height - 2));
+        };
+        effView.front;
+
+        // 5) marker below eff (orange fill)
+        leftInset  = 6;
+        rightInset = 6;
+        topGap     = 4;
+
+        markerRect = Rect(
+          leftInset,
+          effBounds.bottom + topGap,
+          (panelBounds.width - (leftInset + rightInset)).max(8),
+          markerHeight.max(8)
+        );
+
+        markerView = CompositeView(rightPanel).name_("MDG_RP_MARKER");
+        markerView.background = Color(1.0, 0.50, 0.0, 0.85);  // orange
+        markerView.bounds = markerRect;
+        markerView.front;
+      };
+
+      // legend in post window
+      "Landmarks ON — Legend:".postln;
+      "  FUCHSIA = right panel border".postln;
+      "  CYAN    = header outline".postln;
+      "  LIME    = list outline".postln;
+      "  YELLOW  = eff outline".postln;
+      "  ORANGE  = marker below eff".postln;
+    };
+
+    AppClock.sched(0.0, { ensureFunc.value; nil });
+    ^this
+  }
+
+  rp_hideLandmarks {
+    var hideFunc;
+
+    hideFunc = { this.rp_removeAllLandmarkOverlays };
+    AppClock.sched(0.0, { hideFunc.value; nil });
+    ^this
+  }
+
+  rp_raiseLandmarks {
+    var raiseFunc;
+
+    if(rightPanel.isNil) { "rp_raiseLandmarks: rightPanel is nil".warn; ^this };
+
+    raiseFunc = {
+      var namesToRaise, eachName, foundView;
+
+      namesToRaise = [
+        "MDG_RP_BORDER", "MDG_RP_HDR", "MDG_RP_LIST", "MDG_RP_EFF", "MDG_RP_MARKER"
+      ];
+
+      namesToRaise.do({ arg nameString;
+        foundView = this.rp_findChildByName(nameString);
+        if(foundView.notNil) { foundView.front };
+      });
+    };
+
+    AppClock.sched(0.0, { raiseFunc.value; nil });
+    ^this
+  }
+
+  rp_postRightPanelLayoutReport {
+    var postFunc;
+
+    if(rightPanel.isNil) { "rp_postRightPanelLayoutReport: rightPanel is nil".warn; ^this };
+
+    postFunc = {
+      var markerView, borderView, headerView, listView, effView;
+
+      "—— Right Panel Layout ——".postln;
+      ("rightPanel.bounds:     " ++ rightPanel.bounds).postln;
+
+      if(this.respondsTo(\rightHeader) and: { rightHeader.notNil }) {
+        ("rightHeader.bounds:    " ++ rightHeader.bounds).postln;
+      };
+      if(this.respondsTo(\rightListView) and: { rightListView.notNil }) {
+        ("rightListView.bounds:  " ++ rightListView.bounds).postln;
+      };
+      if(rightEff.notNil) {
+        ("rightEff.bounds:       " ++ rightEff.bounds).postln;
+      };
+
+      borderView = this.rp_findChildByName("MDG_RP_BORDER");
+      if(borderView.notNil) { ("border.bounds:        " ++ borderView.bounds).postln };
+
+      headerView = this.rp_findChildByName("MDG_RP_HDR");
+      if(headerView.notNil) { ("headerOverlay.bounds: " ++ headerView.bounds).postln };
+
+      listView = this.rp_findChildByName("MDG_RP_LIST");
+      if(listView.notNil) { ("listOverlay.bounds:   " ++ listView.bounds).postln };
+
+      effView = this.rp_findChildByName("MDG_RP_EFF");
+      if(effView.notNil) { ("effOverlay.bounds:    " ++ effView.bounds).postln };
+
+      markerView = this.rp_findChildByName("MDG_RP_MARKER");
+      if(markerView.notNil) { ("marker.bounds:       " ++ markerView.bounds).postln };
+    };
+
+    AppClock.sched(0.0, { postFunc.value; nil });
+    ^this
+  }
+}

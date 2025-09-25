@@ -1,0 +1,197 @@
+// MagicDisplayGUI_GridDemo_Ext_DebugMeter.sc
+// v0.4.1 (class extension; known-good SC syntax only)
+// MD 2025-09-24
+
+/*
+Purpose
+- Add a horizontal "Debug Meter" INSIDE the right panel (middle-right grey area)
+  of MagicDisplayGUI_GridDemo, BELOW the "eff:" label (row 3 of that panel).
+- Step 1: random animation (proves GUI draw/refresh & horizontal motion).
+- Step 2: attach to live audio via SendReply.kr on '/ampA' or '/ampB'.
+
+Style
+- Class extension only; var-first; AppClock for UI; no server.sync.
+- State lives in Library under category \MDG_DebugMeter and key this.identityHash.
+*/
+
++ MagicDisplayGUI_GridDemo {
+
+  // ----- per-instance state in Library -----
+  mdg_state {
+    var cat, key, dict;
+    cat = \MDG_DebugMeter;
+    key = this.identityHash;
+    dict = Library.at(cat, key);
+    if(dict.isNil) {
+      dict = IdentityDictionary.new;
+      Library.put(cat, key, dict);
+    };
+    ^dict
+  }
+
+  mdg_put { arg k, v;
+    var s;
+    s = this.mdg_state;
+    s.put(k, v);
+    ^this
+  }
+
+  mdg_get { arg k, default = nil;
+    var s;
+    s = this.mdg_state;
+    ^(s.includesKey(k).if({ s.at(k) }, { default }))
+  }
+
+  // ---------- install meter INSIDE the right panel (middle-right area) ----------
+  installDebugMeterAtRightPanel {
+    var grid, subGrid, panel, uv, hasRight;
+
+    hasRight = rightPanel.notNil;
+    if(hasRight.not) { ^this };
+
+    grid = rightPanel.layout;                    // GridLayout created in your buildRight
+    if(grid.isNil) { ^this };
+
+    // Small child panel with a UserView
+    panel = CompositeView(rightPanel);
+    panel.background = Color(0.92, 0.92, 0.96, 0.95);
+
+    subGrid = GridLayout.new;
+    panel.layout = subGrid;
+    subGrid.setRowStretch(0, 1);
+    subGrid.setColumnStretch(0, 1);
+
+    uv = UserView(panel);
+    subGrid.add(uv, 0, 0);
+    uv.bounds = Rect(0, 0, 100, 22);             // thin height hint
+
+    // Right panel rows: 0=header, 1=list (stretch), 2=eff
+    // Add our meter at row 3 (thin)
+    grid.add(panel, 3, 0);
+    grid.setRowStretch(0, 0);
+    grid.setRowStretch(1, 1);
+    grid.setRowStretch(2, 0);
+    grid.setRowStretch(3, 0);
+
+    // Horizontal bar drawing
+    uv.drawFunc = { arg view;
+      var b, pad, wpx, hpx, barH, x0, y0, v;
+      var val;
+      b    = view.bounds;
+      pad  = 6;
+      wpx  = b.width  - (pad * 2);
+      hpx  = b.height - (pad * 2);
+      barH = hpx.max(6);
+      x0   = pad;
+      y0   = (b.height - barH) * 0.5;
+      val  = this.mdg_get(\val, 0.0);
+      v    = val.clip(0, 1);
+
+      // trough
+      Pen.color = Color(0.78, 0.80, 0.86, 0.55);
+      Pen.addRect(Rect(x0, y0, wpx, barH)); Pen.fill;
+
+      // HORIZONTAL moving fill
+      Pen.color = Color(0.15, 0.55, 0.95, 0.95);
+      Pen.addRect(Rect(x0, y0, wpx * v, barH)); Pen.fill;
+
+      // border
+      Pen.color = Color.gray(0.45);
+      Pen.strokeRect(Rect(0.5, 0.5, b.width-1, b.height-1));
+    };
+
+    // store refs & init value
+    this.mdg_put(\panel, panel);
+    this.mdg_put(\uv   , uv);
+    this.mdg_put(\val  , 0.0);
+    ^this
+  }
+
+  // ---------- GUI-only random animation ----------
+  debugMeter_startRandom {
+    var t;
+    this.debugMeter_stop;                        // stop any prior driver
+
+    t = Routine({
+      var v;
+      v = this.mdg_get(\val, 0.0);
+      inf.do {
+        v = (v * 0.75) + (1.0.rand * 0.25);      // smooth random
+        this.mdg_put(\val, v);
+        AppClock.sched(0.0, {
+          var uv = this.mdg_get(\uv);
+          if(uv.notNil) { uv.refresh };
+          nil
+        });
+        0.06.wait;                               // ~16 Hz
+      }
+    });
+
+    this.mdg_put(\task, t);
+    AppClock.sched(0.0, { t.play(AppClock); nil });
+    ^this
+  }
+
+  // ---------- attach to live audio from SendReply.kr ('/ampA' or '/ampB') ----------
+  debugMeter_attachTo { arg which = \A;
+    var keyA, keyB, oscA, oscB;
+
+    if(this.mdg_get(\panel).isNil) { this.installDebugMeterAtRightPanel };
+    this.debugMeter_stop;
+
+    // unique keys per GUI instance
+    keyA = ("mdDbgAmpA_" ++ this.identityHash).asSymbol;
+    keyB = ("mdDbgAmpB_" ++ this.identityHash).asSymbol;
+
+    // '/ampA' — max(L,R)
+    oscA = OSCdef(keyA, { arg msg;
+      var l, r, v, cur;
+      l = (msg.size > 3).if({ msg[3] }, { 0 }).asFloat;
+      r = (msg.size > 4).if({ msg[4] }, { l }).asFloat;
+      v = max(l, r).clip(0, 1);
+      cur = this.mdg_get(\val, 0.0);
+      this.mdg_put(\val, (cur * 0.7) + (v * 0.3));
+      AppClock.sched(0.0, { var uv = this.mdg_get(\uv); if(uv.notNil){ uv.refresh }; nil });
+    }, '/ampA');
+
+    // '/ampB' — mean(L,R)
+    oscB = OSCdef(keyB, { arg msg;
+      var l, r, v, cur;
+      l = (msg.size > 3).if({ msg[3] }, { 0 }).asFloat;
+      r = (msg.size > 4).if({ msg[4] }, { l }).asFloat;
+      v = ((l + r) * 0.5).clip(0, 1);
+      cur = this.mdg_get(\val, 0.0);
+      this.mdg_put(\val, (cur * 0.7) + (v * 0.3));
+      AppClock.sched(0.0, { var uv = this.mdg_get(\uv); if(uv.notNil){ uv.refresh }; nil });
+    }, '/ampB');
+
+    this.mdg_put(\oscA, oscA);
+    this.mdg_put(\oscB, oscB);
+
+    // enable only the requested side
+    if(which == \A) { oscB.disable } { oscA.disable };
+    ^this
+  }
+
+  // ---------- stop drivers only ----------
+  debugMeter_stop {
+    var t, oa, ob;
+    t  = this.mdg_get(\task);
+    oa = this.mdg_get(\oscA);
+    ob = this.mdg_get(\oscB);
+
+    if(t.notNil)  { t.stop; this.mdg_put(\task, nil) };
+    if(oa.notNil) { oa.free; this.mdg_put(\oscA, nil) };
+    if(ob.notNil) { ob.free; this.mdg_put(\oscB, nil) };
+    ^this
+  }
+
+  // ---------- full uninstall (remove view + drivers) ----------
+  debugMeter_uninstall {
+    var p;
+    this.debugMeter_stop;
+    p = this.mdg_get(\panel);
+    if(p.notNil) { p.remove; this.mdg_put(\panel, nil).mdg_put(\uv, nil) };
+    ^this
+  }
+}
