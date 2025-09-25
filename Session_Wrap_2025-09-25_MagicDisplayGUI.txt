@@ -1,0 +1,148 @@
+
+MagicDisplayGUI / MagicPedalboard — Daily Wrap
+Date: 2025-09-25 (session end ~2025-09-25 15:44)
+Author: MD
+
+============================================================
+1) What we did today (chronological highlights)
+============================================================
+• Stabilised bring-up and metering
+  - Finalised **MagicDisplayGUI_New_ServerBootAndProbe_v0.3.8.scd**
+    · Installs OSC receiver on **/md/levels** (recvPort = NetAddr.langPort).
+    · Adds **inline in‑proxy taps** on Ndef(\chainA / \chainB) via `.filter` + `SendReply.kr`.
+    · Provides safe helpers: `~md_startTestSource`, `~md_stopTestSource`, `~md_ensureRouting`,
+      `~md_reinstallReceiver`, `~md_attachProbesAB`, `~md_detachAllProbes`.
+    · Demo/fallback: `~md_startTestSource.()` defines **Ndef(	estmelody)** and attaches a test meter (replyID **1001**).
+
+• Rebuilt the HUD window iteratively → consolidated as **MagicDisplayGUI_New_Window_PerfHUD_AB_v0.5.4.scd**
+  - Single window titled with **“MagicDisplayGUI …”**, resizable, content always fits.
+  - **Top row**: Chain A (left) and Chain B (right) panels, with titles.
+    · **Meters** are **vertical** and **between** the chains (right edge of A, left edge of B), two bars (L/R) each.
+    · **Active chain highlight**: soft‑green background. Now **energy‑based** so only one panel goes green at a time
+      (unless equal within epsilon). This avoids both panels being green when chains are silent.
+  - **Second row**: “System State” + **triple‑height** yellow panel showing **“system ready”** and the
+    age of last /md/levels (seconds since last message).
+  - **Bottom-left**: “Choices” pane (reads from `~system.commandManager.builder` if present; guarded).
+  - **Bottom-right**: “Processors” pane is **malleable** via a user hook **~md_cmdTextProvider** that returns a string.
+  - Layout guards added (first layout delayed, size-change reflows only) → fixes `flipY(nil) / 'top' not understood`.
+  - Defensive numeric handling added → fixes `false + 0.001` crash.
+  - Conforms to style: **var‑first**, descriptive names, **AppClock‑only**, no `server.sync`, known‑good SC API.
+
+• Agreed run order and acceptance checks (see §2 below)
+
+============================================================
+2) Where we ended up (known‑good run recipe)
+============================================================
+1. Evaluate bring‑up:
+   File: **MagicDisplayGUI_New_ServerBootAndProbe_v0.3.8.scd**
+   Expected console:
+   --- MagicDisplayGUI Bring-up (non-destructive) ---
+   ReplyIDs: test=1001 A=2001 B=2002
+   OSCdef(\md_levels) on /md/levels, recvPort=57120
+   [API] ~md_startTestSource, ~md_stopTestSource, ~md_ensureRouting, ~md_reinstallReceiver, ~md_attachProbesAB, ~md_detachAllProbes
+   -> true
+
+2. (Recommended) Start audible demo + fallback meters:
+   ~md_startTestSource.();
+   Ndef(	estmelody).play(numChannels: 2);
+
+3. Open the HUD window:
+   File: **MagicDisplayGUI_New_Window_PerfHUD_AB_v0.5.4.scd**
+   Expected: returns **-> a Window** (titled “MagicDisplayGUI — Performance HUD (v0.5.4)”).
+
+Optional quick checks:
+- 3‑second OSC trace:
+  OSCFunc.trace(true);
+  AppClock.sched(3, { OSCFunc.trace(false); nil });
+  (Expect /md/levels for 2001, 2002 and 1001 if test is running.)
+- Inspect levels dictionary keys:
+  (~md_levelsById ? IdentityDictionary.new).keys
+
+Cleanup:
+  Ndef(	estmelody).stop; ~md_stopTestSource.();
+  // (GUI auto‑stops ticker on window close)
+
+============================================================
+3) Today’s decisions (for the record)
+============================================================
+• **Meters**: vertical; positioned **between** Chain A and B panels.
+• **Active indicator**: energy‑based (displayed L+R sums with epsilon) —
+  temporary until we wire the canonical CURRENT flag from your switch logic.
+• **Processors pane**: uses a user‑supplied function **~md_cmdTextProvider** to render text today;
+  will be replaced by a canonical accessor tomorrow.
+• **System State**: text “system ready”, triple height; shows seconds since last /md/levels message.
+• **GUI discipline**: single window policy, AppClock only, fixed vertical metrics, resizable width, guards against early layout.
+
+============================================================
+4) Permanent integration steps (to roll in changes)
+============================================================
+A. File placement (proposed canonical paths under LivePedalboardSuite):
+   • **MagicDisplayGUI_New_ServerBootAndProbe_v0.3.8.scd** →
+     /PhD_projects/LivePedalboardSuite/MagicPedalboard/bringup/
+   • **MagicDisplayGUI_New_Window_PerfHUD_AB_v0.5.4.scd** →
+     /PhD_projects/LivePedalboardSuite/MagicPedalboard/gui/
+
+B. Commit & reference updates:
+   • Update any runner scripts (e.g., StartHere or Test_*.scd) to point at these files.
+   • Add a “Run Order” snippet to README (bring‑up → optional test source → window).
+
+C. Class lift (tomorrow):
+   • Extract **MagicDisplayProbe** (receiver + inline taps + optional probes; exposes levelsById + lastMsgStamp).
+   • Extract **MagicDisplayGUI** (current window behavior) with constructor args for widths/gaps and processor/choices providers.
+   • Update **LivePedalboardSystem** to call the class (bringUpMagicDisplayGUI).
+
+============================================================
+5) Next steps — TOMORROW MORNING
+============================================================
+1. **Processors pane — wire to real data** (replace ~md_cmdTextProvider stub):
+   - Source options you confirm:
+     a) From CommandTree/queue: show the upcoming action/canonical path.
+     b) From chain definitions: list processor names per chain (A/B) in order.
+   - Implement and acceptance‑test with the demo.
+
+2. **ACTIVE highlight — switch to canonical flag**
+   - Replace energy‑based heuristic with your CURRENT chain indicator (e.g., ~system.currentChain), if available.
+
+3. **One‑click runner**
+   - Create **Test_MagicDisplayGUI_BootAndScenarios.scd** that evaluates:
+     (1) bring‑up → (2) optional test melody → (3) HUD window → returns **-> a Window**.
+
+4. **Simulated MIDI demo (foot controller + guitar)**
+   - New file: **Sim_MIDI_FootAndGuitar_Demo_v0.1.scd**
+     · Sends the same MIDI/OSC that your foot controller & guitar would produce.
+     · Drives CommandManager/CommandTree to populate “Choices” and “Processors/Next”.
+     · Includes canned sequences (navigate, select, switch chain, trigger queue) for repeatable demo.
+
+5. **Class lift** (start if time allows after the demo):
+   - Implement **MagicDisplayProbe** and **MagicDisplayGUI** classes (same behavior as v0.5.4).
+   - Update LivePedalboardSystem.bringUpAll → bringUpMagicDisplayGUI(class).
+
+============================================================
+6) Issues backlog (separate file created today)
+============================================================
+A new backlog file was created: **Issues_Backlog_MagicDisplayGUI.txt**. Highlights include:
+  - Early‑layout race (`flipY(nil)`) — fixed by guarded layout; keep eye on future refactors.
+  - Defensive numeric handling for energy sums (prevents `false + epsilon` crashes).
+  - Switch ACTIVE from energy‑based → canonical CURRENT flag.
+  - Wire Processors pane to CommandTree/queue (remove temporary provider hook once done).
+  - Add a runner script; expand acceptance tests.
+  - Consider Plan‑B after‑group probes path switcher (only if needed in future).
+  - Tidy older demo/GUI scripts and update README.
+
+============================================================
+Appendix — Handy snippets
+============================================================
+• Processors pane quick provider (temporary):
+~md_cmdTextProvider = {
+    var cm, next;
+    cm = (~system.tryPerform(\commandManager));
+    next = (cm.notNil and: { cm.respondsTo(\canonicalPathFromBuilder) })
+        .if({ cm.canonicalPathFromBuilder(cm.builder) }, { "(n/a)" });
+    "Next: " ++ next.asString
+};
+
+• 3‑second OSC trace:
+OSCFunc.trace(true); AppClock.sched(3, { OSCFunc.trace(false); nil });
+
+• Stop fallback audio:
+Ndef(	estmelody).stop; ~md_stopTestSource.();

@@ -1,0 +1,39 @@
+
+Issues_Backlog — MagicDisplayGUI / MagicPedalboard
+Date: 2025-09-25
+Owner: MD
+
+[GUI]
+- Guard against early layout races (flipY(nil)) — fixed today; keep guard after refactors.
+- Active chain highlight currently energy-based; switch to canonical CURRENT flag when available.
+- Vertical meters between chains OK; consider outer-edge option as a preference toggle later.
+- Add font sizing and colour theme presets for iPad mirroring.
+
+[Metering / OSC]
+- Maintain /md/levels stability; keep ~md_lastMsgStamp for liveness in System State.
+- Keep defensive numeric coercion to avoid type surprises (e.g., false + epsilon).
+- Optional Plan‑B after‑group probes: retain code path, add toggle only if required.
+
+[Processors / Choices]
+- Wire Processors pane to canonical accessors (CommandTree/queue; chain processor lists).
+- Replace temporary ~md_cmdTextProvider hook once accessors are agreed.
+
+[Integration]
+- Add Test_MagicDisplayGUI_BootAndScenarios.scd runner (-> a Window).
+- Class lift: MagicDisplayProbe + MagicDisplayGUI; integrate into LivePedalboardSystem.bringUpAll.
+- Update README with run order + acceptance checks.
+
+[Testing & Demo]
+- Create Sim_MIDI_FootAndGuitar_Demo_v0.1.scd: simulate foot controller and guitar flows.
+- Add acceptance tests: visual sanity + /md/levels rate checks.
+
+[Tidy / Docs]
+- Remove obsolete/borderless/early demo scripts after migration.
+- Review documentation for GUI and bring‑up; consolidate examples.
+
+[Performance]
+- Verify AppClock update rates (GUI ~30 Hz, text ~5 Hz) on the iPad screen; adjust if needed.
+
+[Future]
+- SwitchChain crossfade, ensureServerTree guard in rebuild (carryover items).
+- Consider exposing uiGamma and thresholds in a small config panel.

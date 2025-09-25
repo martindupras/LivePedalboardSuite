@@ -1,6 +1,6 @@
 // MagicDisplayGUI_New_Window_PerfHUD_AB_v0.5.4.scd
 // v0.5.4
-// MD 2025-09-25 18:58 BST
+// MD 2025-09-25 19:15 BST
 
 /*
 Purpose
@@ -129,9 +129,9 @@ makePanelView = { arg parent, r;
 makeTitleLabel = { arg parent, r, titleString;
     var label;
     label = StaticText(parent, r);
-    label.string = titleString;
-    label.stringColor = Color.black;
-    label.align = \left;
+    label.string_(titleString);
+    label.stringColor_(Color.black);
+    label.align_(\left);
     label
 };
 
@@ -177,7 +177,11 @@ makeVerticalMeterViewForA = { arg parent, r;
     var v;
     v = UserView(parent, r);
     v.background_(Color(0.92,0.92,0.92));
-    v.drawFunc = { arg uv; var dummy; dummy = nil; drawVerticalMetersA.value(uv) };
+    v.drawFunc = { arg uv;
+        var dummy;
+        dummy = nil;
+        drawVerticalMetersA.value(uv);
+    };
     v
 };
 
@@ -185,27 +189,50 @@ makeVerticalMeterViewForB = { arg parent, r;
     var v;
     v = UserView(parent, r);
     v.background_(Color(0.92,0.92,0.92));
-    v.drawFunc = { arg uv; var dummy; dummy = nil; drawVerticalMetersB.value(uv) };
+    v.drawFunc = { arg uv;
+        var dummy;
+        dummy = nil;
+        drawVerticalMetersB.value(uv);
+    };
     v
 };
 
-setPanelActiveColor = { arg panelView; panelView.background = Color(0.86, 0.97, 0.86) };
-setPanelNeutralColor = { arg panelView; panelView.background = Color(0.94, 0.94, 0.94) };
+setPanelActiveColor = { arg panelView;
+    panelView.background_(Color(0.86, 0.97, 0.86));
+};
 
-// --- data + UI refresh -------------------------------------------------------
+setPanelNeutralColor = { arg panelView;
+    panelView.background_(Color(0.94, 0.94, 0.94));
+};
+
+// --- data + UI refresh (DEFENSIVE) -------------------------------------------
 readLevelsAndUpdate = {
     var aVals, bVals, tVals, sumAB, sumT;
     var sumAEnergy, sumBEnergy, epsilon, ageSeconds;
+    var getPairSafe;
 
-    levelsDict = (~md_levelsById ? levelsDict);
-    aVals = levelsDict[levelIds[\A]] ? [0.0, 0.0];
-    bVals = levelsDict[levelIds[\B]] ? [0.0, 0.0];
-    tVals = levelsDict[levelIds[\test]] ? [0.0, 0.0];
+    // Safe fetch helper: returns [0.0, 0.0] unless we have a proper 2-element number array
+    getPairSafe = { arg dict, key;
+        var arr;
+        arr = (dict.respondsTo(\at)).if({ dict.at(key) }, { nil });
+        (arr.isArray and: { arr.size >= 2 and: { arr[0].isNumber and: { arr[1].isNumber } } })
+            .if({ arr }, { [0.0, 0.0] })
+    };
 
+    // Ensure levelsDict is a dictionary
+    levelsDict = (~md_levelsById.isKindOf(IdentityDictionary)).if({ ~md_levelsById }, { IdentityDictionary.new });
+
+    // Pull raw pairs safely
+    aVals = getPairSafe.value(levelsDict, levelIds[\A]);
+    bVals = getPairSafe.value(levelsDict, levelIds[\B]);
+    tVals = getPairSafe.value(levelsDict, levelIds[\test]);
+
+    // Assign channel values
     chainALevelLeft  = aVals[0]; chainALevelRight = aVals[1];
     chainBLevelLeft  = bVals[0]; chainBLevelRight = bVals[1];
     testLevelLeft    = tVals[0]; testLevelRight   = tVals[1];
 
+    // Demo-safe fallback: mirror test if A/B effectively zero but test alive
     sumAB = (chainALevelLeft + chainALevelRight + chainBLevelLeft + chainBLevelRight).abs;
     sumT  = (testLevelLeft + testLevelRight).abs;
 
@@ -221,22 +248,35 @@ readLevelsAndUpdate = {
         displayBLevelRight = chainBLevelRight.clip(0,1);
     };
 
-    // ACTIVE tint based on displayed energy (only one green unless equal within epsilon)
-    sumAEnergy = (displayALevelLeft + displayALevelRight);
-    sumBEnergy = (displayBLevelLeft + displayBLevelRight);
-    epsilon    = 0.001;
+    // Defensive numeric coercion for energy sums
+    sumAEnergy = (
+        (displayALevelLeft.isNumber  .if({ displayALevelLeft  }, { 0.0 })) +
+        (displayALevelRight.isNumber .if({ displayALevelRight }, { 0.0 }))
+    );
+    sumBEnergy = (
+        (displayBLevelLeft.isNumber  .if({ displayBLevelLeft  }, { 0.0 })) +
+        (displayBLevelRight.isNumber .if({ displayBLevelRight }, { 0.0 }))
+    );
 
-    isAActive = (sumAEnergy > sumBEnergy + epsilon);
-    isBActive = (sumBEnergy > sumAEnergy + epsilon);
+    epsilon = 0.001;
 
-    if(chainAPanel.notNil) { if(isAActive) { setPanelActiveColor.value(chainAPanel) } { setPanelNeutralColor.value(chainAPanel) } };
-    if(chainBPanel.notNil) { if(isBActive) { setPanelActiveColor.value(chainBPanel) } { setPanelNeutralColor.value(chainBPanel) } };
+    // ACTIVE tint (only one side green unless equal within epsilon)
+    isAActive = (sumAEnergy > (sumBEnergy + epsilon));
+    isBActive = (sumBEnergy > (sumAEnergy + epsilon));
+
+    if(chainAPanel.notNil) {
+        if(isAActive) { setPanelActiveColor.value(chainAPanel) } { setPanelNeutralColor.value(chainAPanel) };
+    };
+    if(chainBPanel.notNil) {
+        if(isBActive) { setPanelActiveColor.value(chainBPanel) } { setPanelNeutralColor.value(chainBPanel) };
+    };
 
     // System State with last /md/levels age (requires ~md_lastMsgStamp from bring-up)
     ageSeconds = (Main.elapsedTime - (~md_lastMsgStamp ? 0)).round(0.01);
-    systemStateTextView.string = "system ready\n(last /md/levels: " ++ ageSeconds ++ " s ago)";
+    systemStateTextView.string_("system ready\n(last /md/levels: " ++ ageSeconds ++ " s ago)");
 };
 
+// "Choices" (safe pull from ~system if present)
 refreshChoicesPane = {
     var sysObj, cm, builder, textLines, s;
     sysObj = ~system;
@@ -257,9 +297,10 @@ refreshChoicesPane = {
             s = "(n/a — no builder or no node)";
         };
     };
-    choicesTextView.string = s;
+    choicesTextView.string_(s);
 };
 
+// "Processors" (malleable via user hook ~md_cmdTextProvider)
 refreshProcessorsPane = {
     var providerFunc, s;
     providerFunc = ( ~md_cmdTextProvider.isKindOf(Function) ).if({ ~md_cmdTextProvider }, { nil });
@@ -280,7 +321,7 @@ refreshProcessorsPane = {
           ++ "};";
     };
 
-    processorsTextView.string = s;
+    processorsTextView.string_(s);
 };
 
 // --- layout (GUARDED; never writes nil Rect) ---------------------------------
@@ -309,11 +350,11 @@ computeAndApplyLayout = {
         titleH = 16;
 
         // Panels
-        chainAPanel.bounds = Rect(aX, panelY, aW, topRowHeight);
-        chainBPanel.bounds = Rect(bX, panelY, bW, topRowHeight);
+        chainAPanel.bounds_(Rect(aX, panelY, aW, topRowHeight));
+        chainBPanel.bounds_(Rect(bX, panelY, bW, topRowHeight));
 
-        chainATitleLabel.bounds = Rect(aX + 8, panelY + 6, 120, titleH);
-        chainBTitleLabel.bounds = Rect(bX + 8, panelY + 6, 120, titleH);
+        chainATitleLabel.bounds_(Rect(aX + 8, panelY + 6, 120, titleH));
+        chainBTitleLabel.bounds_(Rect(bX + 8, panelY + 6, 120, titleH));
 
         // Meters between panels
         meterY = panelY + 8 + titleH + 4;
@@ -321,20 +362,20 @@ computeAndApplyLayout = {
         meterAX = aX + aW - 8 - meterStripWidth;        // A: right edge
         meterBX = bX + 8;                                // B: left edge
 
-        meterViewBetweenA.bounds = Rect(meterAX, meterY, meterStripWidth, meterH);
-        meterViewBetweenB.bounds = Rect(meterBX, meterY, meterStripWidth, meterH);
+        meterViewBetweenA.bounds_(Rect(meterAX, meterY, meterStripWidth, meterH));
+        meterViewBetweenB.bounds_(Rect(meterBX, meterY, meterStripWidth, meterH));
 
         // System State
-        systemStateTitleLabel.bounds = Rect(paddingX, systemTitleY, contentW, systemTitleHeight);
-        systemStateTextView.bounds   = Rect(paddingX, systemBodyY, contentW, systemBodyHeight);
-        systemStateTextView.background = Color(1.0, 0.95, 0.6);
+        systemStateTitleLabel.bounds_(Rect(paddingX, systemTitleY, contentW, systemTitleHeight));
+        systemStateTextView.bounds_(Rect(paddingX, systemBodyY, contentW, systemBodyHeight));
+        systemStateTextView.background_(Color(1.0, 0.95, 0.6));
 
         // Bottom row
-        choicesTitleLabel.bounds    = Rect(paddingX, bottomY, halfW, 16);
-        choicesTextView.bounds      = Rect(paddingX, bottomY + 18, halfW, bottomRowHeight - 20);
+        choicesTitleLabel.bounds_(Rect(paddingX, bottomY, halfW, 16));
+        choicesTextView.bounds_(Rect(paddingX, bottomY + 18, halfW, bottomRowHeight - 20));
 
-        processorsTitleLabel.bounds = Rect(paddingX + halfW + columnGap, bottomY, halfW, 16);
-        processorsTextView.bounds   = Rect(paddingX + halfW + columnGap, bottomY + 18, halfW, bottomRowHeight - 20);
+        processorsTitleLabel.bounds_(Rect(paddingX + halfW + columnGap, bottomY, halfW, 16));
+        processorsTextView.bounds_(Rect(paddingX + halfW + columnGap, bottomY + 18, halfW, bottomRowHeight - 20));
     };
 };
 
@@ -409,15 +450,20 @@ meterViewBetweenB = makeVerticalMeterViewForB.value(windowRef, Rect(0,0,10,10));
 // system state row
 systemStateTitleLabel = makeTitleLabel.value(windowRef, Rect(0,0,10,10), "System State");
 systemStateTextView   = TextView(windowRef, Rect(0,0,10,10));
-systemStateTextView.editable = false; systemStateTextView.background = Color(1.0, 0.95, 0.6);
-systemStateTextView.string = "system ready";
+systemStateTextView.editable_(false);
+systemStateTextView.background_(Color(1.0, 0.95, 0.6));
+systemStateTextView.string_("system ready");
 
 // bottom row
 choicesTitleLabel     = makeTitleLabel.value(windowRef, Rect(0,0,10,10), "Choices");
-choicesTextView       = TextView(windowRef, Rect(0,0,10,10)); choicesTextView.editable = false; choicesTextView.background = Color(0.97,0.97,0.97);
+choicesTextView       = TextView(windowRef, Rect(0,0,10,10));
+choicesTextView.editable_(false);
+choicesTextView.background_(Color(0.97,0.97,0.97));
 
 processorsTitleLabel  = makeTitleLabel.value(windowRef, Rect(0,0,10,10), "Processors");
-processorsTextView    = TextView(windowRef, Rect(0,0,10,10)); processorsTextView.editable = false; processorsTextView.background = Color(0.97,0.97,0.97);
+processorsTextView    = TextView(windowRef, Rect(0,0,10,10));
+processorsTextView.editable_(false);
+processorsTextView.background_(Color(0.97,0.97,0.97));
 
 // run
 windowRef.onClose_({ stopTicker.value });
