@@ -1,6 +1,6 @@
 // MagicDisplayGUI_New_Window_PerfHUD_AB_v0.5.3.scd
 // v0.5.3
-// MD 2025-09-25 18:28 BST
+// MD 2025-09-25 18:45 BST
 
 /*
 Purpose
@@ -201,7 +201,7 @@ setPanelActiveColor = { arg panelView; panelView.background = Color(0.86, 0.97, 
 setPanelNeutralColor = { arg panelView; panelView.background = Color(0.94, 0.94, 0.94) };
 
 // --- data + UI refresh -------------------------------------------------------
-readLevelsAndUpdate = {
+/*readLevelsAndUpdate = {
     var aVals, bVals, tVals, sumAB, sumT;
 
     levelsDict = (~md_levelsById ? levelsDict);
@@ -235,7 +235,57 @@ readLevelsAndUpdate = {
     if(chainBPanel.notNil) { if(isBActive) { setPanelActiveColor.value(chainBPanel) } { setPanelNeutralColor.value(chainBPanel) } };
 
     systemStateTextView.string = "system ready";
+};*/
+
+readLevelsAndUpdate = {
+    var aVals, bVals, tVals, sumAB, sumT;
+    var sumAEnergy, sumBEnergy, epsilon, ageSeconds;
+
+    levelsDict = (~md_levelsById ? levelsDict);
+    aVals = levelsDict[levelIds[\A]] ? [0.0, 0.0];
+    bVals = levelsDict[levelIds[\B]] ? [0.0, 0.0];
+    tVals = levelsDict[levelIds[\test]] ? [0.0, 0.0];
+
+    chainALevelLeft  = aVals[0]; chainALevelRight = aVals[1];
+    chainBLevelLeft  = bVals[0]; chainBLevelRight = bVals[1];
+    testLevelLeft    = tVals[0]; testLevelRight   = tVals[1];
+
+    sumAB = (chainALevelLeft + chainALevelRight + chainBLevelLeft + chainBLevelRight).abs;
+    sumT  = (testLevelLeft + testLevelRight).abs;
+
+    // Keep demo visual continuity: mirror test if A/B effectively zero but test alive.
+    if((sumAB <= fallbackThreshold) and: { sumT > (fallbackThreshold * 0.3) }) {
+        displayALevelLeft  = testLevelLeft.clip(0,1);
+        displayALevelRight = testLevelRight.clip(0,1);
+        displayBLevelLeft  = testLevelLeft.clip(0,1);
+        displayBLevelRight = testLevelRight.clip(0,1);
+    } {
+        displayALevelLeft  = chainALevelLeft.clip(0,1);
+        displayALevelRight = chainALevelRight.clip(0,1);
+        displayBLevelLeft  = chainBLevelLeft.clip(0,1);
+        displayBLevelRight = chainBLevelRight.clip(0,1);
+    };
+
+    // ACTIVE tint based on displayed energy (robust when both Ndefs are "playing")
+    sumAEnergy = (displayALevelLeft + displayALevelRight);
+    sumBEnergy = (displayBLevelLeft + displayBLevelRight);
+    epsilon    = 0.001;
+
+    isAActive = (sumAEnergy > sumBEnergy + epsilon);
+    isBActive = (sumBEnergy > sumAEnergy + epsilon);
+
+    if(chainAPanel.notNil) {
+        if(isAActive) { setPanelActiveColor.value(chainAPanel) } { setPanelNeutralColor.value(chainAPanel) };
+    };
+    if(chainBPanel.notNil) {
+        if(isBActive) { setPanelActiveColor.value(chainBPanel) } { setPanelNeutralColor.value(chainBPanel) };
+    };
+
+    // System State text + last /md/levels age (requires ~md_lastMsgStamp from bring-up)
+    ageSeconds = (Main.elapsedTime - (~md_lastMsgStamp ? 0)).round(0.01);
+    systemStateTextView.string = "system ready\n(last /md/levels: " ++ ageSeconds ++ " s ago)";
 };
+
 
 refreshChoicesPane = {
     var sysObj, cm, builder, textLines, s;
@@ -326,7 +376,7 @@ startTicker = {
     var periodSeconds;
     periodSeconds = 1.0 / framesPerSecond;
 
-    // Do a first layout AFTER all views exist and window has bounds.
+    // Do a first layout AFTER all views exist and the window has bounds.
     AppClock.sched(0.05, {
         layoutInitialized = true;
         computeAndApplyLayout.value;
