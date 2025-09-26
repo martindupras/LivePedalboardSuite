@@ -1,15 +1,17 @@
 // LivePedalboardSystem-AdapterBridge.sc
-// v0.1.0
-// MD 20250923-1324
+// v0.1.1
+// MD 2025-09-26 15:22 BST
 
 /* Purpose
    Install a queueExportCallback that routes SHORT canonical commands
    (e.g., "/add/delay") through your adapter (~ct_applyOSCPathToMPB),
    so they apply to MagicPedalboardNew safely.
+   Additionally, if the path starts with "/switch", toggle the HUD's
+   current-chain flag so the ACTIVE tint stays solid (no pulsing).
 
    Style
-   - var-first; descriptive variable names; no server.sync.
-   - Class extension only; safe no-op if adapter or references are missing.
+   - var-first; descriptive variable names; no server.sync; no non-local '^'.
+   - Safe no-op if adapter or references are missing.
 */
 
 + LivePedalboardSystem {
@@ -45,12 +47,31 @@
 
     // Bridge: every queued canonical path is applied via the adapter
     commandManager.queueExportCallback = { |canonicalPathString|
-      ~ct_applyOSCPathToMPB.(canonicalPathString, pedalboardRef, statusDisplayRef);
+      var pathString, isSwitchPath;
+
+      pathString = canonicalPathString.asString;
+      ~ct_applyOSCPathToMPB.(pathString, pedalboardRef, statusDisplayRef);
+
+      // ACTIVE chain rule: if the canonical path starts with "/switch", toggle A/B
+      // Known-good assumption: "/switch" is a toggle between A and B.
+      isSwitchPath = pathString.beginsWith("/switch");
+      if(isSwitchPath) {
+        // Use the tiny helper defined in MagicDisplayGUI_PerfHUD_ActiveChain_Ext.scd
+        if(~md_toggleCurrentChain.isKindOf(Function)) {
+          ~md_toggleCurrentChain.();
+        }{
+          // Fallback: initialize to A if helper is missing
+          ~md_currentChain = ~md_currentChain ? \A;
+          ~md_currentChain = (~md_currentChain == \A).if({ \B }, { \A });
+        };
+        ("[LPS] ACTIVE chain toggled to " ++ (~md_currentChain ? \A).asString).postln;
+      };
+
+      nil  // explicit nil return, no non-local '^'
     };
 
     "[LPS] installAdapterBridge: adapter bridge active.".postln;
-    ^this;
+    ^this
   }
 
 }
-

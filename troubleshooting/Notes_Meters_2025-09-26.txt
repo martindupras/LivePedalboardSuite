@@ -1,0 +1,44 @@
+Notes_Meters_2025-09-26
+MD 2025-09-26
+
+Summary
+- NEW HUD (PerfHUD v0.5.4) is the correct window.
+- Root cause of “meters not moving”: no OSC responders active in HUD (0 listeners for /md/levels, /ampA, /ampB).
+- Secondary nuisance: occasional Window.flipY(nil) – not from PerfHUD file; handled during dev by a guard.
+
+What works now
+1) /md/levels receiver (language-side) installed with key md_levels_hud:
+   - Updates ~md_levelsById, ~md_lastMsgStamp.
+   - Known-good: OSCdef(\md_levels_hud, { ... }, "/md/levels", recvPort: NetAddr.langPort).
+
+2) Inline taps (pass-through) armed on server via Ndef.filter(name, func):
+   - A → replyID 2001, B → 2002, testmelody probe → 1001.
+   - No 'removeFilter'; use filter(\name, nil) only if needed (we avoid it).
+
+3) Heartbeat shows last /md/levels age ~0–1 s during normal operation.
+
+4) LPS bring-up now performs, in order:
+   - Close existing MagicDisplay windows.
+   - Load PerfHUD v0.5.4.
+   - Re-enable FilterMeters / Attach Probes / Reset Receiver (troubleshooting scripts).
+   - Install /md/levels HUD listener (md_levels_hud).
+   - Arm inline taps at ~18 Hz (A/B/testmelody).
+
+Why meters looked "quiet"
+- Taps were sending linear amplitude 0..1 (Amplitude.kr).
+- GUI was drawing linearly, so normal musical levels looked small.
+- Fix: map to dB in GUI (amp → dB → normalized 0..1). No DSP change.
+
+Active highlight rule
+- Previously: energy-based heuristic (pulsed).
+- Now: chain flag ~md_currentChain = \A|\B – stays green while active.
+- Setter: ~md_setCurrentChain.(\A) or .(\B). To be called from switch path.
+
+Dev guards
+- A temporary Window.flipY guard extension prevented nil-rect crashes during bring-up.
+- Repo search shows no flipY or Window.bounds in our sources; final call-site TBD.
+
+Keep it working (policy)
+- LPS bring-up installs HUD listener and taps every time.
+- Taps use only Ndef.filter – known-good API.
+- No 'removeFilter', no '++' on Associations, no '? :' ternary.
