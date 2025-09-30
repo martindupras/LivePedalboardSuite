@@ -1,0 +1,358 @@
+// sendTextToWindowLayout_Grid_Minimal_DarkGreen.scd
+// v1.0
+// MD 20250930-1303
+
+(
+// Attach + simple text helpers for "Layout Test"
+var win, collect, views;
+
+views = List.new;
+win = Window.allWindows.detect({ |w| w.name == "Layout Test" });
+
+// look for window called "Layout Test"
+if(win.isNil) { "No window named 'Layout Test'.".warn; } {
+    collect = { |v|
+        views.add(v);
+        v.children.do({ |c| collect.(c) });
+    };
+    collect.(win.view);
+
+    ~textViews = views.select({ |v| v.isKindOf(TextView) }); // collect the textviews
+
+    // Set ALL panes' TextView to the same string
+    ~broadcastText = { |txt|
+        ~textViews.do({ |tv| tv.string_(txt) });
+    };
+
+    // Set a specific pane's TextView by its header label (green bar text)
+    ~setPaneText = { |paneLabel, txt|
+        var paneUserView, tv;
+
+        // Find the pane's UserView by looking for a child StaticText whose .string == paneLabel
+        paneUserView = views.detect({ |v|
+            v.isKindOf(UserView) and: {
+                v.children.any({ |c| c.isKindOf(StaticText) and: { c.string == paneLabel } })
+            }
+        });
+
+        if(paneUserView.isNil) {
+            "Pane not found: %".format(paneLabel).warn;
+        } {
+            // Pick the first TextView inside that pane and set its string
+            tv = paneUserView.children.detect({ |c| c.isKindOf(TextView) });
+            if(tv.isNil) {
+                "No TextView in pane: %".format(paneLabel).warn;
+            } {
+                tv.string_(txt);
+            };
+        };
+    };
+
+    "Text helpers ready. Use ~broadcastText.(...) or ~setPaneText.(\"System State\", ...).".postln;
+};
+)
+
+/*
+To use:
+
+~setPaneText.("System State","Testing Be-bop-a-lula")
+~setPaneText.("Top Left Pane","I was a fiend...")
+~broadcastText.("test")  // works
+
+*/// animateMetersWindowLayout_Grid_Minimal_DarkGreen.scd
+// v1
+// MD 20250930
+
+(
+// Attach + animate LevelIndicator meters in "Layout Test"
+var win, collect, views;
+
+views = List.new;
+win = Window.allWindows.detect({ |w| w.name == "Layout Test" });
+
+if(win.isNil) { "No window named 'Layout Test'.".warn; } {
+    collect = { |v|
+        views.add(v);
+        v.children.do({ |c| collect.(c) });
+    };
+    collect.(win.view);
+    ~meters = views.select({ |v| v.isKindOf(LevelIndicator) });
+
+    // Start animation (single AppClock Routine)
+    ~startMeters = {
+        ~meterRoutine !? { ~meterRoutine.stop };
+        ~meterRoutine = Routine({
+            var t = 0.0;
+            loop {
+                var v1 = (sin(t * 0.30) * 0.5 + 0.5).clip(0, 1);
+                var v2 = (sin(t * 0.21 + 1.1) * 0.5 + 0.5).clip(0, 1);
+                ~meters.do({ |m, i| m.value_(i.even.if(v1, v2)) });
+                t = t + 0.05;
+                0.03.wait;  // ~33 fps
+            }
+        }).play(AppClock);
+        "Meters animating…".postln;
+    };
+
+    // Stop animation
+    ~stopMeters = {
+        ~meterRoutine !? { ~meterRoutine.stop; ~meterRoutine = nil; "Meters stopped.".postln; };
+    };
+
+    "Found % meter(s). Use ~startMeters.() and ~stopMeters.().".format(~meters.size).postln;
+};
+)
+
+
+/*
+To use:
+
+~startMeters.();
+~stopMeters.();
+
+*/// THIS IS WORKING, CLEAN AND UNDERSTOOD.
+
+
+// windowLayout_Grid_Minimal_DarkGreen.scd
+// v1.1 - Minimal 3x2 grid with dark green labels + thin outlines
+// MD 20250930
+
+/*
+Single-colour (dark green) labels and matching thin outlines for all panes in a 3x2 GridLayout.
+*/
+
+(
+var window, makePane, paneColor;
+
+// close any existing window with the same name
+Window.allWindows.do({ |w| if(w.name == "Layout Test", { w.close }) });
+
+// window
+window = Window("Layout Test", Rect(100, 100, 800, 600))
+    .background_(Color.white)
+    .front;
+
+// single colour (dark green)
+paneColor = Color(0.0, 0.35, 0.0);
+
+// helper: pane with coloured label + thin outline (local coords)
+makePane = { |content, label|
+    var labelView, inner, pane;
+    labelView = StaticText()
+        .string_(label)
+        .align_(\center)
+        .stringColor_(Color.white) // text colour
+        .background_(paneColor);
+
+    inner = VLayout(labelView, content);
+    pane = UserView().layout_(inner);
+    pane.drawFunc_({ |v|
+        var w = v.bounds.width, h = v.bounds.height, inset = 0.5;
+        Pen.use {
+            Pen.color = paneColor;
+            Pen.addRect(Rect(inset, inset, w - (2 * inset), h - (2 * inset)));
+            Pen.stroke;
+        };
+    });
+    pane
+};
+
+// grid (3 rows × 2 columns) with shared column boundaries
+window.layout = GridLayout.rows(
+    [
+        makePane.(HLayout(TextView(), LevelIndicator()./*style_(\led).*/fixedWidth_(30)), "Top Left Pane"),
+        makePane.(HLayout(TextView(), LevelIndicator()./*style_(\led).*/fixedWidth_(30)), "Top Right Pane")
+    ],
+    [
+        makePane.(VLayout(StaticText().align_(\center), TextView()), "System State"),
+        makePane.(VLayout(StaticText().align_(\center), TextView()), "Diagnostic Messages")
+    ],
+    [
+        makePane.(VLayout(StaticText().align_(\center), TextView()), "Choices"),
+        makePane.(VLayout(StaticText().align_(\center), TextView()), "Receiving Commands")
+    ]
+);
+
+window  // -> a Window
+)
+// aSingleWindowPane.scd
+// v1.0 -- WORKING
+// MD 20250930
+
+// Let's try to pain a single outlined window pane.
+
+
+/*
+Purpose:
+  - Show a minimal example: one window with one pane that has a thin contrasting outline.
+*/
+
+
+(
+var debugLayout = true; // shows outline and pane name
+
+var window, paneContainer, paneLayout;
+var labelView, contentView;
+var strokeColor;
+
+strokeColor = if(debugLayout, { Color.red(1.0, 0.6) }, { Color.gray(0.55) });
+
+// Close any previous window with the same name
+Window.allWindows.do({ |w| if(w.name == "First Principles", { w.close }) });
+
+// Create the window
+window = Window("First Principles", Rect(150, 150, 420, 260))
+    .background_(Color.white)
+    .front;
+
+// Minimal pane content: a label bar + a text area
+labelView = StaticText()
+    .string_(if(debugLayout, { "Pane" }, { "---" }))
+    .align_(\center)
+    .stringColor_(Color.white)
+    .background_(strokeColor)
+    .fixedHeight_(22);
+
+contentView = TextView()
+    .string_("Content goes here…")
+    .minHeight_(140);
+
+// Stack the label above the content
+paneLayout = VLayout(
+    labelView,
+    contentView
+)
+.margins_(8)      // inner padding
+.spacing_(6);
+
+// The pane container that draws its own outline
+paneContainer = UserView()
+    .layout_(paneLayout);
+
+// Draw a thin outline around the whole pane in **local** coordinates
+paneContainer.drawFunc_({ |view|
+    var b, rect;
+    b = view.bounds;  // we only use width/height — origin is local (0, 0)
+    rect = Rect(0.5, 0.5, b.width - 1, b.height - 1);
+    Pen.use {
+        Pen.color = strokeColor;
+        Pen.width = 1;
+        Pen.addRect(rect);
+        Pen.stroke;
+    };
+});
+
+// Put the single pane into the window, with some outer margin
+window.layout = VLayout(
+    paneContainer
+)
+.margins_(12)
+.spacing_(12);
+
+window  // -> a Window
+)
+// sanityTestsWithNdefs.scd
+// v.0.4
+// MD 20250930
+(
+// Debug flag
+var debug = true;  // Set to false to disable debug output
+
+// vars
+var win, meterA, meterB;
+var printCounterA = 0, printCounterB = 0;  // Local variables instead of environment
+
+// create display window:
+win = Window("RMS Meters", Rect(100, 100, 300, 400)).front;
+win.layout = HLayout(  // Horizontal layout for left/right panes
+    VLayout(  // Left pane
+        StaticText().string_("Sink A").align_(\center),
+        meterA = LevelIndicator()
+            .numTicks_(10)
+            .style_(\led)
+            .resize_(1)  // resize code 1: fixed dimensions
+            .fixedWidth_(30)
+    ).margins_(5).spacing_(5),   // Outline: margins create visible border
+    VLayout(  // Right pane
+        StaticText().string_("Sink B").align_(\center),
+        meterB = LevelIndicator()
+            .numTicks_(10)
+            .style_(\led)
+            .resize_(1)
+            .fixedWidth_(30)
+    ).margins_(5).spacing_(5)
+);
+
+// create Ndef sources:
+Ndef(\srcA, {PinkNoise.ar(0.1 ! 2)});
+Ndef(\srcB, {SinOsc.ar([300,301], mul:0.2)});
+Ndef(\srcC, {SinOsc.ar([250,301], mul:0.2)});
+
+// Debug: display bus values for source Ndefs
+if(debug, {
+    "___ Source Ndef Bus Values ___".postln;
+    "Ndef(\\srcA) bus: %".format(Ndef(\srcA).bus).postln;
+    "Ndef(\\srcB) bus: %".format(Ndef(\srcB).bus).postln;
+    "Ndef(\\srcC) bus: %".format(Ndef(\srcC).bus).postln;
+});
+
+// Sink Ndefs with SendPeakRMS monitoring
+Ndef(\sinkA, {
+    var sig = Ndef(\srcA).ar;
+    SendPeakRMS.kr(sig, 20, 3, '/peakrmsA', 1);  // 20Hz for meters
+    sig;
+});
+
+Ndef(\sinkB, {
+    var sig = Ndef(\srcB).ar;
+    SendPeakRMS.kr(sig, 20, 3, '/peakrmsB', 2);
+    sig;
+});
+
+// Debug: display bus values for sink Ndefs
+if(debug, {
+    "___ Sink Ndef Bus Values ___".postln;
+    "Ndef(\\sinkA) bus: %".format(Ndef(\sinkA).bus).postln;
+    "Ndef(\\sinkB) bus: %".format(Ndef(\sinkB).bus).postln;
+    "____________________________".postln;
+});
+
+// Fast OSCdef responders for meters (20Hz updates)
+OSCdef(\rmsAMeter, {|msg|
+    // msg[3] = replyID, msg[4] = numChannels, msg[5] = peak, msg[6] = RMS
+    {meterA.value = msg[6]}.defer;  // Use RMS value
+}, '/peakrmsA');
+
+OSCdef(\rmsBMeter, {|msg|
+    {meterB.value = msg[6]}.defer;
+}, '/peakrmsB');
+
+// Slow responders for console printing (1Hz)
+OSCdef(\rmsAConsole, {|msg|
+    printCounterA = printCounterA + 1;
+    if(printCounterA >= 20, {  // Print every 20th message (20Hz / 20 = 1Hz)
+        "sinkA RMS: % dB".format((msg[6].ampdb).round(0.1)).postln;
+        printCounterA = 0;
+    });
+}, '/peakrmsA');
+
+OSCdef(\rmsBConsole, {|msg|
+    printCounterB = printCounterB + 1;
+    if(printCounterB >= 20, {
+        "sinkB RMS: % dB".format((msg[6].ampdb).round(0.1)).postln;
+        printCounterB = 0;
+    });
+}, '/peakrmsB');
+
+// Cleanup when window closes
+win.onClose = {
+    OSCdef(\rmsAMeter).free;
+    OSCdef(\rmsBMeter).free;
+    OSCdef(\rmsAConsole).free;
+    OSCdef(\rmsBConsole).free;
+};
+
+// Play the sinks
+Ndef(\sinkA).play;
+Ndef(\sinkB).play;
+)
