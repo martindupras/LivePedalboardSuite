@@ -1,0 +1,42 @@
+//////////////////////////////////////////////////////////////
+// 01c_PerfHUD_CompatAdapter.scd  (patch: resize + layout guard)
+// v0.1.1  MD 2025-09-29
+
+(
+var win, host, ensureOverlays, relayoutOverlays;
+
+// 1) Find the PerfHUD window by its title prefix (unchanged)
+win = Window.allWindows.detect({ |w|
+    (w.tryPerform(\name) ? "").asString.beginsWith("MagicDisplayGUI")
+});
+
+if (win.isNil) {
+    "01c: PerfHUD window not found; compat overlay skipped.".warn;
+    ^nil;
+};
+
+// 2) Always work off the TopView, not the Window
+host = win.view;
+
+// 3) Your existing overlay builders go here (unchanged)
+ensureOverlays = {
+    // create or fetch CompositeView/TextView/StaticText children under `host`
+    // … your current code …
+};
+
+// 4) Relayout uses host.bounds (view coords)
+relayoutOverlays = {
+    var b = host.bounds, w = b.width, h = b.height;
+    ensureOverlays.value;
+    // recompute bounds for your overlay views using w/h
+    // … your current code …
+};
+
+// 5) Do an initial layout on AppClock
+AppClock.sched(0.00, { relayoutOverlays.value; nil });
+
+// 6) Hook resize on the **view**, not the window
+if (host.respondsTo(\onResize_)) {
+    host.onResize_{ relayoutOverlays.value };
+};
+)
