@@ -1,0 +1,96 @@
+// LPDisplaySigChain.sc
+// v0.9.2 - minimal [sink, ..., source] chain wrapper with JITLib wiring
+// MD 20251001
+
+/* Purpose
+ - Manage a simple symbol chain [sink, ... , source] using Ndef and <<> wiring.
+ - Ensure stereo busses for nodes prior to wiring; play the sink.
+ - Provide a readable string form and a method to switch the tail source.
+ Style
+ - var-first declarations in every method block
+ - lowercase method names / descriptive names
+ - JITLib operator strictly Ndef(left) <<> Ndef(right)
+ - no non-local returns (^) in function blocks
+*/
+
+LPDisplaySigChain {
+    classvar <>version;
+
+    var chainArray; // [sink, ..., source] (Symbols)
+
+    *initClass {
+        var v;
+        v = "0.9.2";
+        version = v;
+        ("LPDisplaySigChain v" ++ v ++ " loaded (LivePedalboardDisplay)").postln;
+    }
+
+    *new { |symbolsArray|
+        var obj;
+        obj = super.new;
+        obj.init(symbolsArray ?? { [] });
+        obj
+    }
+
+    init { |symbolsArray|
+        var arr;
+        arr = symbolsArray.copy;
+        chainArray = arr;
+        this
+    }
+
+    size {
+        var n;
+        n = chainArray.size;
+        n
+    }
+
+    ensureStereo { |key|
+        var bus;
+        bus = Ndef(key).bus;
+        if (bus.isNil or: { bus.rate != \audio } or: { bus.numChannels != 2 }) {
+            Ndef(key).ar(2); // pre-arm
+        };
+        this
+    }
+
+    rebuild {
+        var i, n;
+        n = chainArray.size;
+        if (n < 2) {
+            "LPDisplaySigChain: need at least [sink, source]".postln;
+        } {
+            chainArray.do({ |sym| this.ensureStereo(sym) });
+            i = 0;
+            while({ i < (n - 1) }, {
+                Ndef(chainArray[i]) <<> Ndef(chainArray[i + 1]); // sink receives from next
+                i = i + 1;
+            });
+            Ndef(chainArray[0]).play(numChannels: 2);
+        };
+        this
+    }
+
+    chainToString {
+        var forward;
+        forward = chainArray.copy.reverse; // [source ... sink] for display
+        forward.collect(_.asString).join(" → ")
+    }
+
+    setTailSource { |srcSym|
+        var newSym;
+        newSym = srcSym.asSymbol;
+        if (chainArray.size >= 2) {
+            chainArray[chainArray.size - 1] = newSym;
+        } {
+            chainArray = chainArray.add(newSym);
+        };
+        this.rebuild
+    }
+
+    symbols {
+        var copy;
+        copy = chainArray.copy;
+        copy
+    }
+}

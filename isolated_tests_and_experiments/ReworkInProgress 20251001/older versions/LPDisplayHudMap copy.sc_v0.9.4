@@ -1,0 +1,70 @@
+// LPDisplayHudMap
+// v0.9.4 — dB→UI mapping (top/floor/gamma) + preview/print
+// MD 20251001
+
+
+// This class at the moment is just rescaling values between 0 and 1 for the meters to more perceptually correct relationships. Top, floor, gamma. It is optional.
+
+LPDisplayHudMap {
+    classvar classVersion = "0.9.4";
+
+    var topDb;
+    var floorDb;
+    var gamma;
+
+    *initClass {
+        ("LPDisplayHudMap v" ++ classVersion ++ " loaded (LivePedalboardDisplay)").postln;
+    }
+
+    *new { |topDb, floorDb, gamma|
+        ^super.new.init(
+            topDb ?? { -6.0 },
+            floorDb ?? { -60.0 },
+            gamma  ?? { 1.0 }
+        )
+    }
+
+    init { |t, f, g|
+        topDb   = t.asFloat;
+        floorDb = f.asFloat;
+        gamma   = g.asFloat.max(1e-6);
+        if (topDb <= floorDb) {
+            topDb = floorDb + 0.1;
+            "LPDisplayHudMap: adjusted top to floor+0.1 dB to keep mapping valid.".postln;
+        };
+        ^this
+    }
+
+    set { |key, value|
+        var k = key.asSymbol;
+        var v = value.asFloat;
+        if (k == \top)   { topDb = v };
+        if (k == \floor) { floorDb = v };
+        if (k == \gamma) { gamma = v.max(1e-6) };
+        if (topDb <= floorDb) {
+            topDb = floorDb + 0.1;
+            "LPDisplayHudMap: adjusted top to floor+0.1 dB.".postln;
+        };
+        ^this
+    }
+
+    mapLinToUi { |lin|
+        var v   = lin.max(1e-9);
+        var vdb = v.ampdb;
+        var tdb = topDb, fdb = floorDb, g = gamma;
+        vdb = vdb.clip(fdb, tdb);
+        ^(((vdb - fdb) / (tdb - fdb)).pow(g)).clip(0.0, 1.0)
+    }
+
+    preview { |db|
+        var lin = db.dbamp.clip(1e-9, 1.0);
+        var u   = this.mapLinToUi(lin);
+        ("HUD UI -> " ++ u.round(0.003) ++ " for " ++ db ++ " dBFS RMS").postln;
+        ^u
+    }
+
+    print {
+        ("HUD: top=" ++ topDb ++ " dB, floor=" ++ floorDb ++ " dB, gamma=" ++ gamma).postln;
+        ^this
+    }
+}

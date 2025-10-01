@@ -1,0 +1,335 @@
+// AudioChainManager.sc
+// Place in: Platform.userExtensionDir +/+ "AudioChainManager/"
+// Refactored from WindowLayout_Grid_WithSigChainsAndMeters_Debug.scd v1.8
+
+// ============================================================
+// AudioChain - manages a single Ndef chain with metering
+// ============================================================
+AudioChain {
+    var <name, <chain, <oscPath, <oscGuiName, <oscConsoleName;
+    var <meterView, <textView, <updateRate;
+    var consoleCount, firstDump;
+    
+    *new { |name, initialChain, oscPath, updateRate = 20|
+        ^super.newCopyArgs(name, initialChain, oscPath).init(updateRate);
+    }
+    
+    init { |rate|
+        updateRate = rate;
+        consoleCount = 0;
+        firstDump = true;
+        oscGuiName = (name ++ "_toGUI").asSymbol;
+        oscConsoleName = (name ++ "_console").asSymbol;
+        this.ensureStereoChain;
+    }
+    
+    // ensure all Ndefs in chain are stereo audio
+    ensureStereoChain {
+        chain.do({ |key|
+            var bus;
+            bus = Ndef(key).bus;
+            if(bus.isNil or: { bus.rate != \audio } or: { bus.numChannels != 2 }) {
+                Ndef(key).ar(2);
+            };
+        });
+    }
+    
+    // rebuild the chain connections
+    rebuild {
+        var i;
+        if(chain.size < 2) {
+            "AudioChain(%): need at least [sink, source]".format(name).postln;
+            ^this;
+        };
+        
+        this.ensureStereoChain;
+        i = 0;
+        while({ i < (chain.size - 1) }, {
+            Ndef(chain[i]) <<> Ndef(chain[i + 1]);
+            i = i + 1;
+        });
+        Ndef(chain[0]).play(numChannels: 2);
+        this.updateText;
+    }
+    
+    // change the source (last element in chain)
+    setSource { |srcSym|
+        chain[chain.size - 1] = srcSym.asSymbol;
+        this.rebuild;
+    }
+    
+    // get string representation of chain
+    chainString {
+        var forward;
+        forward = chain.copy.reverse;
+        ^forward.collect(_.asString).join(" → ");
+    }
+    
+    // update text view if bound
+    updateText {
+        if(textView.notNil) {
+            { textView.string_(this.chainString) }.defer;
+        };
+    }
+    
+    // bind to GUI elements
+    bindGui { |textViewArg, meterViewArg|
+        textView = textViewArg;
+        meterView = meterViewArg;
+        this.updateText;
+    }
+    
+    // extract meter value from OSC message (last RMS value)
+    valueFromMsg { |msg|
+        var v, sz;
+        v = 0.0;
+        if(msg.notNil) {
+            sz = msg.size;
+            if(sz >= 4) {
+                v = msg[sz - 1].asFloat;
+            };
+        };
+        ^v.clip(0.0, 1.0);
+    }
+    
+    // install OSC responders for metering
+    installOscResponders {
+        this.freeOscResponders;
+        
+        // GUI meter updater
+        OSCdef(oscGuiName, { |msg|
+            var v;
+            v = this.valueFromMsg(msg);
+            if(meterView.notNil) {
+                { meterView.value_(v) }.defer;
+            };
+        }, oscPath);
+        
+        // Console logger (decimated)
+        OSCdef(oscConsoleName, { |msg|
+            var v;
+            if(firstDump) {
+                "% first msg: %".format(name, msg).postln;
+                firstDump = false;
+            };
+            consoleCount = consoleCount + 1;
+            if(consoleCount >= updateRate) {
+                v = this.valueFromMsg(msg).max(1e-6);
+                ("% level: " ++ (v.ampdb.round(0.1)) ++ " dB  (" ++ v.round(0.003) ++ ")").postln;
+                consoleCount = 0;
+            };
+        }, oscPath);
+    }
+    
+    freeOscResponders {
+        OSCdef(oscGuiName).free;
+        OSCdef(oscConsoleName).free;
+    }
+    
+    // stop playback
+    stop {
+        if(chain.notNil and: { chain.size > 0 }) {
+            Ndef(chain[0]).stop;
+        };
+    }
+    
+    cleanup {
+        this.stop;
+        this.freeOscResponders;
+    }
+}
+
+// ============================================================
+// AudioChainWindow - GUI container for multiple chains
+// ============================================================
+AudioChainWindow {
+    var <window, <chains, <panes;
+    var paneColor;
+    
+    *new { |name = "Layout Test", bounds|
+        ^super.new.init(name, bounds);
+    }
+    
+    init { |name, bounds|
+        chains = IdentityDictionary.new;
+        panes = IdentityDictionary.new;
+        paneColor = Color(0.0, 0.35, 0.0);
+        bounds = bounds ?? { Rect(100, 100, 800, 600) };
+        
+        this.closeExisting(name);
+        this.createWindow(name, bounds);
+    }
+    
+    closeExisting { |name|
+        Window.allWindows.do({ |w|
+            if(w.name == name, { w.close });
+        });
+    }
+    
+    makePane { |content, label|
+        var labelView, inner, pane, inset;
+        labelView = StaticText()
+            .string_(label)
+            .align_(\center)
+            .stringColor_(Color.white)
+            .background_(paneColor);
+        inner = VLayout(labelView, content);
+        pane = UserView().layout_(inner);
+        pane.drawFunc_({ |v|
+            inset = 0.5;
+            Pen.use {
+                Pen.color = paneColor;
+                Pen.width = 1;
+                Pen.addRect(Rect(inset, inset, v.bounds.width - (2 * inset), 
+                    v.bounds.height - (2 * inset)));
+                Pen.stroke;
+            };
+        });
+        ^pane;
+    }
+    
+    createWindow { |name, bounds|
+        var topLeftText, topLeftMeter, topRightText, topRightMeter;
+        var systemText, diagText, choicesText, recvText;
+        
+        window = Window(name, bounds)
+            .background_(Color.white)
+            .front;
+        
+        window.layout = GridLayout.rows(
+            [
+                this.makePane(HLayout(
+                    topLeftText = TextView().editable_(false),
+                    topLeftMeter = LevelIndicator().fixedWidth_(30)
+                ), "Top Left Pane"),
+                this.makePane(HLayout(
+                    topRightText = TextView().editable_(false),
+                    topRightMeter = LevelIndicator().fixedWidth_(30)
+                ), "Top Right Pane")
+            ],
+            [
+                this.makePane(VLayout(StaticText().align_(\center), 
+                    systemText = TextView()), "System State"),
+                this.makePane(VLayout(StaticText().align_(\center), 
+                    diagText = TextView()), "Diagnostic Messages")
+            ],
+            [
+                this.makePane(VLayout(StaticText().align_(\center), 
+                    choicesText = TextView()), "Choices"),
+                this.makePane(VLayout(StaticText().align_(\center), 
+                    recvText = TextView()), "Receiving Commands")
+            ]
+        );
+        
+        // store pane text views
+        panes[\left] = topLeftText;
+        panes[\leftMeter] = topLeftMeter;
+        panes[\right] = topRightText;
+        panes[\rightMeter] = topRightMeter;
+        panes[\system] = systemText;
+        panes[\diag] = diagText;
+        panes[\choices] = choicesText;
+        panes[\recv] = recvText;
+        
+        window.onClose = { this.cleanup };
+    }
+    
+    // add a chain and bind to GUI elements
+    addChain { |key, chain, oscPath, leftOrRight = \left|
+        var textView, meterView, chainObj;
+        
+        textView = panes[leftOrRight];
+        meterView = panes[(leftOrRight ++ "Meter").asSymbol];
+        
+        chainObj = AudioChain(key, chain, oscPath);
+        chainObj.bindGui(textView, meterView);
+        chains[key] = chainObj;
+        
+        ^chainObj;
+    }
+    
+    // convenience method to set pane text
+    setPaneText { |paneKey, text|
+        var pane;
+        pane = panes[paneKey.asSymbol];
+        if(pane.notNil) {
+            { pane.string_(text.asString) }.defer;
+        }{
+            "Pane '%' not found (available: %)".format(paneKey, panes.keys).postln;
+        };
+    }
+    
+    cleanup {
+        chains.do(_.cleanup);
+    }
+    
+    front {
+        window.front;
+    }
+}
+
+// ============================================================
+// AudioChainSession - complete session with default setup
+// ============================================================
+AudioChainSession {
+    var <win, <chainA, <chainB;
+    
+    *new {
+        ^super.new.init;
+    }
+    
+    init {
+        Server.default.waitForBoot({
+            this.defineSources;
+            this.defineSinks;
+            this.createGui;
+            this.setupChains;
+        });
+    }
+    
+    defineSources {
+        Ndef(\srcZ, { Silent.ar(numChannels: 1) });
+        Ndef(\srcA, { PinkNoise.ar(0.10 ! 2) });
+        Ndef(\srcB, { SinOsc.ar([300, 301], mul: 0.20) });
+        Ndef(\srcC, { LFSaw.ar([167, 171]).tanh * 0.18 });
+    }
+    
+    defineSinks {
+        // outA with metering to /peakrmsA
+        Ndef(\outA, {
+            var sig;
+            sig = \in.ar(2);
+            SendPeakRMS.kr(sig, 20, 3, '/peakrmsA', 1);
+            sig;
+        });
+        
+        // outB with metering to /peakrmsB
+        Ndef(\outB, {
+            var sig;
+            sig = \in.ar(2);
+            SendPeakRMS.kr(sig, 20, 3, '/peakrmsB', 2);
+            sig;
+        });
+    }
+    
+    createGui {
+        win = AudioChainWindow("Layout Test");
+    }
+    
+    setupChains {
+        // chain format: [sink, ..., source]
+        chainA = win.addChain(\chainA, [\outA, \srcA], '/peakrmsA', \left);
+        chainB = win.addChain(\chainB, [\outB, \srcB], '/peakrmsB', \right);
+        
+        chainA.rebuild;
+        chainB.rebuild;
+        
+        chainA.installOscResponders;
+        chainB.installOscResponders;
+        
+        // expose convenience methods globally
+        ~setSourceA = { |src| chainA.setSource(src) };
+        ~setSourceB = { |src| chainB.setSource(src) };
+        ~lt_send = { |paneKey, text| win.setPaneText(paneKey, text) };
+    }
+}

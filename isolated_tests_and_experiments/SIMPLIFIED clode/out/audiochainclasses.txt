@@ -1,0 +1,147 @@
+// Example usage of AudioChainSession classes
+// After placing AudioChainManager.sc in your extensions folder and recompiling
+
+// ============================================================
+// Basic Usage - Creates complete session with defaults
+// ============================================================
+
+// Start a session (creates window, chains A and B)
+~session = AudioChainSession.new;
+
+// Wait for boot, then use the convenience methods:
+
+// Change sources
+~setSourceA.(\srcB);
+~setSourceA.(\srcC);
+~setSourceB.(\srcA);
+
+// Update pane text
+~lt_send.(\system, "System ready");
+~lt_send.(\diag, "Diagnostics active");
+~lt_send.(\choices, "A: srcA | B: srcB");
+
+// ============================================================
+// Advanced Usage - Build custom configuration
+// ============================================================
+
+(
+// Create window manually
+~win = AudioChainWindow("My Custom Setup", Rect(50, 50, 1000, 700));
+
+// Define custom sources
+Ndef(\tone100, { SinOsc.ar([100, 100], mul: 0.5) });
+Ndef(\tone440, { SinOsc.ar([440, 440], mul: 0.3) });
+
+// Define custom sinks with metering
+Ndef(\myOutA, {
+    var sig = \in.ar(2);
+    SendPeakRMS.kr(sig, 20, 3, '/myMetricA', 1);
+    sig;
+});
+
+Ndef(\myOutB, {
+    var sig = \in.ar(2);
+    SendPeakRMS.kr(sig, 20, 3, '/myMetricB', 2);
+    sig;
+});
+
+// Add chains
+~myChainA = ~win.addChain(\customA, [\myOutA, \tone100], '/myMetricA', \left);
+~myChainB = ~win.addChain(\customB, [\myOutB, \tone440], '/myMetricB', \right);
+
+// Build and start
+~myChainA.rebuild;
+~myChainB.rebuild;
+~myChainA.installOscResponders;
+~myChainB.installOscResponders;
+
+// Set pane text
+~win.setPaneText(\system, "Custom configuration loaded");
+~win.setPaneText(\diag, "Two tone generators running");
+)
+
+// Change sources on custom chains
+~myChainA.setSource(\tone440);
+~myChainB.setSource(\tone100);
+
+// ============================================================
+// Extending AudioChain - Custom metering behavior
+// ============================================================
+
+(
+// Subclass with custom meter mapping (e.g., dB scale)
+AudioChainMapped : AudioChain {
+    var <topDb, <floorDb, <gamma;
+
+    init { |rate|
+        topDb = -6.0;
+        floorDb = -60.0;
+        gamma = 1.0;
+        ^super.init(rate);
+    }
+
+    setDbMapping { |top, floor, gam|
+        topDb = top;
+        floorDb = floor;
+        gamma = gam.max(1e-6);
+    }
+
+    mapLinToUi { |lin|
+        var v, vdb, u;
+        v = lin.max(1e-9);
+        vdb = v.ampdb.clip(floorDb, topDb);
+        u = (vdb - floorDb) / (topDb - floorDb);
+        u = u.pow(gamma);
+        ^u.clip(0.0, 1.0);
+    }
+
+    installOscResponders {
+        this.freeOscResponders;
+
+        // GUI meter with dB mapping
+        OSCdef(oscGuiName, { |msg|
+            var v, ui;
+            v = this.valueFromMsg(msg);
+            ui = this.mapLinToUi(v);
+            if(meterView.notNil) {
+                { meterView.value_(ui) }.defer;
+            };
+        }, oscPath);
+
+        // Console remains the same
+        OSCdef(oscConsoleName, { |msg|
+            var v;
+            if(firstDump) {
+                "% first msg: %".format(name, msg).postln;
+                firstDump = false;
+            };
+            consoleCount = consoleCount + 1;
+            if(consoleCount >= updateRate) {
+                v = this.valueFromMsg(msg).max(1e-6);
+                ("% level: " ++ (v.ampdb.round(0.1)) ++ " dB  (" ++ v.round(0.003) ++ ")").postln;
+                consoleCount = 0;
+            };
+        }, oscPath);
+    }
+}
+)
+
+// Use the custom mapped chain:
+(
+~win2 = AudioChainWindow("Mapped Meters");
+~mappedChain = AudioChainMapped(\mapped, [\outA, \srcA], '/peakrmsA');
+~mappedChain.setDbMapping(-6, -60, 1.0); // set dB range
+~mappedChain.bindGui(~win2.panes[\left], ~win2.panes[\leftMeter]);
+~mappedChain.rebuild;
+~mappedChain.installOscResponders;
+)
+
+// ============================================================
+// Cleanup
+// ============================================================
+
+// Clean up session
+~session.win.cleanup;
+
+// Or clean up custom window
+~win.cleanup;
