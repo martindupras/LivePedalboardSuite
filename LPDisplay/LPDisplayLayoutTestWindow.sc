@@ -1,427 +1,441 @@
 // LPDisplayLayoutTestWindow.sc
-// v0.9.7.3 — Grid window with A/B chains, meters via SendPeakRMS, console prints
+// v0.9.7.4 — Grid window with A/B chains, meters via SendPeakRMS, console prints gated
 // MD 2025-10-01
 /*
- * 0.9.7.3 move class-side utility methods (*help/*apihelp/*test) to class scope (compile fix)
+ * 0.9.7.4 add consoleLevelsOn flag (default false) to gate console prints
+ * 0.9.7.3 move class-side utility methods (*help, *apihelp, *test) to class scope (compile fix)
  * 0.9.7.2 clearer variable names + explanatory comments; NO logic changes (doc-only)
  * 0.9.7.1 moved makePane out of buildWindow as new method -- cleaner
  * 0.9.7
-- builds a 6‑pane grid GUI with two moving LevelIndicator meters at the top,
-- sets up two signal chains (A and B) built with JITLib Ndef(left) <<> Ndef(right),
-- receives /peakrmsA and /peakrmsB via SendPeakRMS and updates the meters,
-- posts decimated level prints to the console for A/B (~1 Hz),
-- has methods
- open, close
- setSourceA(\sym), setSourceB(\sym) — swap the tail source per chain
- sendPaneText(\diag, "…") — set any pane text
- setHudMap(mapOrNil), printHud — optional meter UI mapping
-
+ - builds a 6‑pane grid GUI with two moving LevelIndicator meters at the top,
+ - sets up two signal chains (A and B) built with JITLib Ndef(left) <<> Ndef(right),
+ - receives /peakrmsA and /peakrmsB via SendPeakRMS and updates the meters,
+ - posts decimated level prints to the console for A/B (~1 Hz),
+ - has methods
+   open, close
+   setSourceA(\sym), setSourceB(\sym) — swap the tail source per chain
+   sendPaneText(\diag, "…") — set any pane text
+   setHudMap(mapOrNil), printHud — optional meter UI mapping
 Works with:
  LPDisplaySigChain — the little wrapper that wires JITLib symbols into a playing chain.
  LPDisplayHudMap — optional linear→UI mapping (dB headroom + gamma) for the meters.
-
 Notes:
  - The optional HUD map (LPDisplayHudMap) maps raw linear RMS (0..1) to UI (0..1) using a dB window
    (top/floor) and gamma. If you pass nil (or later set nil), the meters display raw 0..1 values.
  - SendPeakRMS ‘replyID’ is kept as A=1 and B=2 for continuity with earlier console dumps/tools.
    This preserves compatibility with any previous log parsing that keyed on replyID rather than address.
 */
-
 LPDisplayLayoutTestWindow {
- classvar classVersion = "0.9.7.3"; // printed at class-load time
+    classvar classVersion = "0.9.7.4"; // printed at class-load time
 
- // --- UI
- var window;
- var paneColor;
- var topLeftText, topLeftMeter;
- var topRightText, topRightMeter;
- var systemText, diagText, choicesText, recvText;
+    // --- UI
+    var window;
+    var paneColor;
+    var topLeftText, topLeftMeter;
+    var topRightText, topRightMeter;
+    var systemText, diagText, choicesText, recvText;
 
- // --- Chains
- var chainA; // LPDisplaySigChain
- var chainB; // LPDisplaySigChain
+    // --- Chains
+    var chainA; // LPDisplaySigChain
+    var chainB; // LPDisplaySigChain
 
- // --- OSC
- var oscNameA, oscNameB, oscConsoleA, oscConsoleB;
- var firstDumpA = true, firstDumpB = true;
- var countA = 0, countB = 0;
+    // --- OSC
+    var oscNameA, oscNameB, oscConsoleA, oscConsoleB;
+    var firstDumpA = true, firstDumpB = true;
+    var countA = 0, countB = 0;
 
- // --- Meter mapping (optional)
- // 'meterHudMap' holds an optional LPDisplayHudMap instance. If nil, meters use raw SendPeakRMS RMS (0..1).
- var meterHudMap;
+    // NEW: console print gate (default OFF)
+    var consoleLevelsOn;
 
- *initClass {
-  ("LPDisplayLayoutTestWindow v" ++ classVersion ++ " loaded (LivePedalboardDisplay)").postln;
- }
+    // --- Meter mapping (optional)
+    // 'meterHudMap' holds an optional LPDisplayHudMap instance. If nil, meters use raw SendPeakRMS RMS (0..1).
+    var meterHudMap;
 
- *new { |meterHudMapInstance|
-  // 'meterHudMapInstance' is an INSTANCE of LPDisplayHudMap (or nil). It is not a name/symbol.
-  ^super.new.init(meterHudMapInstance)
- }
+    *initClass {
+        ("LPDisplayLayoutTestWindow v" ++ classVersion ++ " loaded (LivePedalboardDisplay)").postln;
+    }
 
- *open { |meterHudMapInstance|
-  // Convenience: build+open in one call. You can pass nil to use raw meter values without HUD mapping.
-  ^this.new(meterHudMapInstance).open
- }
+    *new { |meterHudMapInstance|
+        // 'meterHudMapInstance' is an INSTANCE of LPDisplayHudMap (or nil). It is not a name/symbol.
+        ^super.new.init(meterHudMapInstance)
+    }
 
- init { |meterHudMapInstance|
-  // Store optional HUD mapping object; nil means "use raw 0..1 RMS for meters".
-  meterHudMap = meterHudMapInstance;
+    *open { |meterHudMapInstance|
+        // Convenience: build+open in one call. You can pass nil to use raw meter values without HUD mapping.
+        ^this.new(meterHudMapInstance).open
+    }
 
-  paneColor = Color(0.0, 0.35, 0.0);
+    init { |meterHudMapInstance|
+        // Store optional HUD mapping object; nil means "use raw 0..1 RMS for meters".
+        meterHudMap = meterHudMapInstance;
+        paneColor = Color(0.0, 0.35, 0.0);
 
-  // OSCdef keys (names) for GUI and console responders
-  oscNameA    = \rmsA_toGUI;
-  oscNameB    = \rmsB_toGUI;
-  oscConsoleA = \rmsA_console;
-  oscConsoleB = \rmsB_console;
+        // OSCdef keys (names) for GUI and console responders
+        oscNameA = \rmsA_toGUI;
+        oscNameB = \rmsB_toGUI;
+        oscConsoleA = \rmsA_console;
+        oscConsoleB = \rmsB_console;
 
-  ^this
- }
+        // NEW: default OFF
+        consoleLevelsOn = false;
 
- // ---------------------------- Public API ----------------------------
+        ^this
+    }
 
- open {
-  Window.allWindows.do { |existingWindow|
-   if (existingWindow.name == "Layout Test") { existingWindow.close }
-  }; // ensure only one with this title
+    // --- Public API -----------------------------------------------------------
 
-  this.buildWindow;
-  this.bootAndBuildGraph;
-  ^window // -> a Window
- }
+    open {
+        Window.allWindows.do { |existingWindow|
+            if (existingWindow.name == "Layout Test") { existingWindow.close }
+        }; // ensure only one with this title
+        this.buildWindow;
+        this.bootAndBuildGraph;
+        ^window // -> a Window
+    }
 
- close {
-  // Free any live OSCdefs and stop sinks before closing the window
-  var oscGuiDefA       = OSCdef(oscNameA);
-  var oscGuiDefB       = OSCdef(oscNameB);
-  var oscConsoleDefA   = OSCdef(oscConsoleA);
-  var oscConsoleDefB   = OSCdef(oscConsoleB);
+    close {
+        // Free any live OSCdefs and stop sinks before closing the window
+        var oscGuiDefA = OSCdef(oscNameA);
+        var oscGuiDefB = OSCdef(oscNameB);
+        var oscConsoleDefA = OSCdef(oscConsoleA);
+        var oscConsoleDefB = OSCdef(oscConsoleB);
 
-  if (oscGuiDefA.notNil)     { oscGuiDefA.free };
-  if (oscGuiDefB.notNil)     { oscGuiDefB.free };
-  if (oscConsoleDefA.notNil) { oscConsoleDefA.free };
-  if (oscConsoleDefB.notNil) { oscConsoleDefB.free };
+        if (oscGuiDefA.notNil) { oscGuiDefA.free };
+        if (oscGuiDefB.notNil) { oscGuiDefB.free };
+        if (oscConsoleDefA.notNil) { oscConsoleDefA.free };
+        if (oscConsoleDefB.notNil) { oscConsoleDefB.free };
 
-  if (chainA.notNil) { Ndef(chainA.symbols.first).stop };
-  if (chainB.notNil) { Ndef(chainB.symbols.first).stop };
+        if (chainA.notNil) { Ndef(chainA.symbols.first).stop };
+        if (chainB.notNil) { Ndef(chainB.symbols.first).stop };
 
-  if (window.notNil) {
-   // prevent recursive cleanup: onClose will not call back into close()
-   window.onClose = { };
-   window.close;
-   window = nil;
-  };
-  ^this
- }
+        if (window.notNil) {
+            // prevent recursive cleanup: onClose will not call back into close()
+            window.onClose = { };
+            window.close;
+            window = nil;
+        };
+        ^this
+    }
 
- setSourceA { |sourceSymbol|
-  if (chainA.notNil) {
-   chainA.setTailSource(sourceSymbol);
-   {
-    if (topLeftText.notNil) { topLeftText.string_(chainA.chainToString) };
-   }.defer;
-  };
-  ^this
- }
+    setSourceA { |sourceSymbol|
+        if (chainA.notNil) {
+            chainA.setTailSource(sourceSymbol);
+            {
+                if (topLeftText.notNil) { topLeftText.string_(chainA.chainToString) };
+            }.defer;
+        };
+        ^this
+    }
 
- setSourceB { |sourceSymbol|
-  if (chainB.notNil) {
-   chainB.setTailSource(sourceSymbol);
-   {
-    if (topRightText.notNil) { topRightText.string_(chainB.chainToString) };
-   }.defer;
-  };
-  ^this
- }
+    setSourceB { |sourceSymbol|
+        if (chainB.notNil) {
+            chainB.setTailSource(sourceSymbol);
+            {
+                if (topRightText.notNil) { topRightText.string_(chainB.chainToString) };
+            }.defer;
+        };
+        ^this
+    }
 
- sendPaneText { |paneKey, aString|
-  var paneKeySymbol = paneKey.asSymbol;
-  var textString    = aString.asString;
+    sendPaneText { |paneKey, aString|
+        var paneKeySymbol = paneKey.asSymbol;
+        var textString = aString.asString;
+        {
+            if (paneKeySymbol == \left   and: { topLeftText.notNil  }) { topLeftText.string_(textString) };
+            if (paneKeySymbol == \right  and: { topRightText.notNil }) { topRightText.string_(textString) };
+            if (paneKeySymbol == \system and: { systemText.notNil   }) { systemText.string_(textString) };
+            if (paneKeySymbol == \diag   and: { diagText.notNil     }) { diagText.string_(textString) };
+            if (paneKeySymbol == \choices and: { choicesText.notNil }) { choicesText.string_(textString) };
+            if (paneKeySymbol == \recv   and: { recvText.notNil     }) { recvText.string_(textString) };
+        }.defer;
+        ^this
+    }
 
-  {
-   if (paneKeySymbol == \left    and: { topLeftText.notNil  }) { topLeftText.string_(textString)  };
-   if (paneKeySymbol == \right   and: { topRightText.notNil }) { topRightText.string_(textString) };
-   if (paneKeySymbol == \system  and: { systemText.notNil   }) { systemText.string_(textString)   };
-   if (paneKeySymbol == \diag    and: { diagText.notNil     }) { diagText.string_(textString)     };
-   if (paneKeySymbol == \choices and: { choicesText.notNil  }) { choicesText.string_(textString)  };
-   if (paneKeySymbol == \recv    and: { recvText.notNil     }) { recvText.string_(textString)     };
-  }.defer;
+    setHudMap { |hudMapOrNil|
+        // Plug/unplug the HUD mapping. Pass an LPDisplayHudMap instance to enable perceptual scaling,
+        // or nil to use raw RMS values from SendPeakRMS (0..1) directly.
+        meterHudMap = hudMapOrNil;
+        ^this
+    }
 
-  ^this
- }
+    printHud {
+        if (meterHudMap.notNil) { meterHudMap.print } { "HUD mapping: none (raw 0..1)".postln };
+        ^this
+    }
 
- setHudMap { |hudMapOrNil|
-  // Plug/unplug the HUD mapping. Pass an LPDisplayHudMap instance to enable perceptual scaling,
-  // or nil to use raw RMS values from SendPeakRMS (0..1) directly.
-  meterHudMap = hudMapOrNil;
-  ^this
- }
+    // NEW: convenience setter to toggle console prints
+    setConsoleLevelsOn { |flag = false|
+        consoleLevelsOn = flag.asBoolean;
+        ^this
+    }
 
- printHud {
-  if (meterHudMap.notNil) { meterHudMap.print } { "HUD mapping: none (raw 0..1)".postln };
-  ^this
- }
+    // --- Internal build steps -------------------------------------------------
 
- // ------------------------ Internal build steps ------------------------
+    /* Make one labeled pane (internal helper)
+     * Returns a UserView that draws a border and hosts a label + provided content.
+     */
+    makePane { |content, label|
+        var labelView, inner, pane, inset;
+        labelView = StaticText()
+            .string_(label)
+            .align_(\center)
+            .stringColor_(Color.white)
+            .background_(paneColor);
+        inner = VLayout(labelView, content);
+        pane  = UserView().layout_(inner);
+        pane.drawFunc_({ |view|
+            inset = 0.5;
+            Pen.use {
+                Pen.color = paneColor;
+                Pen.width = 1;
+                Pen.addRect(Rect(
+                    inset, inset,
+                    view.bounds.width - (2 * inset),
+                    view.bounds.height - (2 * inset)
+                ));
+                Pen.stroke;
+            };
+        });
+        ^pane
+    }
 
- /* Make one labeled pane (internal helper)
-  * Returns a UserView that draws a border and hosts a label + provided content.
-  */
- makePane { |content, label|
-  var labelView, inner, pane, inset;
+    buildWindow {
+        // Pre-create all views explicitly (prevents nil during deferred updates)
+        topLeftText  = TextView().editable_(false);
+        topLeftMeter = LevelIndicator().fixedWidth_(30);
+        topRightText = TextView().editable_(false);
+        topRightMeter= LevelIndicator().fixedWidth_(30);
+        systemText   = TextView();
+        diagText     = TextView();
+        choicesText  = TextView();
+        recvText     = TextView();
 
-  labelView = StaticText()
-   .string_(label)
-   .align_(\center)
-   .stringColor_(Color.white)
-   .background_(paneColor);
+        window = Window("Layout Test", Rect(100, 100, 800, 600))
+            .background_(Color.white)
+            .front;
 
-  inner = VLayout(labelView, content);
-  pane  = UserView().layout_(inner);
+        window.layout = GridLayout.rows(
+            [
+                this.makePane(HLayout(topLeftText,  topLeftMeter),  "Top Left Pane"),
+                this.makePane(HLayout(topRightText, topRightMeter), "Top Right Pane")
+            ],
+            [
+                this.makePane(VLayout(StaticText().align_(\center), systemText), "System State"),
+                this.makePane(VLayout(StaticText().align_(\center), diagText),   "Diagnostic Messages")
+            ],
+            [
+                this.makePane(VLayout(StaticText().align_(\center), choicesText), "Choices"),
+                this.makePane(VLayout(StaticText().align_(\center), recvText),    "Receiving Commands")
+            ]
+        );
 
-  pane.drawFunc_({ |view|
-   inset = 0.5;
-   Pen.use {
-    Pen.color = paneColor;
-    Pen.width = 1;
-    Pen.addRect(Rect(
-     inset, inset,
-     view.bounds.width  - (2 * inset),
-     view.bounds.height - (2 * inset)
-    ));
-    Pen.stroke;
-   };
-  });
+        window.onClose = {
+            // Free resources only; do not call window.close here to avoid recursion
+            var oscGuiDefA = OSCdef(oscNameA);
+            var oscGuiDefB = OSCdef(oscNameB);
+            var oscConsoleDefA = OSCdef(oscConsoleA);
+            var oscConsoleDefB = OSCdef(oscConsoleB);
 
-  ^pane
- }
+            if (oscGuiDefA.notNil) { oscGuiDefA.free };
+            if (oscGuiDefB.notNil) { oscGuiDefB.free };
+            if (oscConsoleDefA.notNil) { oscConsoleDefA.free };
+            if (oscConsoleDefB.notNil) { oscConsoleDefB.free };
 
- buildWindow {
-  // Pre-create all views explicitly (prevents nil during deferred updates)
-  topLeftText   = TextView().editable_(false);
-  topLeftMeter  = LevelIndicator().fixedWidth_(30);
-  topRightText  = TextView().editable_(false);
-  topRightMeter = LevelIndicator().fixedWidth_(30);
+            if (chainA.notNil) { Ndef(chainA.symbols.first).stop };
+            if (chainB.notNil) { Ndef(chainB.symbols.first).stop };
+        };
+        ^this
+    }
 
-  systemText    = TextView();
-  diagText      = TextView();
-  choicesText   = TextView();
-  recvText      = TextView();
+    bootAndBuildGraph {
+        Server.default.waitForBoot({
+            var extractLinearRmsFromOscMessage;
+            this.defineDefaultSourcesAndSinks;
 
-  window = Window("Layout Test", Rect(100, 100, 800, 600))
-   .background_(Color.white)
-   .front;
+            // Initial chains
+            chainA = LPDisplaySigChain.new([\outA, \srcA]).rebuild;
+            chainB = LPDisplaySigChain.new([\outB, \srcB]).rebuild;
 
-  window.layout = GridLayout.rows(
-   [
-    this.makePane(HLayout(topLeftText,  topLeftMeter),  "Top Left Pane"),
-    this.makePane(HLayout(topRightText, topRightMeter), "Top Right Pane")
-   ],
-   [
-    this.makePane(VLayout(StaticText().align_(\center), systemText), "System State"),
-    this.makePane(VLayout(StaticText().align_(\center), diagText),   "Diagnostic Messages")
-   ],
-   [
-    this.makePane(VLayout(StaticText().align_(\center), choicesText), "Choices"),
-    this.makePane(VLayout(StaticText().align_(\center), recvText),    "Receiving Commands")
-   ]
-  );
+            // Show full chain strings in the GUI (nil-safe)
+            {
+                if (topLeftText.notNil)  { topLeftText.string_(chainA.chainToString) };
+                if (topRightText.notNil) { topRightText.string_(chainB.chainToString) };
+            }.defer;
 
-  window.onClose = {
-   // Free resources only; do not call window.close here to avoid recursion
-   var oscGuiDefA       = OSCdef(oscNameA);
-   var oscGuiDefB       = OSCdef(oscNameB);
-   var oscConsoleDefA   = OSCdef(oscConsoleA);
-   var oscConsoleDefB   = OSCdef(oscConsoleB);
+            // Avoid duplicates on re-eval
+            { OSCdef(oscNameA).free; OSCdef(oscNameB).free; OSCdef(oscConsoleA).free; OSCdef(oscConsoleB).free; }.value;
 
-   if (oscGuiDefA.notNil)     { oscGuiDefA.free };
-   if (oscGuiDefB.notNil)     { oscGuiDefB.free };
-   if (oscConsoleDefA.notNil) { oscConsoleDefA.free };
-   if (oscConsoleDefB.notNil) { oscConsoleDefB.free };
+            // Robust extraction: pick the last numeric in message (typically final RMS per SendPeakRMS)
+            extractLinearRmsFromOscMessage = { |oscMessage|
+                var linearRms = 0.0, messageSize;
+                if (oscMessage.notNil) {
+                    messageSize = oscMessage.size;
+                    if (messageSize >= 4) { linearRms = oscMessage[messageSize - 1].asFloat };
+                };
+                linearRms.clip(0.0, 1.0)
+            };
 
-   if (chainA.notNil) { Ndef(chainA.symbols.first).stop };
-   if (chainB.notNil) { Ndef(chainB.symbols.first).stop };
-  };
+            // GUI meters (20 Hz), nil-safe; apply HUD mapping if present, else raw RMS
+            OSCdef(oscNameA, { |oscMessage|
+                var linearRms = extractLinearRmsFromOscMessage.(oscMessage);
+                var meterValueUi = (meterHudMap.notNil).if({ meterHudMap.mapLinToUi(linearRms) }, { linearRms });
+                {
+                    if (topLeftMeter.notNil) { topLeftMeter.value_(meterValueUi) };
+                }.defer;
+            }, '/peakrmsA');
 
-  ^this
- }
+            OSCdef(oscNameB, { |oscMessage|
+                var linearRms = extractLinearRmsFromOscMessage.(oscMessage);
+                var meterValueUi = (meterHudMap.notNil).if({ meterHudMap.mapLinToUi(linearRms) }, { linearRms });
+                {
+                    if (topRightMeter.notNil) { topRightMeter.value_(meterValueUi) };
+                }.defer;
+            }, '/peakrmsB');
 
- bootAndBuildGraph {
-  Server.default.waitForBoot({
-   var extractLinearRmsFromOscMessage;
+            // Console prints (~1 Hz via decimation), now gated by 'consoleLevelsOn'
+            OSCdef(oscConsoleA, { |oscMessage|
+                var linearRmsForConsole;
+                if (consoleLevelsOn) {
+                    if (firstDumpA) {
+                        ("A first msg: %".format(oscMessage)).postln;
+                        firstDumpA = false;
+                    };
+                    countA = countA + 1;
+                    if (countA >= 20) {
+                        linearRmsForConsole = extractLinearRmsFromOscMessage.(oscMessage).max(1e-6);
+                        ("A level: " ++ (linearRmsForConsole.ampdb.round(0.1))
+                            ++ " dB (" ++ linearRmsForConsole.round(0.003) ++ ")").postln;
+                        countA = 0;
+                    };
+                } {
+                    // printing disabled — keep counters steady or reset if you prefer
+                    countA = 0;
+                };
+            }, '/peakrmsA');
 
-   this.defineDefaultSourcesAndSinks;
+            OSCdef(oscConsoleB, { |oscMessage|
+                var linearRmsForConsole;
+                if (consoleLevelsOn) {
+                    if (firstDumpB) {
+                        ("B first msg: %".format(oscMessage)).postln;
+                        firstDumpB = false;
+                    };
+                    countB = countB + 1;
+                    if (countB >= 20) {
+                        linearRmsForConsole = extractLinearRmsFromOscMessage.(oscMessage).max(1e-6);
+                        ("B level: " ++ (linearRmsForConsole.ampdb.round(0.1))
+                            ++ " dB (" ++ linearRmsForConsole.round(0.003) ++ ")").postln;
+                        countB = 0;
+                    };
+                } {
+                    // printing disabled — keep counters steady or reset if you prefer
+                    countB = 0;
+                };
+            }, '/peakrmsB');
+        });
+        ^this
+    }
 
-   // Initial chains
-   chainA = LPDisplaySigChain.new([\outA, \srcA]).rebuild;
-   chainB = LPDisplaySigChain.new([\outB, \srcB]).rebuild;
+    defineDefaultSourcesAndSinks {
+        // SOURCES (stereo)
+        Ndef(\srcZ, { Silent.ar(numChannels: 2) });
+        Ndef(\srcA, { PinkNoise.ar(0.10 ! 2) });
+        Ndef(\srcB, { SinOsc.ar([300, 301], mul: 0.20) });
+        Ndef(\srcC, { LFSaw.ar([167, 171]).tanh * 0.18 });
 
-   // Show full chain strings in the GUI (nil-safe)
-   {
-    if (topLeftText.notNil)  { topLeftText.string_(chainA.chainToString) };
-    if (topRightText.notNil) { topRightText.string_(chainB.chainToString) };
-   }.defer;
+        // SINKS (\in.ar(2)) + SendPeakRMS (A=1, B=2)
+        // Note on replyID: A=1 and B=2 are kept intentionally for continuity with earlier dumps/log parsers.
+        // The OSC addresses also differ (/peakrmsA vs /peakrmsB), so replyID isn't strictly required,
+        // but keeping these IDs preserves compatibility with prior tools and logs.
+        Ndef(\outA, {
+            var sig = \in.ar(2);
+            SendPeakRMS.kr(sig, 20, 3, '/peakrmsA', 1); // replyID 1 == chain A
+            sig
+        });
+        Ndef(\outB, {
+            var sig = \in.ar(2);
+            SendPeakRMS.kr(sig, 20, 3, '/peakrmsB', 2); // replyID 2 == chain B
+            sig
+        });
+        ^this
+    }
 
-   // Avoid duplicates on re-eval
-   { OSCdef(oscNameA).free; OSCdef(oscNameB).free; OSCdef(oscConsoleA).free; OSCdef(oscConsoleB).free; }.value;
+    // --- Utility: docs & smoke test (add-only) --------------------------------
 
-   // Robust extraction: pick the last numeric in message (typically final RMS per SendPeakRMS)
-   extractLinearRmsFromOscMessage = { |oscMessage|
-    var linearRms = 0.0, messageSize;
-    if (oscMessage.notNil) {
-     messageSize = oscMessage.size;
-     if (messageSize >= 4) { linearRms = oscMessage[messageSize - 1].asFloat };
-    };
-    linearRms.clip(0.0, 1.0)
-   };
+    *help {
+        var lines;
+        lines = [
+            "LPDisplayLayoutTestWindow — purpose:",
+            " Build a 6-pane grid window with top-left/right meters driven by SendPeakRMS,",
+            " wire two JITLib chains (A/B), print decimated levels, and offer simple control methods.",
+            "",
+            "Constructor & convenience:",
+            " w = LPDisplayLayoutTestWindow.new( LPDisplayHudMap.new(-6, -60, 1.0) ).open; // -> a Window",
+            " w = LPDisplayLayoutTestWindow.open(nil); // raw meters (no HUD mapping)",
+            "",
+            "Key methods (instance):",
+            " .open -> a Window .close",
+            " .setSourceA(\\sym) .setSourceB(\\sym)",
+            " .sendPaneText(\\diag, \"...\")",
+            " .setHudMap( mapOrNil ) .printHud",
+            "",
+            "Notes:",
+            " - 'replyID' kept as A=1, B=2 for continuity with earlier dumps/tools.",
+            " - Pass nil HUD to use raw 0..1 meter values (bypass perceptual mapping)."
+        ];
+        lines.do(_.postln);
+        ^this
+    }
 
-   // GUI meters (20 Hz), nil-safe; apply HUD mapping if present, else raw RMS
-   OSCdef(oscNameA, { |oscMessage|
-    var linearRms    = extractLinearRmsFromOscMessage.(oscMessage);
-    var meterValueUi = (meterHudMap.notNil).if({ meterHudMap.mapLinToUi(linearRms) }, { linearRms });
-    {
-     if (topLeftMeter.notNil) { topLeftMeter.value_(meterValueUi) };
-    }.defer;
-   }, '/peakrmsA');
+    *apihelp {
+        var lines;
+        lines = [
+            "LPDisplayLayoutTestWindow.apihelp — useful snippets:",
+            " // bring-up (HUD mapped):",
+            " ~hud = LPDisplayHudMap.new(-6, -60, 1.0);",
+            " ~inst = LPDisplayLayoutTestWindow.new(~hud);",
+            " ~win = ~inst.open; // -> a Window",
+            "",
+            " // swap sources:",
+            " ~inst.setSourceA(\\srcC);",
+            " ~inst.setSourceB(\\srcA);",
+            "",
+            " // pane text:",
+            " ~inst.sendPaneText(\\diag, \"Ready @ \" ++ Date.getDate.stamp);",
+            "",
+            " // HUD on/off:",
+            " ~inst.setHudMap(nil);",
+            " ~inst.setHudMap(LPDisplayHudMap.new(-9, -60, 1.0)).printHud;",
+            "",
+            " // console levels on/off:",
+            " ~inst.setConsoleLevelsOn(true);   // enable A/B level prints",
+            " ~inst.setConsoleLevelsOn(false);  // disable prints (default)",
+            "",
+            " // class-side one-liner:",
+            " LPDisplayLayoutTestWindow.open(nil); // raw meters"
+        ];
+        lines.do(_.postln);
+        ^this
+    }
 
-   OSCdef(oscNameB, { |oscMessage|
-    var linearRms    = extractLinearRmsFromOscMessage.(oscMessage);
-    var meterValueUi = (meterHudMap.notNil).if({ meterHudMap.mapLinToUi(linearRms) }, { linearRms });
-    {
-     if (topRightMeter.notNil) { topRightMeter.value_(meterValueUi) };
-    }.defer;
-   }, '/peakrmsB');
-
-   // Console prints (~1 Hz via decimation)
-   OSCdef(oscConsoleA, { |oscMessage|
-    var linearRmsForConsole;
-    if (firstDumpA) { ("A first msg: %".format(oscMessage)).postln; firstDumpA = false };
-    countA = countA + 1;
-    if (countA >= 20) {
-     linearRmsForConsole = extractLinearRmsFromOscMessage.(oscMessage).max(1e-6);
-     ("A level: " ++ (linearRmsForConsole.ampdb.round(0.1)) ++ " dB (" ++ linearRmsForConsole.round(0.003) ++ ")").postln;
-     countA = 0;
-    };
-   }, '/peakrmsA');
-
-   OSCdef(oscConsoleB, { |oscMessage|
-    var linearRmsForConsole;
-    if (firstDumpB) { ("B first msg: %".format(oscMessage)).postln; firstDumpB = false };
-    countB = countB + 1;
-    if (countB >= 20) {
-     linearRmsForConsole = extractLinearRmsFromOscMessage.(oscMessage).max(1e-6);
-     ("B level: " ++ (linearRmsForConsole.ampdb.round(0.1)) ++ " dB (" ++ linearRmsForConsole.round(0.003) ++ ")").postln;
-     countB = 0;
-    };
-   }, '/peakrmsB');
-  });
-  ^this
- }
-
- defineDefaultSourcesAndSinks {
-  // SOURCES (stereo)
-  Ndef(\srcZ, { Silent.ar(numChannels: 2) });
-  Ndef(\srcA, { PinkNoise.ar(0.10 ! 2) });
-  Ndef(\srcB, { SinOsc.ar([300, 301], mul: 0.20) });
-  Ndef(\srcC, { LFSaw.ar([167, 171]).tanh * 0.18 });
-
-  // SINKS (\in.ar(2)) + SendPeakRMS (A=1, B=2)
-  // Note on replyID: A=1 and B=2 are kept intentionally for continuity with earlier dumps/log parsers.
-  // The OSC addresses also differ (/peakrmsA vs /peakrmsB), so replyID isn't strictly required,
-  // but keeping these IDs preserves compatibility with prior tools and logs.
-  Ndef(\outA, {
-    var sig = \in.ar(2);
-    SendPeakRMS.kr(sig, 20, 3, '/peakrmsA', 1); // replyID 1 == chain A
-    sig
-  });
-
-  Ndef(\outB, {
-    var sig = \in.ar(2);
-    SendPeakRMS.kr(sig, 20, 3, '/peakrmsB', 2); // replyID 2 == chain B
-    sig
-  });
-
-  ^this
- }
-
- // --- Utility: docs & smoke test (add-only) -----------------------------
-
- *help {
-    var lines;
-    lines = [
-        "LPDisplayLayoutTestWindow — purpose:",
-        "  Build a 6-pane grid window with top-left/right meters driven by SendPeakRMS,",
-        "  wire two JITLib chains (A/B), print decimated levels, and offer simple control methods.",
-        "",
-        "Constructor & convenience:",
-        "  w = LPDisplayLayoutTestWindow.new( LPDisplayHudMap.new(-6, -60, 1.0) ).open;  // -> a Window",
-        "  w = LPDisplayLayoutTestWindow.open(nil);  // raw meters (no HUD mapping)",
-        "",
-        "Key methods (instance):",
-        "  .open -> a Window     .close",
-        "  .setSourceA(\\sym)    .setSourceB(\\sym)",
-        "  .sendPaneText(\\diag, \"...\")",
-        "  .setHudMap( mapOrNil )  .printHud",
-        "",
-        "Notes:",
-        "  - 'replyID' kept as A=1, B=2 for continuity with earlier dumps/tools.",
-        "  - Pass nil HUD to use raw 0..1 meter values (bypass perceptual mapping)."
-    ];
-    lines.do(_.postln);
-    ^this
- }
-
- *apihelp {
-    var lines;
-    lines = [
-        "LPDisplayLayoutTestWindow.apihelp — useful snippets:",
-        "  // bring-up (HUD mapped):",
-        "  ~hud  = LPDisplayHudMap.new(-6, -60, 1.0);",
-        "  ~inst = LPDisplayLayoutTestWindow.new(~hud);",
-        "  ~win  = ~inst.open;  // -> a Window",
-        "",
-        "  // swap sources:",
-        "  ~inst.setSourceA(\\srcC);",
-        "  ~inst.setSourceB(\\srcA);",
-        "",
-        "  // pane text:",
-        "  ~inst.sendPaneText(\\diag, \"Ready @ \" ++ Date.getDate.stamp);",
-        "",
-        "  // HUD on/off:",
-        "  ~inst.setHudMap(nil);",
-        "  ~inst.setHudMap(LPDisplayHudMap.new(-9, -60, 1.0)).printHud;",
-        "",
-        "  // class-side one-liner:",
-        "  LPDisplayLayoutTestWindow.open(nil);  // raw meters"
-    ];
-    lines.do(_.postln);
-    ^this
- }
-
- *test {
-    var inst, win, passOsc, posted;
-
-    inst = this.new(nil);        // raw meters (no HUD)
-    win  = inst.open;            // -> a Window
-
-    // After a short delay, check GUI OSCdefs exist, then flip sources & post a diag line.
-    AppClock.sched(0.5, {
-        passOsc = OSCdef(\rmsA_toGUI).notNil and: { OSCdef(\rmsB_toGUI).notNil };
-
-        inst.setSourceA(\srcC);
-        inst.setSourceB(\srcA);
-        inst.sendPaneText(\diag, "Self-test OK @ " ++ Date.getDate.stamp);
-
-        AppClock.sched(1.0, {
-            inst.close;
-            posted = "LPDisplayLayoutTestWindow.test: " ++ (passOsc.if("PASS", "WARN (GUI OSC not found)"));
-            posted.postln;
+    *test {
+        var inst, win, passOsc, posted;
+        inst = this.new(nil); // raw meters (no HUD)
+        win  = inst.open;     // -> a Window
+        // After a short delay, check GUI OSCdefs exist, then flip sources & post a diag line.
+        AppClock.sched(0.5, {
+            passOsc = OSCdef(\rmsA_toGUI).notNil and: { OSCdef(\rmsB_toGUI).notNil };
+            inst.setSourceA(\srcC);
+            inst.setSourceB(\srcA);
+            inst.sendPaneText(\diag, "Self-test OK @ " ++ Date.getDate.stamp);
+            AppClock.sched(1.0, {
+                inst.close;
+                posted = "LPDisplayLayoutTestWindow.test: " ++ (passOsc.if("PASS", "WARN (GUI OSC not found)"));
+                posted.postln;
+                nil
+            });
             nil
         });
-        nil
-    });
-
-    ^win // handy if you want to keep the window reference
- }
+        ^win // handy if you want to keep the window reference
+    }
 }
