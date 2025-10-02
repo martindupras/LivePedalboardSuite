@@ -1,5 +1,6 @@
 
 // LPDisplay_AllInOne_Demo_Tour.scd
+// v0.9.8.1 added check that GUI window is open at start of last block
 // v0.9.8 — single-file bring-up + guided quick tour (evaluate blocks top-to-bottom)
 // MD 2025-10-01
 
@@ -166,11 +167,9 @@ win                                                // return -> a Window
 // Style
 // - Multiline strings using \n.
 
-~text.(\choices,
-"Choices:\n  1) Swap A/B\n  2) Toggle HUD\n  3) Send message\n  4) Close");            // choices pane shows 4 options
+~text.(\choices, "Choices:\n  1) Swap A/B\n  2) Toggle HUD\n  3) Send message\n  4) Close");            // choices pane shows 4 options
 
-~text.(\recv,
-"Receiving:\n  /peakrmsA and /peakrmsB @ 20 Hz\n  Console prints ~1 Hz (decimated)"); // recv pane shows OSC info
+~text.(\recv,"Receiving:\n  /peakrmsA and /peakrmsB @ 20 Hz\n  Console prints ~1 Hz (decimated)"); // recv pane shows OSC info
 
 
 // =====================================
@@ -205,7 +204,8 @@ LPDisplaySigChain.test;                               // expected: brief run + "
 
 
 // ======================================================
-// Optional: One-button smoke runner (evaluate as a block)
+// Optional: One-button smoke runner (evaluate as a block,
+// keeping first block running.)
 // ======================================================
 
 // LPDisplay_Tour_07_OneButtonSmoke
@@ -218,6 +218,15 @@ LPDisplaySigChain.test;                               // expected: brief run + "
 
 (
 var step1, step2;
+
+// Ensure GUI is up before scheduling steps:
+if (~inst.isNil or: { ~win.isNil } or: { ~win.isClosed }) {
+    var hud = LPDisplayHudMap.new(-6, -60, 1.0);
+    ~inst = LPDisplayLayoutTestWindow.new(hud);
+    ~win  = ~inst.open;
+    ~hud  = hud;
+};
+
 step1 = {
     ~setA.(\srcC); ~setB.(\srcA);                    // swap tails
     ~text.(\diag, "Smoke: swapped A/B @ " ++ Date.getDate.stamp);

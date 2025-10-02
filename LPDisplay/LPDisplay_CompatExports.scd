@@ -3,17 +3,18 @@
 // MD 20251001
 
 (
-var hud, win;
+var hud, win, inst;
 
 // Create a HUD map (or set to nil to keep raw 0..1 meters)
 hud = LPDisplayHudMap.new(-6, -60, 1.0);
 
 // Open the window (-> a Window)
-win = LPDisplayLayoutTestWindow.new(hud).open;
+win = LPDisplayLayoutTestWindow.new(hud).open; // the window
+win = inst.open; // the controller for the window
 
 // Export legacy one-liners:
-~setSourceA = { |sym| win.setSourceA(sym) };
-~setSourceB = { |sym| win.setSourceB(sym) };
+~setSourceA = { |sym| inst.setSourceA(sym) };
+~setSourceB = { |sym| inst.setSourceB(sym) };
 
 // Pane text helper (keys: \left, \right, \system, \diag, \choices, \recv)
 ~lt_send = { |paneKey, aString| win.sendPaneText(paneKey, aString) };
@@ -25,3 +26,4 @@ win = LPDisplayLayoutTestWindow.new(hud).open;
 
 // Quick ping:
 ~hud_print.();
+)
