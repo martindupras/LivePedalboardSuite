@@ -1,26 +1,27 @@
 // Close_LPDisplayLayoutWindow.scd
-// v0.1.0
-// MD 20251003-1110
+// v0.1.1
+// MD 20251003-1120
 
 /* Purpose/Style:
-- Find and close any open windows whose name matches LPDisplayLayoutWindow (or default).
+- Close any windows created by LPDisplayLayoutWindow tests.
+- Matches both "Layout Test" and names containing "LPDisplayLayoutWindow".
+- Style: var-first, descriptive names, no single-letter locals.
 */
 
 (
 var closedCount;
 
-("Running: Close_LPDisplayLayoutWindow.scd").postln;
-
-
 closedCount = 0;
+
 Window.allWindows.do({ |w|
-    var matches;
-    matches = (w.name == "LPDisplayLayoutWindow") or: { w.name.contains("LPDisplayLayoutWindow") };
-    matches.if({
+    var windowName;
+    windowName = w.name.asString;
+    if(windowName == "Layout Test" or: { windowName.contains("LPDisplayLayoutWindow") }) {
         w.close;
         closedCount = closedCount + 1;
-    });
+    };
 });
 
-("Closed LPDisplayLayoutWindow windows: " ++ closedCount.asString).postln;
+("Closed LPDisplayLayoutWindow windows: " ++ closedCount).postln;
+closedCount
 )
