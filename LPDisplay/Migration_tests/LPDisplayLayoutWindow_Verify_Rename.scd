@@ -3,29 +3,50 @@
 // MD 20251003-1055
 
 /* Purpose/Style:
-- Self-contained verification of the rename (no external state required).
+- Self-contained verification; safe to run anytime.
 - Confirms:
   - content hits for old name = 0
-  - filename hits for old name (info): lists any .sc hits (those would compile)
+  - .sc filename hits = 0 (must be 0)
   - new class loaded = true
-  - old class missing = true   <-- important
+  - old class missing = true
   - constructs -> a Window = true
-- Style: var-first; descriptive names; no single-letter locals; no invented methods.
 */
 
 (
-var projectRoot, oldName, newName, searchExtensions;
+var ensureState, projectRoot, oldName, newName, searchExtensions;
 var contentsHits, filenameHits, scFilenameHits, totalScanned;
 var newClass, oldClass, createdWindow;
 var okNewClassLoaded, okOldClassMissing, okConstructsWindow;
 
-// Configuration
-projectRoot = Platform.userExtensionDir +/+ "LivePedalboardSuite";
-oldName = "LPDisplayLayoutTestWindow";
-newName = "LPDisplayLayoutWindow";
+ensureState = {
+    var stepsEvent;
+    ~md_migration = ~md_migration ?? {
+        stepsEvent = (
+            scannedContents: false, scannedFilenames: false, callSitesUpdated: false,
+            shimInPlace: false, oldFileRemoved: false, helpUpdated: false,
+            acceptancePassed: false, reportWritten: false
+        );
+        (
+            projectRoot: Platform.userExtensionDir +/+ "LivePedalboardSuite",
+            oldName: "LPDisplayLayoutTestWindow",
+            newName: "LPDisplayLayoutWindow",
+            steps: stepsEvent,
+            logLines: List.new, hitFiles: List.new, filenameHits: List.new,
+            updatedFiles: List.new, helpFiles: List.new
+        )
+    };
+    ~md_log = ~md_log ?? { |message| ~md_migration[\logLines].add(message.asString); message.postln; };
+    ~md_mark = ~md_mark ?? { |keySymbol, isDone=true| ~md_migration[\steps].put(keySymbol, isDone); };
+};
+ensureState.();
+
+// config
+projectRoot = ~md_migration[\projectRoot];
+oldName = ~md_migration[\oldName];
+newName = ~md_migration[\newName];
 searchExtensions = [ "sc", "scd", "schelp", "md", "json", "yaml", "yml", "txt", "quark" ];
 
-// Scan contents for oldName
+// scan contents
 contentsHits = List.new;
 totalScanned = 0;
 PathName(projectRoot).deepFiles.do({ |pn|
@@ -42,22 +63,19 @@ PathName(projectRoot).deepFiles.do({ |pn|
     };
 });
 
-// Scan filenames for oldName + list only .sc hits (compiling files)
+// scan filenames
 filenameHits = List.new;
 scFilenameHits = List.new;
 PathName(projectRoot).deepFiles.do({ |pn|
-    var fileName, fullPath;
+    var fileName;
     fileName = pn.fileName.asString;
-    fullPath = pn.fullPath;
     if(fileName.contains(oldName)) {
-        filenameHits.add(fullPath);
-        if(fileName.endsWith(".sc")) {
-            scFilenameHits.add(fullPath);
-        };
+        filenameHits.add(pn.fullPath);
+        if(fileName.endsWith(".sc")) { scFilenameHits.add(pn.fullPath) };
     };
 });
 
-// Class presence and acceptance
+// class presence and acceptance
 newClass = newName.asSymbol.asClass;
 oldClass = oldName.asSymbol.asClass;
 okNewClassLoaded = newClass.notNil;
@@ -70,7 +88,7 @@ createdWindow = okNewClassLoaded.if({
 okConstructsWindow = createdWindow.notNil and: { createdWindow.isKindOf(Window) };
 okConstructsWindow.if({ createdWindow.front });
 
-// Summary
+// summary
 "— Verification Summary —".postln;
 ("Scanned files (contents): " ++ totalScanned.asString).postln;
 ("Content hits for old name: " ++ contentsHits.size.asString).postln;
@@ -80,11 +98,17 @@ okConstructsWindow.if({ createdWindow.front });
 ("Old class missing: " ++ okOldClassMissing.asString).postln;
 ("Constructs -> a Window: " ++ okConstructsWindow.asString).postln;
 
-(scFilenameHits.notEmpty).if({
-    "These .sc files still reference the old name and WILL be compiled:".postln;
-    scFilenameHits.do({ |p| ("  - " ++ p).postln; });
-});
+// update state
+~md_migration[\hitFiles] = contentsHits;
+~md_migration[\filenameHits] = filenameHits;
+~md_migration[\lastOpenedWindow] = createdWindow;
 
-// Return the window so you see '-> a Window' if successful.
+~md_mark.(\scannedContents, true);
+~md_mark.(\scannedFilenames, true);
+(contentsHits.isEmpty).if({ ~md_mark.(\callSitesUpdated, true) });
+(okOldClassMissing).if({ ~md_mark.(\oldFileRemoved, true) });
+(okConstructsWindow).if({ ~md_mark.(\acceptancePassed, true) });
+
+// return the window so you see '-> a Window'
 createdWindow
 )

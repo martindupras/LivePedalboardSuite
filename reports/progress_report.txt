@@ -29,3 +29,7 @@ Other filename hits (archives): 9
 Summary:
  - New class loaded: true
  - Old class missing: true
+Finalization Note:
+ - Verified: old class absent; new class constructs -> a Window.
+ - Compiled .sc filename hits for old name: 0
+ - Archives present (non-.sc): OK to keep.
