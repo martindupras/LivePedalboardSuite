@@ -15,7 +15,7 @@ Prerequisites
   .../PhD_projects/LivePedalboardSuite/LivePedalboardDisplay/Classes/
     • LPDisplayHudMap.sc
     • LPDisplaySigChain.sc
-    • LPDisplayLayoutTestWindow.sc
+    • LPDisplayLayoutWindow.sc
   SuperCollider menu: Language → Recompile Class Library
 
 How to use this file
@@ -34,7 +34,7 @@ Style / Coding rules
 var hud, inst, win;
 
 hud  = LPDisplayHudMap.new(-6, -60, 1.0);           // defaults: top=-6 dB, floor=-60 dB, gamma=1.0
-inst = LPDisplayLayoutTestWindow.new(hud);          // pass nil if you prefer raw meters initially
+inst = LPDisplayLayoutWindow.new(hud);          // pass nil if you prefer raw meters initially
 win  = inst.open;                                   // -> a Window (ensures only one "Layout Test")
 
 // Export handles for interactive use during the tour
@@ -182,7 +182,7 @@ win                                                // return -> a Window
 // Purpose
 // - Quick PASS/FAIL checks in the Post window.
 // Style
-// - Run while the main demo window is open. Avoid LPDisplayLayoutTestWindow.test here.
+// - Run while the main demo window is open. Avoid LPDisplayLayoutWindow.test here.
 
 LPDisplayHudMap.test;                                 // expected: prints cases + "LPDisplayHudMap.test: PASS"
 LPDisplaySigChain.test;                               // expected: brief run + "LPDisplaySigChain.test: PASS"
@@ -222,7 +222,7 @@ var step1, step2;
 // Ensure GUI is up before scheduling steps:
 if (~inst.isNil or: { ~win.isNil } or: { ~win.isClosed }) {
     var hud = LPDisplayHudMap.new(-6, -60, 1.0);
-    ~inst = LPDisplayLayoutTestWindow.new(hud);
+    ~inst = LPDisplayLayoutWindow.new(hud);
     ~win  = ~inst.open;
     ~hud  = hud;
 };

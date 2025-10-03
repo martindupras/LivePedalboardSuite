@@ -1,0 +1,20 @@
+// LPDisplayLayoutTestWindow_DeprecationShim
+// v0.1.0
+// MD 20251003-0920
+
+/* Purpose/Style:
+- Forward calls from the legacy class to LPDisplayLayoutWindow with a clear deprecation post.
+- Style: tilde vars avoided inside class body; method names lowercase; no single-letter locals.
+*/
+
+LPDisplayLayoutTestWindow {
+    *open {
+        "DEPRECATED: Use LPDisplayLayoutWindow.open".warn;
+        ^LPDisplayLayoutWindow.open
+    }
+
+    *new {
+        "DEPRECATED: Use LPDisplayLayoutWindow.new".warn;
+        ^LPDisplayLayoutWindow.new
+    }
+}

@@ -125,7 +125,7 @@ LPDisplayHudMap {
         "  .preview(rmsDb)                     // prints & returns UI for a dB value",
         "  .print()                            // print current mapping",
         "",
-        "Tip: In LPDisplayLayoutTestWindow, setHudMap(nil) disables mapping (raw 0..1)."
+        "Tip: In LPDisplayLayoutWindow, setHudMap(nil) disables mapping (raw 0..1)."
     ];
     lines.do(_.postln);
     ^this

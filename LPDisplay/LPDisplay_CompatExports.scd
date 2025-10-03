@@ -9,7 +9,7 @@ var hud, win, inst;
 hud = LPDisplayHudMap.new(-6, -60, 1.0);
 
 // Open the window (-> a Window)
-win = LPDisplayLayoutTestWindow.new(hud).open; // the window
+win = LPDisplayLayoutWindow.new(hud).open; // the window
 win = inst.open; // the controller for the window
 
 // Export legacy one-liners:

@@ -3,16 +3,16 @@
 // MD 20251002
 
 LPDisplayHudMap.help;
-LPDisplayLayoutTestWindow.help;
+LPDisplayLayoutWindow.help;
 LPDisplaySigChain.help;
 
 
 
 LPDisplayHudMap.apihelp
-LPDisplayLayoutTestWindow.apihelp;
+LPDisplayLayoutWindow.apihelp;
 LPDisplaySigChain.apihelp;
 
 
 LPDisplayHudMap.test;
-LPDisplayLayoutTestWindow.test;
+LPDisplayLayoutWindow.test;
 LPDisplaySigChain.test;

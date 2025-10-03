@@ -1,0 +1,31 @@
+Rename Migration Report: LPDisplayLayoutTestWindow -> LPDisplayLayoutWindow
+
+Root: /Users/martindupras/Library/Application Support/SuperCollider/Extensions/LivePedalboardSuite
+
+Steps (inferred):
+ - scannedContents: true
+ - scannedFilenames: true
+ - callSitesUpdated: true
+ - shimInPlace: false
+ - oldFileRemoved: true
+ - helpUpdated: true
+ - acceptancePassed: true
+
+Content hits (old name): 0
+
+.sc filename hits (compiled files): 0
+
+Other filename hits (archives): 9
+   - /Users/martindupras/Library/CloudStorage/OneDrive-TheOpenUniversity/LivePedalboardSuite/LPDisplay/LPDisplayLayoutTestWindow.sc_DISABLED
+   - /Users/martindupras/Library/CloudStorage/OneDrive-TheOpenUniversity/LivePedalboardSuite/LPDisplay/LPDisplayLayoutTestWindow_DeprecationShim.sc_DISABLED
+   - /Users/martindupras/Library/CloudStorage/OneDrive-TheOpenUniversity/LivePedalboardSuite/LPDisplay/older versions/LPDisplayLayoutTestWindow copy.txt
+   - /Users/martindupras/Library/CloudStorage/OneDrive-TheOpenUniversity/LivePedalboardSuite/LPDisplay/older versions/LPDisplayLayoutTestWindow.sc.0.9.7.3
+   - /Users/martindupras/Library/CloudStorage/OneDrive-TheOpenUniversity/LivePedalboardSuite/LPDisplay/older versions/LPDisplayLayoutTestWindow.sc.txt
+   - /Users/martindupras/Library/CloudStorage/OneDrive-TheOpenUniversity/LivePedalboardSuite/LPDisplay/older versions/LPDisplayLayoutTestWindow.sc_buggy
+   - /Users/martindupras/Library/CloudStorage/OneDrive-TheOpenUniversity/LivePedalboardSuite/LPDisplay/older versions/LPDisplayLayoutTestWindow.sc_v0.9.4
+   - /Users/martindupras/Library/CloudStorage/OneDrive-TheOpenUniversity/LivePedalboardSuite/LPDisplay/older versions/LPDisplayLayoutTestWindow.sc_v0.9.6
+   - /Users/martindupras/Library/CloudStorage/OneDrive-TheOpenUniversity/LivePedalboardSuite/LPDisplay/older versions/LPDisplayLayoutTestWindow.sc_v0.9.7.1
+
+Summary:
+ - New class loaded: true
+ - Old class missing: true
