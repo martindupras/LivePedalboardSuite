@@ -1,59 +1,49 @@
 // Wire_SystemCM_to_LPDisplay_Min.scd
-// v0.1.0
-// MD 20251003-1440
+// v0.1.2
+// MD 20251003-1455
 
 /* Purpose / Style
-- Prefer the REAL system CommandManager (if LivePedalboardSystem is available); else fallback to a standalone CM.
-- Bind LPDisplayAdapter to whichever CM we use.
-- Provide deterministic navigation helpers targeting explicit strings:
+- Prefer SYSTEM CommandManager (if LivePedalboardSystem class is available), else use STANDALONE CM.
+- Bind LPDisplayAdapter (~lp_adapter) to whichever CM we use and refresh panes once.
+- Deterministic navigation helpers:
     root   → string 6 (frets 1,3,5,7,9)
     depth1 → string 5 (frets 3,5,7,...)
     depth2+→ string 4 (frets 3,5,7,...)
-- Style: var-first; tilde vars; lowercase; descriptive names; no server.sync.
+- Style: tilde vars; var-first; lowercase; descriptive names; no server.sync.
 */
 
 (
-var lpsClass, systemCm, preferredSelector, candidateSelectors, cmLocal, adapterLocal, bindAdapter, tryNav, reportBinding;
+var lpsClass, systemCm, selectors, sel, cmLocal, adapterLocal, bind, tryNav, report;
 
-// 0) Try to get LivePedalboardSystem class safely (no crash if missing)
+// prefer system CM if class exists + selector resolves; else fallback
 lpsClass = \LivePedalboardSystem.asClass;
-
-// 1) Prefer the real system CM if possible
 systemCm = nil;
+
 if(lpsClass.notNil) {
-    if(~system.isNil) {
-        ~system = lpsClass.new(nil);  // uses your class defaults; doesn't open extra GUI
-    };
-    candidateSelectors = [\commandManager, \cmdManager, \cm, \manager];
-    preferredSelector = candidateSelectors.detect({ arg sel;
-        (~system.respondsTo(sel)) and: { ~system.perform(sel).notNil }
-    });
-    if(preferredSelector.notNil) {
-        systemCm = ~system.perform(preferredSelector);
-    };
+    if(~system.isNil) { ~system = lpsClass.new(nil) };  // no extra GUI
+    selectors = [\commandManager, \cmdManager, \cm, \manager];
+    sel = selectors.detect({ arg s; ~system.respondsTo(s) and: { ~system.perform(s).notNil } });
+    (sel.notNil).if({ systemCm = ~system.perform(sel) });
 };
 
-// 2) Choose a CM: system CM if found, else a standalone CM
 cmLocal = (systemCm.notNil).if({ systemCm }, { CommandManager.new(nil) });
 ~cm = cmLocal;
 
-// 3) Bind adapter idempotently and refresh panes
-bindAdapter = {
+// bind adapter and refresh
+bind = {
     adapterLocal = (~lp_adapter.notNil).if({ ~lp_adapter }, { LPDisplayAdapter.new(~guiLP) });
     ~lp_adapter = adapterLocal;
     cmLocal.display = adapterLocal;
-    cmLocal.updateDisplay;  // legacy selectors -> adapter -> LPDisplay panes
-    true
+    cmLocal.updateDisplay;
+    nil
 };
-bindAdapter.();
+bind.();
 
-// 4) Deterministic navigation: always post a Diag line so you see immediate feedback
+// deterministic string navigation; always echo a Diag line
 tryNav = { arg stringNum, fretNum;
     var ok;
     ok = cmLocal.builder.tryPerform(\navigateByFret, stringNum, fretNum);
-    (ok == false or: { ok.isNil }).if({
-        ok = cmLocal.builder.tryPerform(\navigateByFret, fretNum);
-    });
+    (ok == false or: { ok.isNil }).if({ ok = cmLocal.builder.tryPerform(\navigateByFret, fretNum) });
     cmLocal.updateDisplay;
     (~guiLP.notNil).if({
         ~guiLP.sendPaneText(\diag, "Tried: string " ++ stringNum ++ ", fret " ++ fretNum ++ " | result: " ++ ok.asString);
@@ -61,26 +51,20 @@ tryNav = { arg stringNum, fretNum;
     ok
 };
 
-// 5) Public helpers (root-first: 6 → 5 → 4)
-~nav6 = { arg fret; tryNav.(6, fret) };  // use at root (frets 1,3,5,7,9)
-~nav5 = { arg fret; tryNav.(5, fret) };  // children
-~nav4 = { arg fret; tryNav.(4, fret) };  // grandchildren+
+// publish helpers
+~nav6 = { arg fret; tryNav.(6, fret) };  // root
+~nav5 = { arg fret; tryNav.(5, fret) };  // depth 1
+~nav4 = { arg fret; tryNav.(4, fret) };  // depth 2+
 
-// 6) Report what we bound to
-reportBinding = {
-    var boundToSystem;
-    boundToSystem = (systemCm.notNil) and: {
-        [\commandManager, \cmdManager, \cm, \manager].any({ arg sel;
-            (~system.respondsTo(sel)) and: { ~system.perform(sel) === cmLocal }
-        })
+// report binding
+report = {
+    var systemBound;
+    systemBound = (systemCm.notNil) and: {
+        [\commandManager, \cmdManager, \cm, \manager].any({ arg s; ~system.respondsTo(s) and: { ~system.perform(s) === cmLocal } })
     };
-    (boundToSystem.if({ "Bound to: SYSTEM CommandManager" }, { "Bound to: STANDALONE CommandManager" })).postln;
+    (systemBound.if({ "Bound to: SYSTEM CommandManager" }, { "Bound to: STANDALONE CommandManager" })).postln;
 };
-reportBinding.();
+report.();
 
-// tip text
 "Nav ready. From root use ~nav6.(1|3|5|7|9); then ~nav5.(3|5|7); then ~nav4.(3|5|7).".postln;
-
-// progress (in-memory)
-~md_progress = (~md_progress ? List.new).add("Wire_SystemCM_to_LPDisplay_Min @ " ++ Date.localtime.stamp);
 )
