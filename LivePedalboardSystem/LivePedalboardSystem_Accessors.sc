@@ -1,36 +1,38 @@
 // LivePedalboardSystem_Accessors.sc
-// v0.1.0
-// MD 20251003-1552
+// v0.2.0
+// MD 20251003-1620
 
 /* Purpose / Style
-- Provide a standard accessor `commandManager` on LivePedalboardSystem so external code
-  (e.g. LPDisplay bring-up) can auto-bind without knowing internal ivar names.
-- Strategy: try self.pedalboard.* under common CM names; return the first object that
-  responds to \updateDisplay and \builder. Aliases (cmdManager/cm/manager) delegate to it.
-- Style: var-first; lowercase method names; descriptive vars; no server.sync.
+- Expose the real CommandManager for auto-bind:
+  1) Return the ivar 'commandManager' if it looks like a CM (has updateDisplay + builder).
+  2) Else, probe self.pedalboard.* under common names and return the first CM-like object.
+- Aliases cmdManager/cm/manager delegate to commandManager.
+- Style: var-first; lowercase; descriptive names; no server.sync.
 */
 
 +LivePedalboardSystem {
 
     commandManager {
-        var pedalboardObj, candidates, result;
-        pedalboardObj = this.tryPerform(\pedalboard);
-        result = nil;
+        var cmLocal, pb, candidates, found;
 
-        if(pedalboardObj.notNil) {
-            candidates = [\commandManager, \cmdManager, \cm, \manager];
-            candidates.do({ arg sel;
-                var candidate;
-                candidate = pedalboardObj.tryPerform(sel);
-                if(result.isNil and: {
-                    candidate.notNil and: { candidate.respondsTo(\updateDisplay) and: { candidate.respondsTo(\builder) } }
-                }) {
-                    result = candidate;
-                };
-            });
+        // 1) Prefer the real ivar on this object (NOTE: do NOT write 'this.commandManager' here)
+        cmLocal = commandManager;  // ivar access
+        if(cmLocal.notNil and: { cmLocal.respondsTo(\updateDisplay) and: { cmLocal.respondsTo(\builder) } }) {
+            ^cmLocal
         };
 
-        ^result
+        // 2) Fallback: probe under pedalboard.* with common names
+        pb = this.tryPerform(\pedalboard);
+        if(pb.notNil) {
+            candidates = [\commandManager, \cmdManager, \cm, \manager, \commandCenter, \commandCentre];
+            found = candidates.detect({ arg sel;
+                var cand = pb.tryPerform(sel);
+                cand.notNil and: { cand.respondsTo(\updateDisplay) and: { cand.respondsTo(\builder) } }
+            });
+            if(found.notNil) { ^pb.perform(found) };
+        };
+
+        ^nil
     }
 
     cmdManager { ^this.commandManager }
