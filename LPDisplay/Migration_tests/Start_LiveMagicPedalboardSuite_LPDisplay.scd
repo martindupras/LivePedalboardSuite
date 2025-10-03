@@ -1,45 +1,44 @@
 // Start_LiveMagicPedalboardSuite_LPDisplay.scd
-// v0.1.5
-// MD 20251003-1455
+// v0.1.6
+// MD 20251003-1530
 
 /* Purpose / Style
 - (Re)open LPDisplay safely and return -> a Window.
-- NON-DESTRUCTIVE to your running audio: no initTree, no defaultGroup.freeAll.
-- Still tears down prior LPDisplay instance + its OSC responders (so re-runs are clean).
+- NON-DESTRUCTIVE to your running audio (no initTree, no defaultGroup.freeAll).
+- Teardown only LPDisplay's controller + OSC responders between runs.
+- Auto-bind LPDisplayAdapter to SYSTEM CommandManager *if ~system already exists*.
 - Publishes ~guiLP (controller), ~lp_window (Window), ~lp_front helper.
 - Style: tilde vars; var-first; lowercase; AppClock UI only; no server.sync.
 */
 
 (
-var ensureServerReady, cleanupLPDisplayOnly, openLP, freeOscdefIf;
+var ensureServerReady, freeOscdefIf, cleanupLPDisplayOnly, openLP, autoBindIfSystemExists, defaultServer, windowLocal;
 
-// ensure server is up, but do NOT clear node tree (we keep your audio alive)
 ensureServerReady = {
-    var s;
-    s = Server.default;
-    s.waitForBoot({ "Server is up (non-destructive)".postln; });
+    defaultServer = Server.default;
+    defaultServer.waitForBoot({ "Server is up (non-destructive)".postln; });
     true
 };
 
-// free a named OSCdef if it exists
-freeOscdefIf = { arg nameSym;
-    var d;
-    d = OSCdef.all.tryPerform(\at, nameSym);
-    (d.notNil).if({ d.free; ("Freed OSCdef: " ++ nameSym.asString).postln; });
+freeOscdefIf = { arg nameSymbol;
+    var oscDef;
+    oscDef = OSCdef.all.tryPerform(\at, nameSymbol);
+    (oscDef.notNil).if({
+        oscDef.free;
+        ("Freed OSCdef: " ++ nameSymbol.asString).postln;
+    });
     nil
 };
 
-// close previous LPDisplay controller and extra responders that belong to it
 cleanupLPDisplayOnly = {
     if(~guiLP.notNil) {
-        // controller.close should stop its responders; we also belt-and-braces free by name if present
-        ~guiLP.close;
+        ~guiLP.close;  // closes window and stops LPDisplay-owned responders/JIT state
+        // belt-and-braces: free known OSCdef names if the controller exposes them
         [ ~guiLP.tryPerform(\oscNameA)
         , ~guiLP.tryPerform(\oscNameB)
         , ~guiLP.tryPerform(\oscConsoleA)
         , ~guiLP.tryPerform(\oscConsoleB)
         ].do({ arg sym; (sym.notNil).if({ freeOscdefIf.(sym) }) });
-
         ~guiLP = nil;
         ~lp_window = nil;
         "Closed previous LPDisplay instance (controller + responders).".postln;
@@ -48,21 +47,46 @@ cleanupLPDisplayOnly = {
 };
 
 openLP = {
-    var inst, winLocal;
-    inst = LPDisplayLayoutWindow.new(nil);   // raw 0..1 meter mapping initially
-    winLocal = inst.open;                    // -> a Window
-    winLocal.tryPerform(\name_, "LPDisplay — LivePedalboard");
-    ~guiLP = inst;
-    ~lp_window = winLocal;
+    var controller, win;
+    controller = LPDisplayLayoutWindow.new(nil);   // start with raw 0..1 meters
+    win = controller.open;                         // -> a Window
+    win.tryPerform(\name_, "LPDisplay — LivePedalboard");
+    ~guiLP = controller;
+    ~lp_window = win;
     ~lp_front = { (~lp_window.notNil).if({ ~lp_window.front.alwaysOnTop_(true) }) };
     "LPDisplay is up. Try ~guiLP.sendPaneText(\\system, \"hello\");".postln;
-    winLocal
+
+    // optional: persist a log line if logger is installed
+    (~md_log.notNil).if({ ~md_log.("LPDisplay bring-up v0.1.6") });
+
+    win
+};
+
+autoBindIfSystemExists = {
+    var cm, selectors, sel, adapter;
+    // only bind if ~system already exists and exposes a CM under common names
+    if(~system.notNil and: { LPDisplayAdapter.respondsTo(\new) }) {
+        selectors = [\commandManager, \cmdManager, \cm, \manager];
+        sel = selectors.detect({ arg s; ~system.respondsTo(s) and: { ~system.perform(s).notNil } });
+        if(sel.notNil) {
+            cm = ~system.perform(sel);
+            adapter = (~lp_adapter.notNil).if({ ~lp_adapter }, { LPDisplayAdapter.new(~guiLP) });
+            ~lp_adapter = adapter;
+            cm.display = adapter;
+            cm.updateDisplay;
+            "Adapter bound to SYSTEM CommandManager.".postln;
+            (~md_log.notNil).if({ ~md_log.("Auto-bound LPDisplayAdapter to SYSTEM CM via selector " ++ sel.asString) });
+        };
+    };
+    nil
 };
 
 ensureServerReady.();
 cleanupLPDisplayOnly.();
-~lp_window = nil;  // close any title-matching windows not required; keep it minimal
-~lp_front = nil;
 
-openLP.().front.alwaysOnTop_(true);  // -> a Window
+windowLocal = openLP.();
+autoBindIfSystemExists.();
+
+windowLocal.front.alwaysOnTop_(true);
+windowLocal   // -> a Window
 )
