@@ -33,3 +33,13 @@ Finalization Note:
  - Verified: old class absent; new class constructs -> a Window.
  - Compiled .sc filename hits for old name: 0
  - Archives present (non-.sc): OK to keep.
+
+Acceptance Notes (LPDisplayLayoutWindow):
+ - Basics: constructed -> a Window
+ - Snapshot: reports/LPDisplayLayoutWindow_layout_snapshot.txt
+ - ResizeSanity: children inside content view (see console for WARN if any)
+
+Acceptance Notes (LPDisplayLayoutWindow):
+ - Basics: constructed -> a Window
+ - Snapshot: reports/LPDisplayLayoutWindow_layout_snapshot.txt
+ - ResizeSanity: children inside content view (see console for WARN if any)

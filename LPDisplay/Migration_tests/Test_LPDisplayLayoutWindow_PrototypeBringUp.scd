@@ -11,6 +11,9 @@
 (
 var wantServerBoot, closedCount, openSelector, createdWindow, windowTitle, closeExisting;
 
+("Running: Test_LPDisplayLayoutWindow_PrototypeBringUp.scd").postln;
+
+
 wantServerBoot = false; // set true only if your window expects a running server
 windowTitle = "LPDisplayLayoutWindow";
 
