@@ -1,0 +1,192 @@
+// Start_LivePedalboardSuite_BringUp.scd
+// v0.9.1
+// MD 20251004-1538
+
+/*
+Purpose
+- One-run bring-up for LivePedalboardSuite:
+  - Open/reuse LPDisplayLayoutWindow (single window).
+  - Bring up LivePedalboardSystem (server, pedalboard, command system, MIDI).
+  - Auto-bind CommandManager -> LPDisplay via LPDisplayAdapter.
+  - Enable A/B end-of-chain meters and ensure audible CURRENT.
+  - Set top pane titles to "Chain A"/"Chain B" and show src | procs | sink.
+  - Auto-refresh those titles after each queued command is Sent.
+
+Style
+- Single block; var-first; tilde (~) interpreter vars; AppClock for UI only.
+- No server.sync; non-destructive (sound stays up across re-runs).
+- Returns -> a Window.
+*/
+
+(
+var lpResolveClass, lpOpenWindow, silenceLpDemo, silenceLpDemoDeferred,
+    buildChainSummary, setTitlesOnce, hookPostSendTitleRefresh,
+    findPaneLabel, setLabelString, win, hadSystem, okAdapter, cm, displayObj, cbRaw;
+
+// ---------- 0) LPDisplay helpers ----------
+lpResolveClass = {
+    \LPDisplayLayoutWindow.asClass ?? { \LPDisplayLayoutTestWindow.asClass }
+};
+
+lpOpenWindow = {
+    var klass, controller, w;
+    klass = lpResolveClass.();
+    if(klass.isNil) { "No LPDisplay class found.".warn; ^nil };
+    controller = ~guiLP ?? { ~guiLP = klass.new(nil) };
+    w = Window.allWindows.detect({ |x| (x.tryPerform(\name) ? "").asString == "Layout Test" })
+        ?? { controller.open };
+    // Ensure LPDisplay demo is silent so meters reflect our chains
+    controller.tryPerform(\setSourceA, \srcZ);
+    controller.tryPerform(\setSourceB, \srcZ);
+    w
+};
+
+// Stop LPDisplay demo Ndefs immediately…
+silenceLpDemo = {
+    Server.default.bind({
+        [\srcA, \srcB, \srcC, \srcZ, \outA, \outB].do({ |name|
+            var nd = Ndef(name); if(nd.notNil) { nd.stop };
+        });
+    });
+    "LPDisplay demo sources silenced.".postln;
+};
+
+// …and again a moment later (some builds spin up after open)
+silenceLpDemoDeferred = {
+    AppClock.sched(0.15, { silenceLpDemo.(); nil });
+};
+
+findPaneLabel = { |candidatesArray|
+    var found = nil;
+    var scan;
+    scan = { |view|
+        view.children.do({ |child|
+            if(child.isKindOf(StaticText) and: { candidatesArray.any({ |s| child.string.asString == s.asString }) }) {
+                found = child;
+            }{
+                scan.(child);
+            };
+        });
+    };
+    Window.allWindows.do({ |w|
+        if((w.tryPerform(\name) ? "").asString == "Layout Test") { scan.(w.view) };
+    });
+    found
+};
+
+setLabelString = { |labelObj, str|
+    if(labelObj.notNil) { { labelObj.string_(str.asString) }.defer };
+};
+
+// Build a compact "src | procs | sink" summary from the current pedalboard.
+// We keep procs as "(none)" unless we detect a non-empty array.
+buildChainSummary = { |which = \A|
+    var pb, src, procs, sink, arr;
+    pb = ~system.tryPerform(\pedalboard);
+
+    // --- Source (best-effort detection) ---
+    src = (which == \A).if({
+        pb.tryPerform(\sourceA)
+        ?? { pb.tryPerform(\getSourceA) }
+        ?? { pb.tryPerform(\getSource, \A) }
+    },{
+        pb.tryPerform(\sourceB)
+        ?? { pb.tryPerform(\getSourceB) }
+        ?? { pb.tryPerform(\getSource, \B) }
+    });
+    if(src.isNil) {
+        // Fallback expectation right after ensureAudioOn (CURRENT=A → testmelody; NEXT=B → ts0)
+        src = (which == \A).if({ \testmelody }, { \ts0 });
+    };
+
+    // --- Processors (leave as "(none)" unless we can read an array) ---
+    procs = "(none)";
+    arr = (which == \A).if({
+        pb.tryPerform(\chainA) ?? { pb.tryPerform(\getChainA) } ?? { pb.tryPerform(\getChain, \A) }
+    },{
+        pb.tryPerform(\chainB) ?? { pb.tryPerform(\getChainB) } ?? { pb.tryPerform(\getChain, \B) }
+    });
+    if(arr.isKindOf(Array)) {
+        // Try to remove obvious endpoints if the array includes them
+        var cleaned = arr.reject({ |sym| [\guitar, \destination, \chainA, \chainB].includes(sym.asSymbol) });
+        procs = (cleaned.isEmpty).if({ "(none)" }, { cleaned.collect(_.asString).join(" → ") });
+    };
+
+    // --- Sink ---
+    sink = (which == \A).if({ "chainA" }, { "chainB" });
+
+    // Compose
+    "src: % | procs: % | sink: %".format(src.asString, procs, sink)
+};
+
+// Set both titles once
+setTitlesOnce = {
+    var labelA, labelB, txtA, txtB;
+    labelA = findPaneLabel.(["Top Left Pane", "Chain A"]);
+    labelB = findPaneLabel.(["Top Right Pane", "Chain B"]);
+    txtA = buildChainSummary.(\A);
+    txtB = buildChainSummary.(\B);
+    setLabelString.(labelA, "Chain A — " ++ txtA);
+    setLabelString.(labelB, "Chain B — " ++ txtB);
+};
+
+// Auto-refresh after each Send (queueExportCallback)
+hookPostSendTitleRefresh = {
+    var cmLocal = ~system.tryPerform(\commandManager);
+    if(cmLocal.isNil) { ^this };
+    cbRaw = cmLocal.queueExportCallback;
+    cmLocal.queueExportCallback = { |pathString|
+        var r;
+        if(cbRaw.notNil) { r = cbRaw.value(pathString) };
+        AppClock.sched(0.10, { setTitlesOnce.(); nil });
+        r
+    };
+    "[Start_LivePedalboardSuite_BringUp] Title auto-refresh after Send enabled.".postln;
+};
+
+// ---------- 1) Open/reuse LPDisplay window ----------
+win = lpOpenWindow.();
+silenceLpDemo.();
+silenceLpDemoDeferred.();
+"=== LPDisplay window ready ===".postln;
+
+// ---------- 2) Bring up or reuse LivePedalboardSystem ----------
+hadSystem = (~system.notNil);
+if(hadSystem.not) {
+    ~system = LivePedalboardSystem.new(nil);
+    ~system.ensureServerReady;        // boots only if needed
+    ~system.bringUpPedalboard;        // MagicPedalboardNew (OK for now)
+    ~system.bringUpCommandSystem;     // CommandManager + MIDI
+    ~system.installAdapterBridge;     // canonical path -> pedalboard
+    "OK: LivePedalboardSystem up (headless).".postln;
+} {
+    "Reusing existing ~system (non-destructive).".postln;
+};
+
+// ---------- 3) Auto-bind LPDisplay adapter + meters + audible CURRENT ----------
+~system.autoBindLPDisplayIfPresent;   // uses corrected accessor (ivar-first)
+~system.enableAutoMeters;             // SendPeakRMS taps on chainA/B; GUI re-armed
+~system.ensureAudioOn;                // CURRENT -> \testmelody; exclusive Option A
+cm = ~system.commandManager;
+displayObj = (cm ? nil).tryPerform(\display);
+okAdapter = displayObj.notNil and: { displayObj.isKindOf(LPDisplayAdapter) };
+("Adapter bound to SYSTEM CommandManager: " ++ okAdapter).postln;
+cm.updateDisplay;
+
+// ---------- 4) Titles now show src | procs | sink for A/B ----------
+setTitlesOnce.();
+hookPostSendTitleRefresh.();
+
+// ---------- 5) Compact diagnostics ----------
+[
+    \hadSystemInitially, hadSystem,
+    \cmClass, (cm ? \nil).class,
+    \displayClass, (displayObj ? \nil).class
+].postln;
+
+// ---------- 6) Durable note if logger installed ----------
+if(~md_log.notNil) { ~md_log.("BRINGUP OK: LPDisplay bound; meters live; titles set") };
+
+// ---------- 7) Return window so you see "-> a Window" ----------
+win
+)

@@ -1,0 +1,166 @@
+// Start_LivePedalboardSuite_BringUp.scd
+// v0.9.0
+// MD 20251004-1518
+
+/*
+Purpose
+- One-run bring-up for LivePedalboardSuite:
+  - Open/reuse LPDisplayLayoutWindow (single window).
+  - Bring up LivePedalboardSystem (server, pedalboard, command system, MIDI).
+  - Auto-bind CommandManager to LPDisplay via LPDisplayAdapter.
+  - Enable A/B end-of-chain meters and ensure audible CURRENT.
+  - Rename top pane titles to "Chain A"/"Chain B" and show live chain contents.
+  - Auto-refresh pane titles after each command is sent.
+
+Style
+- Single block; var-first; tilde (~) interpreter vars; AppClock for UI only.
+- No server.sync; non-destructive (sound stays up across re-runs).
+- Returns -> a Window.
+*/
+
+(
+var lpResolveClass, lpOpenWindow, silenceLpDemo, setTitlesOnce, updateTitles,
+    hookPostSendTitleRefresh, chainTextFromPedalboard, findPaneLabel, setLabelString,
+    win, hadSystem, okAdapter, cm, displayObj, cbRaw;
+
+// ---------- 0) LPDisplay helpers (inline-only, no new files) ----------
+lpResolveClass = {
+    // Prefer current name; fallback keeps older demos working.
+    \LPDisplayLayoutWindow.asClass ?? { \LPDisplayLayoutTestWindow.asClass }
+};
+
+lpOpenWindow = {
+    var klass, controller, w;
+    klass = lpResolveClass.();
+    if(klass.isNil) { "No LPDisplay class found.".warn; ^nil };
+    controller = ~guiLP ?? { ~guiLP = klass.new(nil) };
+    w = Window.allWindows.detect({ |x| (x.tryPerform(\name) ? "").asString == "Layout Test" })
+        ?? { controller.open };
+    // Ensure LPDisplay's own demo is silent so meters reflect our chains
+    controller.tryPerform(\setSourceA, \srcZ);
+    controller.tryPerform(\setSourceB, \srcZ);
+    w
+};
+
+silenceLpDemo = {
+    Server.default.bind({
+        [\srcA, \srcB, \srcC, \srcZ, \outA, \outB].do({ |name|
+            var nd = Ndef(name); if(nd.notNil) { nd.stop };
+        });
+    });
+    "LPDisplay demo sources silenced.".postln;
+};
+
+findPaneLabel = { |candidatesArray|
+    var found = nil;
+    var scan;
+    scan = { |view|
+        view.children.do({ |child|
+            if(child.isKindOf(StaticText) and: { candidatesArray.any({ |s| child.string.asString == s.asString }) }) {
+                found = child;
+            }{
+                scan.(child);
+            };
+        });
+    };
+    Window.allWindows.do({ |w|
+        if((w.tryPerform(\name) ? "").asString == "Layout Test") { scan.(w.view) };
+    });
+    found
+};
+
+setLabelString = { |labelObj, str|
+    if(labelObj.notNil) { { labelObj.string_(str.asString) }.defer };
+};
+
+// Build "guitar → tremolo → delay → destination" from pedalboard chain arrays
+chainTextFromPedalboard = { |which = \A|
+    var pb, arr, txt;
+    pb = ~system.tryPerform(\pedalboard);
+    txt = "(none)";
+    if(pb.notNil) {
+        arr = (which == \A).if({
+            pb.tryPerform(\chainA) ?? { pb.tryPerform(\getChainA) } ?? { pb.tryPerform(\getChain, \A) }
+        },{
+            pb.tryPerform(\chainB) ?? { pb.tryPerform(\getChainB) } ?? { pb.tryPerform(\getChain, \B) }
+        });
+        if(arr.isKindOf(Array)) { txt = arr.collect(_.asString).join(" → ") };
+    };
+    txt
+};
+
+setTitlesOnce = {
+    var labelA, labelB, txtA, txtB;
+    labelA = findPaneLabel.(["Top Left Pane", "Chain A"]);
+    labelB = findPaneLabel.(["Top Right Pane", "Chain B"]);
+    txtA = chainTextFromPedalboard.(\A);
+    txtB = chainTextFromPedalboard.(\B);
+    setLabelString.(labelA, "Chain A — " ++ txtA);
+    setLabelString.(labelB, "Chain B — " ++ txtB);
+};
+
+updateTitles = {
+    AppClock.sched(0.10, { setTitlesOnce.(); nil }); // small debounce
+};
+
+// After every canonical path send, refresh titles automatically.
+// We wrap the current queueExportCallback, if any.
+hookPostSendTitleRefresh = {
+    var cmLocal = ~system.tryPerform(\commandManager);
+    if(cmLocal.isNil) { ^this };
+    // Preserve any existing callback (from installAdapterBridge or prior inline)
+    cbRaw = cmLocal.queueExportCallback;
+    cmLocal.queueExportCallback = { |pathString|
+        var r;
+        if(cbRaw.notNil) { r = cbRaw.value(pathString) };
+        updateTitles.(); // reflect the change in the LPDisplay titles
+        r
+    };
+    "[Runner] Auto-refresh titles after send enabled.".postln;
+};
+
+// ---------- 1) Open/reuse LPDisplay window ----------
+win = lpOpenWindow.();
+silenceLpDemo.();
+"=== LPDisplay window ready ===".postln;
+
+// ---------- 2) Bring up or reuse LivePedalboardSystem ----------
+hadSystem = (~system.notNil);
+if(hadSystem.not) {
+    ~system = LivePedalboardSystem.new(nil);
+    ~system.ensureServerReady;        // boots only if needed
+    ~system.bringUpPedalboard;        // MagicPedalboardNew (ok if deprec warning)
+    ~system.bringUpCommandSystem;     // CommandManager + MIDI (Launchpad/Guitar/Foot)
+    ~system.installAdapterBridge;     // canonical path -> pedalboard
+    "OK: LivePedalboardSystem up (headless).".postln;
+} {
+    "Reusing existing ~system (non-destructive).".postln;
+};
+
+// ---------- 3) Auto-bind LPDisplay adapter + meters + audible CURRENT ----------
+~system.autoBindLPDisplayIfPresent;   // uses corrected accessor (ivar-first)
+~system.enableAutoMeters;             // SendPeakRMS taps on chainA/B; GUI rearmed
+~system.ensureAudioOn;                // CURRENT -> \testmelody; exclusive Option A
+cm = ~system.commandManager;
+displayObj = (cm ? nil).tryPerform(\display);
+okAdapter = displayObj.notNil and: { displayObj.isKindOf(LPDisplayAdapter) };
+("Adapter bound to SYSTEM CommandManager: " ++ okAdapter).postln;
+cm.updateDisplay;
+
+// ---------- 4) Titles: Chain A/Chain B + live chain contents ----------
+setTitlesOnce.();
+hookPostSendTitleRefresh.();
+
+// ---------- 5) Compact diagnostics ----------
+[
+    \hadSystemInitially, hadSystem,
+    \cmClass, (cm ? \nil).class,
+    \displayClass, (displayObj ? \nil).class
+].postln;
+
+// ---------- 6) Durable note if logger installed ----------
+if(~md_log.notNil) { ~md_log.("RUNNER OK: LPDisplay auto-bound; meters on; titles set") };
+
+// ---------- 7) Return the LPDisplay window so you see "-> a Window" ----------
+win
+)
