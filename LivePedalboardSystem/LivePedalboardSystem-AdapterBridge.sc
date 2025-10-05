@@ -1,12 +1,12 @@
 // LivePedalboardSystem-AdapterBridge.sc
-// v0.1.6
-// MD 20251005-1030
+// v0.1.7
+// MD 20251005-1122
 
 /*
 Purpose
-- Same bridge as v0.1.5, but with a serialized post-switch ensure that avoids
-  per-chain setters and only asserts CURRENT via setSourceCurrent + playCurrent.
-- Two retries: ~120 ms and ~240 ms after the adapter applies "/switch".
+- Builds on v0.1.6: still asserts CURRENT via setSourceCurrent + playCurrent,
+  then adds a third, later pass to silence the NEXT chain at source explicitly.
+- Also reaffirms 2-ch endpoints defensively on the last pass (non-intrusive).
 Style
 - var-first; lowercase names; no server.sync; no non-local '^' in callbacks.
 */
@@ -15,7 +15,7 @@ Style
     installAdapterBridge {
         var commandManager, pedalboardRef, statusDisplayRef;
         var adapterAvailable, adapterPath;
-        var postSwitchAudioGuard;
+        var postSwitchAudioGuard, silenceNextAtSource, reaffirmStereoEnds;
 
         commandManager = this.commandManager;
         pedalboardRef  = this.pedalboard;
@@ -26,7 +26,7 @@ Style
             ^this;
         };
 
-        // Ensure the adapter function is available (loads if needed)
+        // Ensure adapter exists (loads if needed)
         adapterAvailable = (~ct_applyOSCPathToMPB.notNil);
         if(adapterAvailable.not) {
             adapterPath = (Platform.userExtensionDir
@@ -42,43 +42,90 @@ Style
             ^this;
         };
 
-        // NEW v0.1.6: serialized ensure using CURRENT-only setters (two attempts)
+        // -- helpers ----------------------------------------------------------
+        silenceNextAtSource = { |currentSym = \A|
+            var pb = pedalboardRef;
+            var currentIsA, did;
+            currentIsA = (currentSym == \A);
+            did = false;
+
+            // Prefer explicit per-chain setter for the inactive side
+            if(currentIsA) {
+                if(pb.respondsTo(\setSourceB)) { pb.setSourceB(\ts0); did = true };
+            }{
+                if(pb.respondsTo(\setSourceA)) { pb.setSourceA(\ts0); did = true };
+            };
+
+            // Fallback: exclusivity helper if present
+            if(did.not and: { pb.respondsTo(\enforceExclusiveCurrentOptionA) }) {
+                pb.enforceExclusiveCurrentOptionA(0.1);
+                did = true;
+            };
+
+            ("[LPS] Ensured NEXT is silent ("
+                ++ (currentIsA.if({ "B" }, { "A" })) ++ "→\\ts0, did=" ++ did ++ ")").postln;
+            did
+        };
+
+        reaffirmStereoEnds = {
+            // A gentle, idempotent nudge; no rewiring, just ensure 2-ch ar proxies exist.
+            Server.default.bind({
+                if(Ndef(\chainA).notNil) { Ndef(\chainA).ar(2) };
+                if(Ndef(\chainB).notNil) { Ndef(\chainB).ar(2) };
+            });
+            "[LPS] Reaffirmed chain A/B as 2-ch endpoints.".postln;
+            nil
+        };
+
+        // NEW v0.1.7: serialized ensure (3 passes: 120/240/360 ms)
         postSwitchAudioGuard = { |currentSym = \A|
             var doEnsure;
             doEnsure = { |attempt = 1|
                 var delaySec;
-                delaySec = (attempt == 1).if({ 0.12 }, { 0.24 }); // 120 ms, then 240 ms
+                delaySec = switch(attempt, 1, { 0.12 }, 2, { 0.24 }, 3, { 0.36 }, { 0.36 });
+
                 AppClock.sched(delaySec, {
                     var pb;
                     pb = pedalboardRef;
-                    // CURRENT-only reassert
-                    if(pb.respondsTo(\setSourceCurrent)) { pb.setSourceCurrent(\testmelody) };
-                    if(pb.respondsTo(\playCurrent))      { pb.playCurrent };
-                    // optional exclusivity (Option A)
-                    if(pb.respondsTo(\enforceExclusiveCurrentOptionA)) {
-                        pb.enforceExclusiveCurrentOptionA(0.1);
+
+                    if(attempt == 1) {
+                        // CURRENT-only reassert (same as v0.1.6)
+                        if(pb.respondsTo(\setSourceCurrent)) { pb.setSourceCurrent(\testmelody) };
+                        if(pb.respondsTo(\playCurrent))      { pb.playCurrent };
+                        if(pb.respondsTo(\enforceExclusiveCurrentOptionA)) {
+                            pb.enforceExclusiveCurrentOptionA(0.1);
+                        };
                     };
+
+                    if(attempt == 2) {
+                        // repeat CURRENT-only reassert (race hardening)
+                        if(pb.respondsTo(\setSourceCurrent)) { pb.setSourceCurrent(\testmelody) };
+                        if(pb.respondsTo(\playCurrent))      { pb.playCurrent };
+                    };
+
+                    if(attempt == 3) {
+                        // make NEXT silent explicitly (Option A), then nudge 2-ch ends
+                        silenceNextAtSource.(currentSym);
+                        reaffirmStereoEnds.();
+                    };
+
                     ("[LPS] Post-switch ensure attempt #" ++ attempt
                         ++ " (CURRENT=" ++ currentSym.asString ++ ")").postln;
 
-                    // run second attempt once
-                    if(attempt < 2) { doEnsure.(attempt + 1) };
-
+                    if(attempt < 3) { doEnsure.(attempt + 1) };
                     nil
                 });
             };
             doEnsure.(1);
         };
 
-        // Bridge: apply canonical path via adapter and handle "/switch"
+        // Bridge: adapter + switch handling
         commandManager.queueExportCallback = { |canonicalPathString|
             var pathString, isSwitchPath, displayObj, currentSide;
             pathString = canonicalPathString.asString;
 
-            // Apply to MPB via adapter
             ~ct_applyOSCPathToMPB.(pathString, pedalboardRef, statusDisplayRef);
 
-            // Detect "/switch" and flip ACTIVE/NEXT visuals
             isSwitchPath = pathString.beginsWith("/switch");
             if(isSwitchPath) {
                 if(~md_toggleCurrentChain.isKindOf(Function)) {
@@ -88,21 +135,19 @@ Style
                     ~md_currentChain = (~md_currentChain == \A).if({ \B }, { \A });
                 };
 
-                // Notify LPDisplay via LPDisplayAdapter on CommandManager.display
                 displayObj = commandManager.tryPerform(\display);
                 if(displayObj.notNil) {
                     displayObj.tryPerform(\setActiveChainVisual, (~md_currentChain ? \A));
                 };
                 ("[LPS] ACTIVE chain toggled to " ++ (~md_currentChain ? \A).asString).postln;
 
-                // CURRENT-only ensure (two retries)
                 currentSide = (~md_currentChain ? \A);
                 postSwitchAudioGuard.(currentSide);
             };
-            nil  // explicit; no non-local return from callback
+            nil
         };
 
-        "[LPS] installAdapterBridge: adapter bridge active (v0.1.6).".postln;
+        "[LPS] installAdapterBridge: adapter bridge active (v0.1.7).".postln;
         ^this
     }
 }
