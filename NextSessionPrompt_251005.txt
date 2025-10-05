@@ -1,0 +1,61 @@
+NEXT SESSION PROMPT
+================================================================================
+
+Context:
+You are continuing work on the LivePedalboardSuite SuperCollider project.
+The previous session focused on creating a robust Make_Project_Inventory.scd script that:
+- Scans the suite directory tree (depth 2) and lists all files.
+- Collects the first 3 header lines from each .sc and .scd file.
+- Displays the adapter file path if present.
+- Outputs the inventory into a new IDE Document (no file I/O) with the intended filename on the first line.
+
+Current Achievements:
+- Successfully generated an inventory document with the intended filename as the first line.
+- Verified that the script adheres to style rules: var-first, descriptive lowercase names, no single-letter locals, no non-local returns, only known-good sclang syntax.
+- Avoided all problematic file writes by using Document.new and letting the user save manually.
+
+Current Inventory Snapshot (truncated for brevity in this prompt):
+- The suite root is: /Users/martindupras/Library/CloudStorage/OneDrive-TheOpenUniversity/LivePedalboardSuite
+- Inventory includes directories like CommandTree, LPDisplay, LivePedalboardSystem, MagicPedalboard, utilities, troubleshooting, etc.
+- Adapter file: MagicPedalboard/adapter_CommandTree_to_MagicPedalboard.scd exists.
+
+Full inventory content is available in the attached file. Here is the header and first few lines:
+
+Project_Inventory_251005_182407.txt
+Make_Project_Inventory.scd - Project Inventory
+Generated: 20251005-1824
+UserExtensionDir: /Users/martindupras/Library/Application Support/SuperCollider/Extensions
+Chosen suite root: /Users/martindupras/Library/CloudStorage/OneDrive-TheOpenUniversity/LivePedalboardSuite
+--------------------------------------------------------------------------------
+
+===== Directory tree (depth 2) =====
+ROOT: /Users/martindupras/Library/CloudStorage/OneDrive-TheOpenUniversity/LivePedalboardSuite
+--------------------------------------------------------------------------------
+- /20251004-1354_allSCDfiles.txt
+- /20251004-1354_allSCfiles.txt
+- /20251005-1019_allSCDfiles.txt
+- /20251005-1019_allSCfiles.txt
+- /LPDisplay_MPB_Status_20251005.txt
+- /Project_Inventory_251005_182042.txt
+- /README.md
+- /README.txt
+- /RulesForChatGPT-Copilot.scd
+- /RunBook_20251002_Diagnostics.scd
+
+Next Steps / Goals for Next Session:
+- Add alphabetical sorting for files and folders in the inventory output.
+- Add an ignore list for directories and files (e.g., .git, build, cache, large asset folders).
+- Optionally add a limit on header lines read per file (e.g., first 8 lines instead of 3).
+- Consider adding Markdown or CSV export options for easier sharing.
+- Ensure the script remains fully compliant with style rules and uses only known-good sclang syntax.
+- Keep the intended filename as the first line for easy copy-paste when saving.
+
+Important Reminders:
+- Do NOT reintroduce any file I/O that could fail on OneDrive/iCloud paths.
+- Maintain var-first, descriptive lowercase names, no single-letter locals, no non-local returns.
+- Use only known-good sclang syntax for functions and method calls.
+
+Deliverable for next session:
+- An updated Make_Project_Inventory.scd script implementing the above improvements.
+
+================================================================================

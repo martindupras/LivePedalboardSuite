@@ -1,0 +1,180 @@
+====================================================================
+FILE 1/3
+Path:
+~/Library/Application Support/SuperCollider/Extensions/LivePedalboardSuite/LivePedalboardSystem/LivePedalboardSystem-AdapterBridge.sc
+====================================================================
+// LivePedalboardSystem-AdapterBridge.sc
+// v0.1.5-displayOnly
+// MD 20251005-1238
+
+/*
+Purpose
+- DISPLAY-ONLY bridge:
+  • Apply canonical paths from CommandManager to MagicPedalboard via adapter.
+  • Update LPDisplay ACTIVE/NEXT on "/switch".
+- No audio "ensure", no source fiddling, no exclusivity enforcement here.
+Style
+- var-first; lowercase names; no server.sync; AppClock for UI only.
+*/
+
++ LivePedalboardSystem {
+    installAdapterBridge {
+        var commandManager, pedalboardRef, statusDisplayRef;
+        var adapterAvailable, adapterPath;
+
+        commandManager   = this.commandManager;
+        pedalboardRef    = this.pedalboard;
+        statusDisplayRef = this.statusDisplay;
+
+        if(commandManager.isNil or: { pedalboardRef.isNil }) {
+            "[LPS] installAdapterBridge (display-only): commandManager or pedalboard is nil; skipping.".warn;
+            ^this;
+        };
+
+        // Ensure the CommandTree -> MagicPedalboard adapter function exists
+        adapterAvailable = (~ct_applyOSCPathToMPB.notNil);
+        if(adapterAvailable.not) {
+            adapterPath = (Platform.userExtensionDir
+                ++ "/LivePedalboardSuite/MagicPedalboard/adapter_CommandTree_to_MagicPedalboard.scd"
+            ).standardizePath;
+            if(File.exists(adapterPath)) {
+                adapterPath.load;
+                adapterAvailable = (~ct_applyOSCPathToMPB.notNil);
+            };
+        };
+        if(adapterAvailable.not) {
+            "[LPS] installAdapterBridge (display-only): adapter not found; keeping existing queueExportCallback.".warn;
+            ^this;
+        };
+
+        // Bridge: forward canonical path to MPB; update ACTIVE/NEXT visual only
+        commandManager.queueExportCallback = { |canonicalPathString|
+            var pathString, isSwitchPath, displayObj;
+
+            pathString = canonicalPathString.asString;
+
+            // 1) Apply to MPB via adapter (no returns needed)
+            ~ct_applyOSCPathToMPB.(pathString, pedalboardRef, statusDisplayRef);
+
+            // 2) If it's "/switch", flip visual ACTIVE/NEXT only
+            isSwitchPath = pathString.beginsWith("/switch");
+            if(isSwitchPath) {
+                if(~md_toggleCurrentChain.isKindOf(Function)) {
+                    ~md_toggleCurrentChain.();
+                }{
+                    ~md_currentChain = ~md_currentChain ? \A;
+                    ~md_currentChain = (~md_currentChain == \A).if({ \B }, { \A });
+                };
+
+                displayObj = commandManager.tryPerform(\display);
+                if(displayObj.notNil) {
+                    displayObj.tryPerform(\setActiveChainVisual, (~md_currentChain ? \A));
+                };
+                ("[LPS] ACTIVE chain toggled to " ++ (~md_currentChain ? \A).asString
+                  ++ " (display-only)").postln;
+            };
+            nil  // explicit; no non-local return
+        };
+
+        "[LPS] installAdapterBridge: display-only bridge active (v0.1.5-displayOnly).".postln;
+        ^this
+    }
+}
+
+====================================================================
+FILE 2/3
+Path:
+~/Library/Application Support/SuperCollider/Extensions/LivePedalboardSuite/temporary/Start_LivePedalboardSuite_BringUp_Audible.scd
+====================================================================
+// Start_LivePedalboardSuite_BringUp_Audible.scd
+// v0.1.0
+// MD 20251005-1238
+
+/*
+Purpose
+- After you run Start_LivePedalboardSuite_BringUp.scd (muted by design),
+  make CURRENT audible with a safe, idempotent test source.
+Style
+- var-first; lowercase; Server.default.bind for Ndef ops; no server.sync.
+*/
+
+(
+var pb;
+
+pb = ~system.tryPerform(\pedalboard);
+
+// Ensure safe 2ch test melody and silent \ts0 exist (idempotent)
+Server.default.bind({
+    if(Ndef(\testmelody).source.isNil) {
+        Ndef(\testmelody, {
+            var trig, seq, f, env, pan;
+            trig = Impulse.kr(3.2);
+            seq  = Dseq([220,277.18,329.63,392,329.63,277.18,246.94], inf);
+            f    = Demand.kr(trig, 0, seq);
+            env  = Decay2.kr(trig, 0.01, 0.35);
+            pan  = ToggleFF.kr(trig).linlin(0,1,-0.6,0.6);
+            Pan2.ar(SinOsc.ar(f) * env * 0.25, pan)
+        });
+    };
+    Ndef(\testmelody).ar(2);
+
+    if(Ndef(\ts0).source.isNil) { Ndef(\ts0, { Silent.ar(2) }) };
+    Ndef(\ts0).ar(2);
+
+    // Materialize chain endpoints
+    if(Ndef(\chainA).notNil) { Ndef(\chainA).ar(2) };
+    if(Ndef(\chainB).notNil) { Ndef(\chainB).ar(2) };
+});
+
+// Route CURRENT to testmelody and play it (no NEXT enforcement here)
+if(pb.notNil) {
+    if(pb.respondsTo(\setSourceCurrent)) { pb.setSourceCurrent(\testmelody) };
+    if(pb.respondsTo(\playCurrent))      { pb.playCurrent };
+};
+
+// Friendly post
+"🔊 CURRENT made audible via \\testmelody. If you prefer silence, run your Make_CURRENT_Silent.scd.".postln;
+)
+
+====================================================================
+FILE 3/3
+Path:
+~/Library/Application Support/SuperCollider/Extensions/LivePedalboardSuite/README_LPDisplay_MPB_Integration.txt
+====================================================================
+LPDisplay ↔ MagicPedalboard Integration — Stable Baseline
+MD 2025-10-05
+
+What this pack does
+-------------------
+1) Reverts AdapterBridge to DISPLAY-ONLY:
+   - Forwards canonical paths to MagicPedalboard.
+   - Flips ACTIVE/NEXT visual on "/switch".
+   - Does NOT re-assert sources or exclusivity (no audio manipulation).
+
+2) Adds an "audible bring-up" helper script you can run AFTER the normal start
+   to make CURRENT audible with a test melody.
+
+3) Leaves AutoMeters and LPDisplay adapter code unchanged (they already work).
+
+Daily run (muted baseline) — exact order
+----------------------------------------
+1) Language → Recompile Class Library (after replacing AdapterBridge.sc).
+2) Start_LivePedalboardSuite_BringUp.scd      // opens LPDisplay, binds adapters, installs meters
+3) Fix_LPAdapter_BindController.scd           // binds LPDisplayAdapter to the real window controller
+4) (Optional) Start_LivePedalboardSuite_BringUp_Audible.scd  // makes CURRENT audible
+
+Notes
+-----
+• If you prefer to ALWAYS start audible, you can simply run the audible helper
+  as step (4) every time—or we can add a single flag at the top of your Start_* file.
+• Occasional "Node not found" lines around a switch are expected on NodeProxy rewraps
+  and are harmless if transient.
+• If anything still silences audio on /switch, the issue is within MagicPedalboard,
+  not in the display path (which is now strictly read-only).
+
+Acceptance criteria (unchanged)
+-------------------------------
+• /switch does not drop to silence (brief crossfade is fine).
+• ACTIVE/NEXT visual flips correctly on LPDisplay.
+• Meters continue updating from chain A/B endpoints.
+• Bring-up makes it obvious whether you're muted or audible.
