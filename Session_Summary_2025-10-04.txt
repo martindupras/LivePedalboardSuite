@@ -1,0 +1,155 @@
+
+Session Summary — LivePedalboardSuite bring-up + LPDisplay ACTIVE/NEXT
+Date: 2025-10-04 16:48
+
+OBJECTIVES (restated)
+----------------------
+1) Operate from a single .scd bring-up file that:
+   • boots/ensures the server,
+   • brings up LivePedalboardSystem (pedalboard + command tree + MIDI),
+   • opens LPDisplayLayoutWindow and binds it to the CommandManager via LPDisplayAdapter,
+   • shows relevant state (System/Choices panes, chain titles) and end-of-chain meters,
+   • listens to MIDI so navigating the command tree and sending queued commands manipulates MagicPedalboard live.
+2) Keep changes minimal: work inline first, integrate only when a test passes; avoid file sprawl; follow Martin's SC style rules (var-first, lowercase names, no server.sync, AppClock for UI only, return -> a Window when opening GUI).
+
+WHAT WE DID TODAY
+-----------------
+A) Bring-up alignment (temporary, single file run)
+   • Implemented Start_LivePedalboardSuite_BringUp.scd (v0.9.3) to:
+     - open/reuse LPDisplayLayoutWindow,
+     - bring up LivePedalboardSystem,
+     - auto-bind LPDisplayAdapter,
+     - start muted by default (CURRENT -> \ts0; Ndef(\testmelody) stopped),
+     - install A/B meters after a short settle,
+     - set top titles to "Chain A — src | procs | sink" / "Chain B — …".
+
+B) ACTIVE/NEXT visual (permanent, minimal API)
+   • Added LPDisplayLayoutWindow_ActiveHighlight.sc (v0.1.1):
+     - public API setActiveChainVisual(\A|\B) to color + retitle top panes.
+   • Added LPDisplayAdapter_ActiveForward.sc (v0.1.0):
+     - forwards setActiveChainVisual to the window controller.
+   • Added LPDisplayAdapter_SetController.sc (v0.1.1):
+     - exposes setController(controllerRef) so the adapter holds the actual window.
+   • Modified LivePedalboardSystem-AdapterBridge.sc (v0.1.5):
+     - queueExportCallback handles canonical paths; on "/switch":
+       > flips ~md_currentChain,
+       > calls CommandManager.display.setActiveChainVisual(...).
+
+C) Diagnostics & helpers (temporary)
+   • Fix_LPAdapter_BindController.scd — binds adapter.controller to ~guiLP and paints once.
+   • Test_LPS_ManualSwitch.scd — invokes the real queueExportCallback with "/switch".
+   • Make_CURRENT_Audible.scd / Make_CURRENT_Silent.scd — quick toggles for hearing or silencing CURRENT.
+
+FILES ADDED / MODIFIED (with full paths)
+----------------------------------------
+Permanent class extensions
+1) ~/Library/Application Support/SuperCollider/Extensions/LivePedalboardSuite/LPDisplay/LPDisplayLayoutWindow_ActiveHighlight.sc  (v0.1.1)
+2) ~/Library/Application Support/SuperCollider/Extensions/LivePedalboardSuite/LPDisplay/LPDisplayAdapter_ActiveForward.sc      (v0.1.0)
+3) ~/Library/Application Support/SuperCollider/Extensions/LivePedalboardSuite/LPDisplay/LPDisplayAdapter_SetController.sc      (v0.1.1)
+4) ~/Library/Application Support/SuperCollider/Extensions/LivePedalboardSuite/LivePedalboardSystem/LivePedalboardSystem-AdapterBridge.sc (v0.1.5, full replacement)
+
+Temporary .scd (runbooks/tests)
+5) ~/Library/Application Support/SuperCollider/Extensions/LivePedalboardSuite/temporary/Start_LivePedalboardSuite_BringUp.scd   (v0.9.3)
+6) ~/Library/Application Support/SuperCollider/Extensions/LivePedalboardSuite/temporary/Fix_LPAdapter_BindController.scd       (v0.1.1)
+7) ~/Library/Application Support/SuperCollider/Extensions/LivePedalboardSuite/temporary/Test_LPS_ManualSwitch.scd              (v0.1.0)
+8) ~/Library/Application Support/SuperCollider/Extensions/LivePedalboardSuite/temporary/Make_CURRENT_Audible.scd                (v0.1.0)
+9) ~/Library/Application Support/SuperCollider/Extensions/LivePedalboardSuite/temporary/Make_CURRENT_Silent.scd                 (v0.1.0)
+
+EXPECTED RUN ORDER (exact)
+--------------------------
+After any class file changes: Language -> Recompile Class Library.
+Then run in this order:
+1) Start_LivePedalboardSuite_BringUp.scd   -> silent baseline; meters armed; titles set; ACTIVE/NEXT shows A ACTIVE.
+2) Fix_LPAdapter_BindController.scd        -> ensures adapter.controller is the actual window; paints ACTIVE once.
+3) (Optional) Make_CURRENT_Audible.scd     -> enables \testmelody on CURRENT.
+4) Test_LPS_ManualSwitch.scd               -> triggers "/switch" via queueExportCallback; panes swap ACTIVE/NEXT; audio should continue.
+5) (Optional) Make_CURRENT_Silent.scd      -> returns to silent baseline.
+
+CURRENT STATE / PROGRESS
+------------------------
+- Single bring-up file works from a muted baseline and is non-destructive on re-runs.
+- LPDisplay binds to CommandManager via LPDisplayAdapter.
+- A/B meters installed and running.
+- Top pane titles show Chain A / Chain B with live chain summaries.
+- ACTIVE/NEXT visual now flips on "/switch" (via adapter -> controller API).
+- Manual queue callback test path verified; MIDI devices enumerate and bindings succeed (IAC to SC shown).
+
+OPEN ISSUE TO RESOLVE NEXT
+--------------------------
+Symptom: When CURRENT is audible and you invoke "/switch", you hear a short burst and then audio stops.
+Console around failure shows transient server messages (e.g., "FAILURE IN SERVER /n_set Node XXXX not found"), and CURRENT/NEXT sources sometimes both end up as \testmelody in the textual snapshot right after the switch.
+
+What we tried today:
+- Added a post-switch audio guard in AdapterBridge (0.12–0.16 s AppClock delay) to re-assert:
+  - CURRENT -> \testmelody, NEXT -> \ts0, and call playCurrent.
+  -> Result: still seeing dropouts after the initial burst.
+
+Likely causes (to test):
+1) Crossfade + exclusive muting race: the pedalboard's internal A/B crossfade or exclusivity logic may still be zeroing the output after our guard runs.
+2) Source setters order/targets: setSourceA/B plus setSourceCurrent/playCurrent might conflict depending on which side is considered CURRENT by the pedalboard during/after crossfade.
+3) Ndef rewrap timing: Ndef(\chainA/\chainB) rewraps ("wrapped channels…") and tap reinstalls produce small races; our guard delay may still be too early or target the wrong sink/group.
+
+NEXT SESSION PLAN (minimal, test-first)
+--------------------------------------
+Step 1 — Observe precisely what plays right after "/switch"
+- Add a 1-second post-switch probe block to print:
+  - Ndef(\testmelody).isPlaying,
+  - Ndef(\chainA).isPlaying and Ndef(\chainB).isPlaying,
+  - pedalboard.sourceA, sourceB, and CURRENT side.
+- Log this twice: at +120 ms and +600 ms after /switch.
+
+Step 2 — Serialize the post-switch actions
+- Move audio re-assert into a single function called only after we detect both chain proxies are .isPlaying (or after a stable bus rate), with a backoff retry (e.g., 0.12 -> 0.24 -> 0.36 s).
+- Prefer a single setter: setSourceCurrent(\testmelody) + playCurrent, and avoid setSourceA/B unless required by your pedalboard's API. If needed, add a mode flag so we select the safest sequence for your build.
+
+Step 3 — Confirm exclusivity policy
+- Verify that enforceExclusiveCurrentOptionA is not being called again post-switch (or adapt our guard to call it after playCurrent). If required, add an explicit ensureExclusiveCurrent() right after playCurrent.
+
+Acceptance criteria for the fix
+- After "/switch", audio continues seamlessly on the newly ACTIVE chain (only a brief crossfade is acceptable) without falling to silence.
+- ACTIVE/NEXT visuals remain correct.
+- No persistent server failures beyond transient setup lines.
+
+COMPREHENSIVE PROMPT FOR NEXT TIME
+----------------------------------
+Use this exact prompt at the start of our next session:
+
+"""
+We are resuming LivePedalboardSuite integration on macOS. Today's goal: fix the audio drop to silence after "/switch" while keeping our minimal-changes approach.
+
+Context:
+- Files and versions in use:
+  - LPDisplayLayoutWindow_ActiveHighlight.sc v0.1.1
+  - LPDisplayAdapter_ActiveForward.sc v0.1.0
+  - LPDisplayAdapter_SetController.sc v0.1.1
+  - LivePedalboardSystem-AdapterBridge.sc v0.1.5 (has postSwitchAudioGuard)
+  - temporary/Start_LivePedalboardSuite_BringUp.scd v0.9.3 (muted baseline)
+  - temporary/Fix_LPAdapter_BindController.scd v0.1.1
+  - temporary/Test_LPS_ManualSwitch.scd v0.1.0
+  - temporary/Make_CURRENT_Audible.scd v0.1.0 and Make_CURRENT_Silent.scd v0.1.0
+- Coding rules: var-first declarations; lowercase method names; no server.sync; AppClock for UI/timing only; return -> a Window when opening GUI; tilde (~) interpreter vars; avoid non-local returns in callbacks.
+- LPDisplay controller class is LPDisplayLayoutWindow (not the old TestWindow).
+- Bring-up starts muted; I enable sound by running Make_CURRENT_Audible.scd.
+
+Please do the following with explicit filenames/paths:
+1) Provide a small diagnostic .scd saved under temporary/ that, when I run it after a switch, prints:
+   - Ndef(\testmelody).isPlaying,
+   - Ndef(\chainA).isPlaying, Ndef(\chainB).isPlaying,
+   - pedalboard.sourceA/sourceB,
+   - CURRENT side (~md_currentChain),
+   at +120 ms and +600 ms after the switch.
+2) Propose a minimal patch (single file change) to LivePedalboardSystem-AdapterBridge.sc that:
+   - serializes postSwitchAudioGuard with 2 retries (0.12 s, 0.24 s),
+   - uses setSourceCurrent + playCurrent only (unless you detect my pedalboard requires setSourceA/B),
+   - (optional) calls enforceExclusiveCurrentOptionA after playCurrent if available.
+3) Provide exact run instructions: recompile, then run Start_LivePedalboardSuite_BringUp.scd, Make_CURRENT_Audible.scd, Test_LPS_ManualSwitch.scd; show expected console and what changes if the patch works.
+4) Keep to my file naming, placement, and coding rules (var-first, lowercase, no server.sync, AppClock, single Window; return -> a Window for GUI open).
+"""
+
+NOTES / HOUSEKEEPING
+--------------------
+- The deprecation warning for MagicPedalboardNew can be cleaned later by preferring MagicPedalboard if present; defer until after the audio drop is solved.
+- Any time you add/modify *.sc class files, recompile the class library before running .scd scripts.
+- If LPDisplay panes ever fail to change, run Fix_LPAdapter_BindController.scd once to rebind the adapter to the real window instance.
+
+— End of summary —
