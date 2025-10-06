@@ -1,0 +1,108 @@
+Continuation Prompt for Martin — LivePedalboardSuite × LPDisplay
+================================================================
+
+Purpose
+Use this prompt to continue the conversation with maximum context preserved. It summarizes the project state, strict SuperCollider rules, current bring‑up, LPDisplay adoption, available utilities, and next actions. Paste this to your assistant when resuming.
+
+-------------------------------------------------------------------------------
+WHO / PROJECT
+-------------------------------------------------------------------------------
+• User: Martin Dupras (Research Student)
+• Project: LivePedalboardSuite — MagicPedalboard (JITLib A/B chains) + CommandTree + MDMiniLogger with a single GUI: LPDisplay.
+• Platform: SuperCollider on macOS (Qt GUI). No SoundIn for tests; generated audio only.
+
+-------------------------------------------------------------------------------
+STRICT SUPERCOLLIDER RULES (enforce every time)
+-------------------------------------------------------------------------------
+• var‑first: declare all `var` at the start of every block and closure.
+• Naming: descriptive lowercase variable names; no single‑letter locals.
+• Methods: lowercase names; don’t start with an underscore.
+• No non‑local returns: no `^` in scripts; return value = last expression.
+• Server control: no `server.sync`. Use `s.waitForBoot`, `s.initTree`, `s.defaultGroup.freeAll`.
+• GUI timing: AppClock only. Scripts that open a GUI must return `-> a Window`.
+• Ndef wiring: `Ndef(left) <<> Ndef(right)`; sinks read `\in.ar(2)`.
+• Acceptance tests: generated audio only (no `SoundIn`).
+• Filesystem ops: use `File.exists`, `File.mkdir`; avoid `PathName.exists`/`PathName.mkdir`.
+• Strings: use only known‑good selectors (avoid `keepWhile`, `lastIndexOf`, etc.).
+• Path helpers: `PathName(...).pathOnly` is OK.
+
+-------------------------------------------------------------------------------
+LPDISPLAY IS CANONICAL (no old window)
+-------------------------------------------------------------------------------
+• Controller class: LPDisplayLayoutWindow (canonical UI). No legacy window code.
+• Single GUI window; refreshed via AppClock; scripts should bring the window front and return it.
+• Meter feeds: SendPeakRMS taps inside the chains (no retap scripts). Paths: `/peakrmsA` (id 2001), `/peakrmsB` (id 2002).
+• HUD mapping convention: top −6 dB, floor −60 dB, gamma 1.0.
+
+-------------------------------------------------------------------------------
+WORKING STARTER (as of today)
+-------------------------------------------------------------------------------
+• File: `temporary/Start_LivePedalboardSuite_BringUp_LPDisplay.scd`
+• Behaviour: boots server → initializes tree → closes prior LPDisplay windows → `LPDisplayLayoutWindow.new` → obtains/opens the actual GUI `Window` → creates `~livePedalboardSystem = LivePedalboardSystem.new` → (Step 5 binding is currently manual) → fronts and returns the GUI window.
+• Diagnostics: posts `[Start-LPDisplay] ...` lines for each step so we can see exactly what happened.
+
+-------------------------------------------------------------------------------
+STEP 5 (BINDING) — TWO OPTIONS (choose one to make canonical)
+-------------------------------------------------------------------------------
+Option A — System‑led (recommended)
+    ~livePedalboardSystem.autoBindLPDisplay(displayController)
+    // Optional in starter:
+    // ~livePedalboardSystem.enableAutoMeters    (or .autoMetersInstall)
+
+Option B — Adapter‑led
+    LPDisplayAdapter.setController(displayController)
+    LivePedalboardSystem_AdapterBridge.attach(~livePedalboardSystem)   // exact method name per your file
+
+Either option should push an initial snapshot to the display (chains, active chain, status). Meters are already handled via your project helpers (SendPeakRMS in chains).
+
+-------------------------------------------------------------------------------
+ULTRA‑MINIMAL SMOKE
+-------------------------------------------------------------------------------
+• File: `temporary/Smoke_LPDisplay_Minimal.scd`
+• Runs your utilities only:
+    1) `utilities/Meters_QuickCheck_And_Enable.scd` (or `Install_QuietProxyMeters_Core.scd`)
+    2) `utilities/Quick_SetSource_Testmelody.scd`
+• Purpose: ensure meters move and HUD shows life after bring‑up.
+
+-------------------------------------------------------------------------------
+INVENTORY / CLEANUP UTILITIES (known‑good)
+-------------------------------------------------------------------------------
+• List class extensions: `utilities/List_ClassExtensions_ByOwner.scd` → groups `+ClassName { ... }` by owner.
+• Usage index: `utilities/Make_Project_Usage_Index.scd` (symbol‑substring reachability; optional extra seeds).
+• Global unused report: `utilities/Find_Unused_Classes_And_Scripts.scd` (unused class symbols + whole‑file candidates + orphan .scd).
+• Archive sweep (preview‑first): `utilities/Archive_Quick_Sweep.scd` (File.exists/mkdir; PREVIEW or shell script; no rename syscall).
+• Orphan renamer (Bash 3.2‑safe): `rename_orphan_scd.sh` (dry‑run default; appends `_UNUSED`).
+
+-------------------------------------------------------------------------------
+RECENT OUTCOMES / DECISIONS
+-------------------------------------------------------------------------------
+• Starter `Start_LivePedalboardSuite_BringUp_LPDisplay.scd` works; returns `-> a Window` and fronts LPDisplay. Diagnostics confirm `controller.open` returned a Window.
+• Extensions inventory (latest):
+  – +LivePedalboardSystem: `LivePedalboardSystem_AutoBindLPDisplay.sc`, `LivePedalboardSystem_Accessors.sc`
+  – +MagicPedalboard: none
+  – +LPDisplayLayoutWindow: none
+  – +LPDisplayAdapter: none
+• Next: pick binding path for Step 5 and (optionally) always call auto‑meters in starter. Consider folding small, stable extensions into base classes after acceptance tests.
+
+-------------------------------------------------------------------------------
+SPEC (LPDisplay adoption) — key points to preserve
+-------------------------------------------------------------------------------
+• LPDisplay is the only GUI; old window code is out of scope.
+• A/B chains: JITLib with exclusivity; sinks read `\in.ar(2)`.
+• Meters via SendPeakRMS taps in chains → `/peakrmsA`/`/peakrmsB` (ids 2001/2002).
+• Acceptance: bring‑up returns `-> a Window`, chain labels correct, active highlight follows A/B, meters move under generated source.
+
+-------------------------------------------------------------------------------
+RUN ORDER (clean restart)
+-------------------------------------------------------------------------------
+1) Starter:  temporary/Start_LivePedalboardSuite_BringUp_LPDisplay.scd
+2) Step 5:   choose one line from Option A or B (optional meters)
+3) Smoke:    temporary/Smoke_LPDisplay_Minimal.scd
+
+-------------------------------------------------------------------------------
+REQUESTS TO ASSISTANT (when resuming)
+-------------------------------------------------------------------------------
+• Embed our chosen Step‑5 binding into the starter (v‑bump + diagnostic posts).
+• If desired, integrate auto‑meters into the starter.
+• Propose a minimal set of extension methods to fold into base classes, with acceptance.
+• Keep every script: single block, var‑first, no `^`, return -> a Window when a GUI is opened.

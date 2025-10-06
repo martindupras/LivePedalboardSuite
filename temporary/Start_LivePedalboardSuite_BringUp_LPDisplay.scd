@@ -1,130 +1,138 @@
 // Start_LivePedalboardSuite_BringUp_LPDisplay.scd
-// v1.0.1
-// MD 20251006-1438
+// v1.0.2
+// MD 20251006-1502
 
 /*
 Purpose
 - From a clean SC restart, bring up LivePedalboardSystem and show LPDisplay (not the old window).
-- Keep it minimal and robust; return -> a Window (the LPDisplay GUI window).
+- Minimal, explicit diagnostics, and returns -> a Window (the LPDisplay GUI window).
 
 Style
 - STRICT: var-first; descriptive lowercase names; no single-letter locals; no non-local returns (^).
 - No server.sync; use Server.default.waitForBoot, s.initTree, s.defaultGroup.freeAll.
-- AppClock only for any GUI timing.
-
-What this does
-1) Boot the server into a known state.
-2) Close any existing LPDisplay windows.
-3) Create the LPDisplayLayoutWindow controller and obtain its GUI Window safely.
-4) Instantiate LivePedalboardSystem.
-5) (You uncomment exactly one) bind LPDisplay <-> system using your real helper.
-6) Bring the LPDisplay window to front and return it.
 */
 
 (
-var server, nowStamp, suiteRoot;
+var nowStamp, suiteRoot;
 var displayController, displayWindow;
-var closeExistingLPDisplayWindows, obtainDisplayWindow, findDisplayWindowByName;
+var s, postStep, scanForDisplayWindow, closeExistingDisplayWindows;
 
-// ----- configuration -----
-nowStamp   = Date.getDate.stamp;
-suiteRoot  = (Platform.userExtensionDir ++ "/LivePedalboardSuite").standardizePath;
-server     = Server.default;
+nowStamp  = Date.getDate.stamp;
+suiteRoot = (Platform.userExtensionDir ++ "/LivePedalboardSuite").standardizePath;
+s         = Server.default;
 
-// ----- helpers -----
-closeExistingLPDisplayWindows = {
-    var windows, nameString;
-    windows = Window.allWindows ? [];
-    windows.do({ arg w;
-        nameString = w.name ? "";
-        if(nameString.contains("LPDisplay") or: { nameString.contains("Layout") or: { nameString.contains("MagicDisplayGUI") } }) {
-            w.close;
-        };
-    });
-    nil
-};
+postStep = { arg msg; ("[Start-LPDisplay] " ++ msg).postln };
 
-findDisplayWindowByName = {
-    var windows, nameString, hit;
-    windows = Window.allWindows ? [];
+scanForDisplayWindow = {
+    var hit;
     hit = nil;
-    windows.do({ arg w;
-        nameString = w.name ? "";
-        if(nameString.contains("LPDisplay") or: { nameString.contains("Layout") or: { nameString.contains("MagicDisplayGUI") } }) {
+    Window.allWindows.do({ arg w;
+        var nameString = w.name ? "";
+        if(
+            nameString.contains("LPDisplay")
+            or: { nameString.contains("Layout") }
+            or: { nameString.contains("MagicDisplayGUI") }
+        ) {
             hit = w;
         };
     });
     hit
 };
 
-obtainDisplayWindow = { arg controller;
-    // Try common controller methods, then fall back to scanning open windows.
-    var w;
-    w = nil;
-
-    // Some controllers implement .open, .makeWindow or .build returning a Window.
-    if(w.isNil and: { controller.respondsTo(\open) })        { w = controller.open };
-    if(w.isNil and: { controller.respondsTo(\makeWindow) })  { w = controller.makeWindow };
-    if(w.isNil and: { controller.respondsTo(\build) })       { w = controller.build };
-    // Some expose the internal Window via a .window accessor.
-    if(w.isNil and: { controller.respondsTo(\window) })      { w = controller.window };
-
-    // If still nil or not a Window, search by window title.
-    if(w.isNil or: { w.isKindOf(Window).not }) {
-        w = findDisplayWindowByName.value;
-    };
-
-    w // may still be nil if the controller didn't create a window
+closeExistingDisplayWindows = {
+    var closedCount;
+    closedCount = 0;
+    Window.allWindows.do({ arg w;
+        var nameString = w.name ? "";
+        if(
+            nameString.contains("LPDisplay")
+            or: { nameString.contains("Layout") }
+            or: { nameString.contains("MagicDisplayGUI") }
+        ) {
+            closedCount = closedCount + 1;
+            w.close;
+        };
+    });
+    postStep.value("Closed " ++ closedCount ++ " existing LPDisplay-related window(s).");
+    nil
 };
 
-// ----- 1) server boot -> known state -----
-if(server.serverRunning.not) {
-    server.waitForBoot({ ("[Start] Server booted @ " ++ nowStamp).postln; });
-} {
-    "[Start] Server already running; proceeding.".postln;
-};
-server.initTree;
-server.defaultGroup.freeAll;
+// 1) Boot server -> known state
+s.serverRunning.not.if({
+    postStep.value("Booting server...");
+    s.waitForBoot({ postStep.value("Server booted @ " ++ nowStamp) });
+},{
+    postStep.value("Server already running; proceeding.");
+});
+s.initTree;
+s.defaultGroup.freeAll;
+postStep.value("Server tree initialized and default group cleared.");
 
-// ----- 2) close any prior LPDisplay windows -----
-closeExistingLPDisplayWindows.value;
+// 2) Close any existing LPDisplay windows
+closeExistingDisplayWindows.value;
 
-// ----- 3) create LPDisplay controller and obtain the GUI Window -----
+// 3) Create LPDisplay controller and obtain its Window safely
+postStep.value("Creating LPDisplayLayoutWindow controller...");
 displayController = LPDisplayLayoutWindow.new;
-displayWindow     = obtainDisplayWindow.value(displayController);
+postStep.value("Controller created: " ++ displayController.class.asString);
 
-// If the controller didn't create a window, try a simple fallback open.
-if(displayWindow.isNil) {
-    if(displayController.respondsTo(\open)) {
-        displayWindow = displayController.open;
-    } {
-        // As a last resort, look again by name (a deferred GUI build may have occurred).
-        0.1.wait; // small GUI settle
-        displayWindow = findDisplayWindowByName.value;
-    };
-}
+displayWindow = nil;
 
-// If we still have no Window, post a helpful note but keep going (so you can inspect).
-if(displayWindow.isNil) {
-    "[Start] LPDisplayLayoutWindow did not return a Window; check the controller's API.".postln;
-} {
-    displayWindow.front;
-}
+// Try common controller APIs in order; post diagnostics for each attempt
+(displayWindow.isNil and: { displayController.respondsTo(\open) }).if({
+    postStep.value("Calling controller.open ...");
+    displayWindow = displayController.open;
+    postStep.value("controller.open returned: " ++ displayWindow.class.asString);
+},{});
 
-// ----- 4) instantiate the system (MagicPedalboard + MDMiniLogger + CommandTree) -----
+(displayWindow.isNil and: { displayController.respondsTo(\makeWindow) }).if({
+    postStep.value("Calling controller.makeWindow ...");
+    displayWindow = displayController.makeWindow;
+    postStep.value("controller.makeWindow returned: " ++ (displayWindow.notNil.if({ displayWindow.class.asString }, { "nil" })));
+},{});
+
+(displayWindow.isNil and: { displayController.respondsTo(\build) }).if({
+    postStep.value("Calling controller.build ...");
+    displayWindow = displayController.build;
+    postStep.value("controller.build returned: " ++ (displayWindow.notNil.if({ displayWindow.class.asString }, { "nil" })));
+},{});
+
+(displayWindow.isNil and: { displayController.respondsTo(\window) }).if({
+    postStep.value("Reading controller.window ...");
+    displayWindow = displayController.window;
+    postStep.value("controller.window is: " ++ (displayWindow.notNil.if({ displayWindow.class.asString }, { "nil" })));
+},{});
+
+// Fallback: scan open windows by title
+displayWindow.isNil.if({
+    postStep.value("Scanning open windows by name as fallback...");
+    displayWindow = scanForDisplayWindow.value;
+    postStep.value("Scan result: " ++ (displayWindow.notNil.if({ "found a Window" }, { "no Window found" })));
+},{});
+
+// 4) Instantiate the system (MagicPedalboard + MDMiniLogger + CommandTree)
+postStep.value("Instantiating LivePedalboardSystem...");
 ~livePedalboardSystem = LivePedalboardSystem.new;
+postStep.value("LivePedalboardSystem instance: " ++ ~livePedalboardSystem.class.asString);
 
-// ----- 5) YOU CHOOSE ONE binding line and UNCOMMENT it (leave the other commented) -----
-// A) If you use the system’s autobind helper (file: LivePedalboardSystem-AutoBindLPDisplay.sc):
-// ~livePedalboardSystem.autoBindLPDisplay(displayController);
+// 5) Bind LPDisplay <-> system (UNCOMMENT EXACTLY ONE LINE YOU USE)
+// A) If you use the system’s autobind helper:
+// ~livePedalboardSystem.autoBindLPDisplay(displayController); postStep.value("autoBindLPDisplay called.");
 
-// B) If you use the adapter (file: LPDisplayAdapter_SetController.sc):
-// LPDisplayAdapter.setController(displayController);
+// B) If you use the adapter:
+// LPDisplayAdapter.setController(displayController); postStep.value("LPDisplayAdapter.setController called.");
 
-// (Optional) If you have an auto-meters helper (file: LivePedalboardSystem-AutoMeters.sc):
-// ~livePedalboardSystem.enableAutoMeters; // or ~livePedalboardSystem.autoMetersInstall;
+// Optional: Auto-meters helper (uncomment if you want it in the starter):
+// ~livePedalboardSystem.enableAutoMeters; postStep.value("enableAutoMeters called.");
 
-// ----- 6) bring front and return -> a Window -----
-if(displayWindow.notNil) { displayWindow.front };
-displayWindow // -> a Window (or nil with console guidance)
+// 6) Bring to front (only call .front on actual Window)
+(displayWindow.notNil).if({
+    postStep.value("Bringing LPDisplay window to front...");
+    displayWindow.front;
+    postStep.value("LPDisplay Window fronted. Starter returning -> a Window.");
+},{
+    postStep.value("WARNING: Could not obtain an LPDisplay Window. Check controller API and binding step.");
+});
+
+displayWindow // -> a Window, or nil with diagnostics above
 )
