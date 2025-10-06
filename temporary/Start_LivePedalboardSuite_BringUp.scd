@@ -25,7 +25,7 @@ var lps_startMuted, lpResolveClass, lpOpenWindow, silenceLpDemo, silenceLpDemoDe
     setCurrentSource, win, hadSystem, cm, displayObj;
 
 // CONFIG: set to false if you want the arpeggio audible on bring-up
-lps_startMuted = true;
+lps_startMuted = false;
 
 // ---------- LPDisplay helpers ----------
 lpResolveClass = { \LPDisplayLayoutWindow.asClass ?? { \LPDisplayLayoutTestWindow.asClass } };

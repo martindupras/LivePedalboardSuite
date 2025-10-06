@@ -1,0 +1,238 @@
+// Make_Project_Usage_Index.scd
+// v0.2.3
+// MD 20251006-1104
+
+/*
+Purpose
+- Conservative “what’s referenced from Start” index with optional extra seeds:
+  1) Scan .sc for class symbols ("Name : SuperClass {").
+  2) For each .sc/.scd, record where those symbols are referenced (substring).
+  3) Seed from temporary/Start_LivePedalboardSuite_BringUp.scd and expand to a fixed point:
+     - Files referencing reachable symbols become reachable.
+     - Symbols defined in reachable .sc files become reachable.
+  4) Report reachable files and unreferenced candidates.
+  5) Optional: provide extraSeeds (class names) to include even if Start doesn’t mention them.
+
+Style
+- STRICT: var-first; descriptive lowercase names; no single-letter locals; no non-local returns (^).
+- Known-good sclang only (File.exists, File.use, PathName for listing).
+- Opens a Document and returns it.
+*/
+
+(
+var nowStamp, userExtDir, suiteRoot, startRelPath, startFullPath, extraSeeds;
+var listFiles, listByExt, readText, toRel, classSymbolsFromFile;
+var allFiles, allScFiles, allScdFiles;
+var symbolToFile, fileToDefs, fileToRefs;
+var startSymbols, reachableFiles, reachableSymbols;
+var changed, docLines, doc;
+
+// ----- configuration -----
+nowStamp      = Date.getDate.stamp;
+userExtDir    = Platform.userExtensionDir;
+suiteRoot     = (userExtDir ++ "/LivePedalboardSuite").standardizePath;
+startRelPath  = "temporary/Start_LivePedalboardSuite_BringUp.scd";
+startFullPath = (suiteRoot ++ "/" ++ startRelPath).standardizePath;
+
+// add known anchors if Start does not mention class tokens directly
+extraSeeds = [
+    "LivePedalboardSystem", "LPDisplayLayoutWindow", "LPDisplayAdapter",
+    "MagicPedalboard", "MagicProcessorLibrary", "MDMiniLogger"
+];
+
+// ----- helpers -----
+listFiles = { arg rootPath;
+    var out, walk, ignoreRootNames;
+    out = List.new;
+    ignoreRootNames = [".git", ".cache"];
+
+    walk = { arg pn;
+        var name, isIgnored;
+        name = pn.fileName.asString;
+        isIgnored = ignoreRootNames.any({ arg d; name == d });
+        if(isIgnored) {
+            nil
+        } {
+            if(pn.isFile) { out.add(pn.fullPath) } { pn.entries.do({ arg c; walk.value(c) }) };
+        };
+        nil
+    };
+
+    walk.value(PathName(rootPath));
+    out.asArray
+};
+
+listByExt = { arg files, ext;
+    files.select({ arg p; p.asString.endsWith(ext) })
+};
+
+readText = { arg fullPath;
+    var text;
+    text = "";
+    File.use(fullPath, "r", { arg f; text = f.readAllString; });
+    text ? ""
+};
+
+toRel = { arg fullPath;
+    var norm, rel;
+    norm = fullPath.standardizePath;
+    rel = if(norm.beginsWith(suiteRoot)) {
+        norm.copyRange(suiteRoot.size + 1, norm.size - 1)
+    } {
+        norm
+    };
+    rel
+};
+
+// Extract class symbols by scanning lines for "Name : SuperClass {" and reading the leading token.
+classSymbolsFromFile = { arg fullPath;
+    var text, lines, symbols, idxLine, lineNow, idxColon, head, token, idxChar, charNow;
+    var isWordChar, isLetter;
+
+    isWordChar = { arg ch;
+        var isAZ, isaz, is09, isUnderscore;
+        isAZ         = (ch >= $A) and: { ch <= $Z };
+        isaz         = (ch >= $a) and: { ch <= $z };
+        is09         = (ch >= $0) and: { ch <= $9 };
+        isUnderscore = (ch == $_);
+        (isAZ or: { isaz or: { is09 or: { isUnderscore } } })
+    };
+    isLetter = { arg ch;
+        ((ch >= $A) and: { ch <= $Z }) or: { (ch >= $a) and: { ch <= $z } }
+    };
+
+    text     = readText.value(fullPath);
+    lines    = text.split(Char.nl);
+    symbols  = List.new;
+
+    idxLine = 0;
+    while({ idxLine < lines.size }, {
+        lineNow = lines[idxLine];
+        if(lineNow.notNil) {
+            idxColon = lineNow.indexOf($:);
+            if(idxColon.notNil and: { idxColon > 0 }) {
+                head = lineNow.copyRange(0, idxColon - 1).stripWhiteSpace;
+                token = "";
+                idxChar = 0;
+                while({ idxChar < head.size }, {
+                    charNow = head[idxChar];
+                    if(isWordChar.value(charNow)) {
+                        token = token ++ charNow;
+                        idxChar = idxChar + 1;
+                    } {
+                        idxChar = head.size;
+                    };
+                });
+                if(token.size > 0) {
+                    if(isLetter.value(token[0])) { symbols.add(token.asString) };
+                };
+            };
+        };
+        idxLine = idxLine + 1;
+    });
+
+    symbols.asArray
+};
+
+// ----- collect files -----
+allFiles   = listFiles.value(suiteRoot);
+allScFiles = listByExt.value(allFiles, ".sc");
+allScdFiles= listByExt.value(allFiles, ".scd");
+
+// Build symbol -> defining .sc file, and file -> defined symbols
+symbolToFile = IdentityDictionary.new;
+fileToDefs   = IdentityDictionary.new;
+allScFiles.do({ arg f;
+    var defs, safeDefs;
+    defs = classSymbolsFromFile.value(f);
+    fileToDefs[f] = defs;
+    safeDefs = defs ? [];
+    safeDefs.do({ arg sym; if(symbolToFile[sym].isNil) { symbolToFile[sym] = f } });
+});
+
+// Build file -> referenced symbols (substring match)
+fileToRefs = IdentityDictionary.new;
+(allScFiles ++ allScdFiles).do({ arg f;
+    var text, refs;
+    text = readText.value(f);
+    refs = List.new;
+    symbolToFile.keysDo({ arg sym; if(text.contains(sym)) { refs.add(sym) } });
+    fileToRefs[f] = refs.asArray;
+});
+
+// ----- seed from Start + optional extra seeds -----
+startSymbols     = if(File.exists(startFullPath)) { fileToRefs[startFullPath] ? [] } { [] };
+reachableSymbols = Set.new;
+reachableFiles   = Set.new;
+
+startSymbols.do({ arg s; reachableSymbols.add(s) });
+reachableFiles.add(startFullPath);
+
+startSymbols.do({ arg s;
+    var defFile;
+    defFile = symbolToFile[s];
+    if(defFile.notNil) { reachableFiles.add(defFile) };
+});
+
+extraSeeds.do({ arg s;
+    var defFile;
+    reachableSymbols.add(s);
+    defFile = symbolToFile[s];
+    if(defFile.notNil) { reachableFiles.add(defFile) };
+});
+
+// ----- fixed-point expansion -----
+changed = true;
+while({ changed }, {
+    var newFileAdded, newSymAdded;
+    newFileAdded = false;
+    newSymAdded  = false;
+
+    (allScFiles ++ allScdFiles).do({ arg f;
+        var refs, hit;
+        refs = fileToRefs[f] ? [];
+        hit  = refs.detect({ arg s; reachableSymbols.includes(s) });
+        if(hit.notNil) {
+            if(reachableFiles.includes(f).not) {
+                reachableFiles.add(f);
+                newFileAdded = true;
+            };
+        };
+    });
+
+    allScFiles.do({ arg f;
+        var defs;
+        if(reachableFiles.includes(f)) {
+            defs = fileToDefs[f] ? [];
+            defs.do({ arg s;
+                if(reachableSymbols.includes(s).not) {
+                    reachableSymbols.add(s);
+                    newSymAdded = true;
+                };
+            });
+        };
+    });
+
+    changed = newFileAdded or: { newSymAdded };
+});
+
+// ----- report -----
+docLines = List.new;
+docLines.add("Make_Project_Usage_Index — " ++ nowStamp);
+docLines.add("Start file: " ++ startRelPath);
+docLines.add("Class symbols found: " ++ symbolToFile.size);
+docLines.add("Start references (" ++ startSymbols.size ++ "): " ++ startSymbols.join(", "));
+docLines.add("Extra seeds (" ++ extraSeeds.size ++ "): " ++ extraSeeds.join(", "));
+docLines.add(String.fill(88, $-));
+
+docLines.add("== Reachable files (seeded by Start + extra seeds; transitive) ==");
+reachableFiles.asArray.sort.do({ arg f; docLines.add(" + " ++ toRel.value(f)) });
+
+docLines.add(String.fill(88, $-));
+docLines.add("== Unreferenced candidates (not reached) ==");
+(allScFiles ++ allScdFiles).do({ arg f; if(reachableFiles.includes(f).not) { docLines.add(" - " ++ toRel.value(f)) } });
+
+doc = Document.new("Project Usage Index (" ++ nowStamp ++ ")", docLines.join(Char.nl.asString));
+doc.front;
+doc // return the Document as the last expression
+)

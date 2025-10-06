@@ -1,0 +1,186 @@
+// Archive_Quick_Sweep.scd
+// v0.1.5
+// MD 20251006-1118
+
+/*
+Purpose
+- Find "obvious" archive candidates by filename:
+  names containing OBSOLETE, DISABLED, REJECTED, older, or " copy",
+  or files ending with .bak or .tmp.
+- First run = PREVIEW (opens a Document).
+- Option A: emitShellScript=true to produce a zsh script with mkdir -p + mv commands.
+- Option B: doCopy=true to copy files into the archive tree (non-destructive).
+
+Style
+- STRICT: var-first in every block; descriptive lowercase names; no single-letter locals; no non-local returns (^).
+- Only known-good sclang: File.exists, File.mkdir, File.use(read/write), PathName for listing.
+*/
+
+(
+var nowStamp, userExtDir, suiteRoot, previewOnly, emitShellScript, doCopy, ignoreDirs;
+var isCandidate, collectFiles, toRelPath, ensureDirChain, planSweep, copyTextFile;
+var reportLines, sweepRes, candList, moves, destRoot, shellDoc;
+
+// ----- configuration -----
+nowStamp       = Date.getDate.stamp;
+userExtDir     = Platform.userExtensionDir;
+suiteRoot      = (userExtDir ++ "/LivePedalboardSuite").standardizePath;
+
+// Modes:
+// - Keep PREVIEW first (true). Set to false only if you understand the modes below.
+previewOnly    = true;
+// - Emit a zsh script you can run in Terminal to perform mkdir -p + mv:
+emitShellScript= false;
+// - Copy files (non-destructive) to archive tree from within SC; sources untouched:
+doCopy         = false;
+
+// directories to skip while walking
+ignoreDirs = ["_archived", "_deleted", ".git", ".cache"];
+
+// ----- helpers -----
+isCandidate = { arg pn;
+    var name, lower, ok;
+    name  = pn.fileName.asString;
+    lower = name.toLower;
+    ok = (
+        name.endsWith(".bak")
+        or: { name.endsWith(".tmp") }
+        or: { lower.contains("obsolete") }
+        or: { lower.contains("disabled") }
+        or: { lower.contains("rejected") }
+        or: { lower.contains("older") }
+        or: { lower.contains(" copy") } // note: space to avoid false positives
+    );
+    ok
+};
+
+collectFiles = { arg rootPath;
+    var out, walk;
+    out = List.new;
+
+    walk = { arg pn;
+        var name, isIgnored;
+        name = pn.fileName.asString;
+        isIgnored = ignoreDirs.any({ arg d; name == d });
+        if(isIgnored) {
+            nil
+        } {
+            if(pn.isFile) {
+                out.add(pn.fullPath);
+            } {
+                pn.entries.do({ arg child; walk.value(child) });
+            };
+        };
+        nil
+    };
+
+    walk.value(PathName(rootPath));
+    out.asArray
+};
+
+toRelPath = { arg fullPath, rootPath;
+    var norm, root, rel;
+    norm = fullPath.standardizePath;
+    root = rootPath.standardizePath;
+    rel = if(norm.beginsWith(root)) {
+        norm.copyRange(root.size + 1, norm.size - 1)
+    } {
+        norm
+    };
+    rel
+};
+
+// Ensure that all directories in 'dirPath' exist.
+// Uses File.exists / File.mkdir only; never attempts to create the root "/".
+ensureDirChain = { arg dirPath;
+    var parent;
+    if(dirPath.isNil or: { dirPath.size == 0 }) {
+        nil
+    } {
+        if(File.exists(dirPath).not) {
+            parent = PathName(dirPath).pathOnly;
+            if(parent.notNil and: { parent.size > 0 } and: { parent != dirPath }) {
+                ensureDirChain.value(parent);
+            };
+            File.mkdir(dirPath);
+        };
+        nil
+    }
+};
+
+// Text-only copy (sufficient for .sc/.scd/.json/.md/.txt); non-destructive
+copyTextFile = { arg src, dst;
+    var text, parent;
+    text = "";
+    File.use(src, "r", { arg f; text = f.readAllString; });
+    parent = PathName(dst).pathOnly;
+    if(parent.notNil and: { parent.size > 0 }) { ensureDirChain.value(parent) };
+    File.use(dst, "w", { arg f; f.write(text) });
+    nil
+};
+
+planSweep = {
+    var allFilesLocal, candPn, destRootPath, movesPlan;
+    allFilesLocal = collectFiles.value(suiteRoot);
+    candPn = allFilesLocal.collect({ arg p; PathName(p) }).select({ arg pnx; isCandidate.value(pnx) });
+
+    destRootPath = suiteRoot ++ "/_archived/quick_sweep_" ++ nowStamp.replace($:, $_);
+    ensureDirChain.value(destRootPath);
+
+    movesPlan = candPn.collect({ arg pnx;
+        var rel, destPath, parentDir;
+        rel = toRelPath.value(pnx.fullPath, suiteRoot);
+        destPath = destRootPath ++ "/" ++ rel; // preserve subfolders
+        parentDir = PathName(destPath).pathOnly;
+        ensureDirChain.value(parentDir);
+        [ pnx.fullPath, destPath ]
+    });
+
+    [ candPn, movesPlan, destRootPath ]
+};
+
+// ----- run -----
+sweepRes = planSweep.value;
+candList = sweepRes[0];
+moves    = sweepRes[1];
+destRoot = sweepRes[2];
+
+// Always show a PREVIEW document
+reportLines = List.new;
+reportLines.add("Archive_Quick_Sweep PREVIEW — " ++ nowStamp);
+reportLines.add("Root: " ++ suiteRoot);
+reportLines.add("Destination (if applied): " ++ destRoot);
+reportLines.add(String.fill(88, $-));
+reportLines.add("Candidates: " ++ candList.size);
+candList.do({ arg pn; reportLines.add(" - " ++ toRelPath.value(pn.fullPath, suiteRoot)) });
+Document.new("Archive_Quick_Sweep PREVIEW (" ++ nowStamp ++ ")", reportLines.join(Char.nl.asString)).front;
+
+// Optional actions after preview
+if(previewOnly.not) {
+    if(emitShellScript) {
+        var lines, scriptName;
+        lines = List.new;
+        lines.add("#!/bin/zsh");
+        lines.add("set -euo pipefail");
+        lines.add("");
+        moves.do({ arg pair;
+            var src, dst, parent;
+            src = pair[0]; dst = pair[1];
+            parent = PathName(dst).pathOnly;
+            lines.add("mkdir -p " ++ ("\"" ++ parent ++ "\""));
+            lines.add("mv -v " ++ ("\"" ++ src ++ "\"") ++ " " ++ ("\"" ++ dst ++ "\""));
+        });
+        shellDoc = Document.new("archive_quick_sweep_" ++ nowStamp ++ ".zsh", lines.join(Char.nl.asString));
+        shellDoc.front;
+    };
+
+    if(doCopy) {
+        moves.do({ arg pair;
+            var src, dst;
+            src = pair[0]; dst = pair[1];
+            copyTextFile.value(src, dst);
+        });
+        Document.new("Archive_Quick_Sweep COPY LOG (" ++ nowStamp ++ ")", "Copied " ++ moves.size ++ " file(s) to:\n" ++ destRoot).front;
+    };
+};
+)

@@ -1,0 +1,52 @@
+Archive_Quick_Sweep PREVIEW — 251006_090729
+Root: /Users/martindupras/Library/CloudStorage/OneDrive-TheOpenUniversity/LivePedalboardSuite
+Destination (if doMove=true): /Users/martindupras/Library/CloudStorage/OneDrive-TheOpenUniversity/LivePedalboardSuite/_archived/quick_sweep_251006_090729
+----------------------------------------------------------------------------------------
+Candidates: 45
+ - CommandTree/CircularFileSave_SortByMTime.sc_obsolete
+ - CommandTree/Logging/CommandManagerLogging.sc_OBSOLETE
+ - CommandTree/Logging/MDCommandBuilderLogging.sc_OBSOLETE
+ - CommandTree/Logging/MDCommandNodeLogging.sc_OBSOLETE
+ - CommandTree/Logging/MDCommandTreeLogging.sc_OBSOLETE
+ - CommandTree/MDCommandBuilder_Compat_Ext.sc_OBSOLETE
+ - CommandTree/archived/CommandManager_PathPersistence.sc_OBSOLETE
+ - CommandTree/archived/LivePedalboardSystem_MetersDelegate.sc_OBSOLETE
+ - CommandTree/archived/UserDisplay.sc_OBSOLETE
+ - LPDisplay/LPDisplayLayoutTestWindow.sc_DISABLED
+ - LPDisplay/LPDisplayLayoutTestWindow_DeprecationShim.sc_DISABLED
+ - LPDisplay/LPDisplayLayoutWindow_DisableDemoAudio.sc
+ - LPDisplay/older versions/LPDisplayHudMap copy.sc_v0.9.4
+ - LPDisplay/older versions/LPDisplayLayoutTestWindow copy.txt
+ - LivePedalboardSystem/LPS_CommandQueueToMPB_Adapter.sc_disabled
+ - LivePedalboardSystem/LivePedalboardSystem-AdapterBridge.sc.bak
+ - LivePedalboardSystem/LivePedalboardSystem-Taps_Isolated.sc_OBSOLETE
+ - LivePedalboardSystem/LivePedalboardSystem-Taps_Stable.sc_OBSOLETE
+ - LivePedalboardSystem/LivePedalboardSystem-UsePerfHUD.sc_OBSOLETE
+ - LivePedalboardSystem/MagicPedalboardCommandTree.json.tmp
+ - LivePedalboardSystem/MagicPedalboardCommandTree_older.json
+ - MagicPedalboard/MagicDisplayGUI_GridDemo_Ext_Markers.sc_disabled
+ - MagicPedalboard/MagicDisplayGUI_GridDemo_Ext_Meters.sc_DISABLED
+ - MagicPedalboard/MagicDisplayGUI_Meters_Responders_Ext.sc_disabled
+ - MagicPedalboard/MagicPedalboard.sc_DISABLED
+ - MagicPedalboard/RMS_From_ChainAB_Busses_ToHUD.scd_OBSOLETE
+ - MagicPedalboard/_disabled_20250924/MagicDisplayGUI_GridDemo_Ext_DebugMeter.sc_disabled
+ - MagicPedalboard/_disabled_20250924/MagicDisplayGUI_GridDemo_Ext_Landmarks.sc_disabled
+ - MagicPedalboard/_disabled_20250924/MagicDisplayGUI_GridDemo_Ext_Markers.sc_disabled
+ - MagicPedalboard/_disabled_20250924/MagicDisplayGUI_GridDemo_Ext_Probes.sc_disabled
+ - MagicPedalboard/_disabled_20250924/MagicDisplayGUI_Meters_Draw_Ext.sc_disabled
+ - MagicPedalboard/retargetMeters.scd_OBSOLETE
+ - MagicPedalboard/troubleshooting/MagicDisplayGUI_New_Window_PerfHUD_AB_v0.5.4 copy.scd.txt
+ - _broken/StartHere_LivePedalboardSuite_Standalone copy.scd.txt
+ - _deleted/Window_FlipY_Guard_Ext.sc_DISABLED
+ - troubleshooting/01b.1_HUD_EnsureGridDemoREJECTED.scd
+ - troubleshooting/01b_StartHere_NoReboot copy.scd
+ - troubleshooting/02B_HUD_AB_StrictAOnly copy.scd
+ - troubleshooting/02F_HUD_TestContent_StateChoicesIncoming copy.scd
+ - troubleshooting/obsolete/turnintooneplease copy.scd
+ - troubleshooting/turnintooneplease copy.scd.txt
+ - utilities/Fallback_Diag_OneShot.scd.bak
+ - utilities/Install_QueueExport_AdapterBridge.scd.bak
+ - utilities/SimNav_Bridge_ApplyLeafPayload.scd.bak
+ - utilities/SimNav_Bridge_ApplyLeafPayload_CommandsOnly.scd.bak
+----------------------------------------------------------------------------------------
+No files moved (doMove=false). Set doMove=true and re-run to execute.
