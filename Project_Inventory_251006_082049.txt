@@ -1,0 +1,1717 @@
+Project_Inventory_251006_082049.txt
+Make_Project_Inventory.scd - Project Inventory
+Generated: 251006_082049
+UserExtensionDir: /Users/martindupras/Library/Application Support/SuperCollider/Extensions
+Chosen suite root: /Users/martindupras/Library/CloudStorage/OneDrive-TheOpenUniversity/LivePedalboardSuite
+----------------------------------------------------------------------------------------
+===== Directory tree (depth 2 ) =====
+ROOT: /Users/martindupras/Library/CloudStorage/OneDrive-TheOpenUniversity/LivePedalboardSuite
+----------------------------------------------------------------------------------------
+- /20251006-0803_allSCDfiles.txt
+- /20251006-0803_allSCfiles.txt
+- /_archived/20251004-1354_allSCDfiles.txt
+- /_archived/20251004-1354_allSCfiles.txt
+- /_archived/20251005-1019_allSCDfiles.txt
+- /_archived/20251005-1019_allSCfiles.txt
+- /_archived/Demo_5pm_SimHexGuitar_Footcontroller_BringUp.scd
+- /_archived/Issues_Backlog_MagicDisplayGUI.txt
+- /_archived/LPDisplay_MPB_Status_20251005.txt
+- /_archived/Project_Inventory_251005_182407.txt
+- /_archived/RunBook_20251002-1231.scd
+- /_archived/RunBook_20251002-1231.txt
+- /_archived/RunBook_20251002-1235.scd
+- /_archived/RunBook_20251002-1235.txt
+- /_archived/RunBook_20251002-1257.scd
+- /_archived/RunBook_20251002.scd
+- /_archived/Session_Summary_2025-10-04.txt
+- /_archived/Session_Summary_20251003-1456.txt
+- /_archived/Session_Wrap_2025-09-25_MagicDisplayGUI.txt
+- /_archived/StartHere.txt
+- /_broken/StartHere_LivePedalboardSuite_Standalone copy.scd.txt
+- /_broken/StartHere_LivePedalboardSuite_Standalone.scd
+- /_broken/StartHere_LivePedalboardSuite_Standalone_Reconstructed.scd
+- /_broken/StartHere_LivePedalboardSuite_Standalone_Refactored.scd
+- /_broken/StartHere_LivePedalboardSuite_StandaloneNEWERBROKEN.scd
+- /_deleted/20250925-1457_allSCDfiles.txt
+- /_deleted/20250925-1457_allSCfiles.txt
+- /_deleted/20250926-0856_allSCDfiles.txt
+- /_deleted/20250926-1501_allSCDfiles.txt
+- /_deleted/20250926-1501_allSCfiles.txt
+- /_deleted/2025092600856_allSCfiles.txt
+- /_deleted/20250928-1812_allSCDfiles.txt
+- /_deleted/20250928-1812_allSCfiles.txt
+- /_deleted/20250929-0945_allSCDfiles.txt
+- /_deleted/20250929-0945_allSCfiles.txt
+- /_deleted/20250929-1428_allSCDfiles.txt
+- /_deleted/20250929-1428_allSCfiles.txt
+- /_deleted/concat_review.sh
+- /_deleted/fullDirectoryListing_20250928-1717.txt
+- /_deleted/fulllisting_20250926-1650.txt
+- /_deleted/ls-lr_20250928-1812.txt
+- /_deleted/ls-lr_20250929-0955.txt
+- /_deleted/lslr_202509251302.txt
+- /_deleted/lslr_20250926-0926.txt
+- /_deleted/TIDY_2025-09-25.sh
+- /_deleted/Window_FlipY_Guard_Ext.sc_DISABLED
+- /_DELETEME/Book 1.xlsx
+- /_DELETEME/Book.xlsx
+- /_DELETEME/Document1.docx
+- /_DELETEME/Martin_Dupras.doc
+- /_DELETEME/Re Applecare.loop
+- /_isolated_tests_and_experiments/testNdefsMetersWindow.scd
+- /_isolated_tests_and_experiments/testNdefsMetersWindow_v0.7.scd
+- /_isolated_tests_and_experiments/WindowLayout_Grid_WithSigChainsAndMeters.scd
+- /_isolated_tests_and_experiments/WindowLayout_Grid_WithSigChainsAndMeters_Debug.scd
+- /_isolated_tests_and_experiments/WORKING 20251001.zip
+- /allfiles_20251003-1225.txt
+- /CommandTree/CircularFileSave_SortByMTime.sc_obsolete
+- /CommandTree/CircularSaves.sc
+- /CommandTree/CircularSaves.sc.zip
+- /CommandTree/CommandManager.sc
+- /CommandTree/CommandManager.sc_v1.6.txt
+- /CommandTree/martinTreeEditor.scd
+- /CommandTree/MDCommandBuilder.sc
+- /CommandTree/MDCommandBuilder_Compat_Ext.sc_OBSOLETE
+- /CommandTree/MDCommandBuilderTest.scd
+- /CommandTree/MDCommandNode test.scd
+- /CommandTree/MDCommandNode.sc
+- /CommandTree/MDCommandNode_FixIntegrity+DepthTag.sc
+- /CommandTree/MDCommandNodeTest20250731.scd
+- /CommandTree/MDCommandQueue.sc
+- /CommandTree/MDCommandQueue_Compat_AddAlias.sc
+- /CommandTree/MDCommandSystemTest20250804.scd
+- /CommandTree/MDCommandSystemTest20250812.scd
+- /CommandTree/MDCommandTree.sc
+- /CommandTree/MIDIHandlers.sc
+- /CommandTree/MIDIInputManager.sc
+- /CommandTree/test_circularSaves20250826.scd
+- /CommandTree/testCircularSave_20250819.scd
+- /CommandTree/TestUserDisplay.scd
+- /CommandTree/testVerbosity.scd
+- /CommandTree/Verbosity.sc
+- /concat-files.sh
+- /concat-files2.sh
+- /Demo-simulated/Sim_MIDIInput_Emulator_For_TreeNav.scd
+- /index_vsc_entrypoints.scd
+- /LivePedalboardSystem/ LivePedalboardSystem_AutoBindLPDisplay.sc
+- /LivePedalboardSystem/CommandTreeStructure.xml
+- /LivePedalboardSystem/CommandTreeStructureDiagram.scd
+- /LivePedalboardSystem/DevelopmentPlan_20250922.md
+- /LivePedalboardSystem/LivePedalboardSystem-AdapterBridge.sc
+- /LivePedalboardSystem/LivePedalboardSystem-AdapterBridge.sc.bak
+- /LivePedalboardSystem/LivePedalboardSystem-AutoMeters.sc
+- /LivePedalboardSystem/LivePedalboardSystem-Pathing.sc
+- /LivePedalboardSystem/LivePedalboardSystem-Taps_Isolated.sc_OBSOLETE
+- /LivePedalboardSystem/LivePedalboardSystem-Taps_Stable.sc_OBSOLETE
+- /LivePedalboardSystem/LivePedalboardSystem-UsePerfHUD.sc_OBSOLETE
+- /LivePedalboardSystem/LivePedalboardSystem.sc
+- /LivePedalboardSystem/LivePedalboardSystem.sc_0.2.8.txt
+- /LivePedalboardSystem/LivePedalboardSystem_Accessors.sc
+- /LivePedalboardSystem/LivePedalboardSystem_README.md
+- /LivePedalboardSystem/LPS_CommandQueueToMPB_Adapter.sc_disabled
+- /LivePedalboardSystem/MagicPedalboardCommandTree.json
+- /LivePedalboardSystem/MagicPedalboardCommandTree.json.tmp
+- /LivePedalboardSystem/MagicPedalboardCommandTree_older.json
+- /LivePedalboardSystem/Start_LivePedalboardSystem.scd
+- /Logs/LPDisplay_Sessions.log
+- /LPDisplay/LPDisplay_AllInOne_BringUp.scd
+- /LPDisplay/LPDisplay_AllInOne_Demo_Tour.scd
+- /LPDisplay/LPDisplay_CompatExports.scd
+- /LPDisplay/LPDisplayAdapter.sc
+- /LPDisplay/LPDisplayAdapter_ActiveForward.sc
+- /LPDisplay/LPDisplayAdapter_SetController.sc
+- /LPDisplay/LPDisplayClasses_tests.scd
+- /LPDisplay/LPDisplayHudMap.sc
+- /LPDisplay/LPDisplayLayoutTestWindow.sc_DISABLED
+- /LPDisplay/LPDisplayLayoutTestWindow_DeprecationShim.sc_DISABLED
+- /LPDisplay/LPDisplayLayoutWindow.sc
+- /LPDisplay/LPDisplayLayoutWindow_ActiveHighlight.sc
+- /LPDisplay/LPDisplayLayoutWindow_DisableDemoAudio.sc
+- /LPDisplay/LPDisplaySigChain.sc
+- /LPDisplay/README_LivePedalboardDisplay.md
+- /LPDisplay/README_LivePedalboardDisplay.rst
+- /MagicPedalboard/adapter_CommandTree_to_MagicPedalboard.scd
+- /MagicPedalboard/Adapter_UIHook_Install.scd
+- /MagicPedalboard/bootstrap_audio_and_fx_min.scd
+- /MagicPedalboard/demo_apply_after_fix.scd
+- /MagicPedalboard/demo_commandtree_apply_hotfix.scd
+- /MagicPedalboard/demo_commandtree_apply_now.scd
+- /MagicPedalboard/demo_commandtree_milestone.scd
+- /MagicPedalboard/demo_commandtree_preformed_queues.scd
+- /MagicPedalboard/Demo_Install_MinProcessors.scd
+- /MagicPedalboard/Diag_BusChannel_Map.scd
+- /MagicPedalboard/editor_commandtree_add_demo_verbs.scd
+- /MagicPedalboard/MagicDisplay.sc
+- /MagicPedalboard/MagicDisplayGUI.sc
+- /MagicPedalboard/MagicDisplayGUI_Ext_VisualOnly.sc
+- /MagicPedalboard/MagicDisplayGUI_FixChoicesColors_Ext.sc
+- /MagicPedalboard/MagicDisplayGUI_GridDemo.sc
+- /MagicPedalboard/MagicDisplayGUI_GridDemo_Ext_ContrastFix.scd
+- /MagicPedalboard/MagicDisplayGUI_GridDemo_Ext_Markers.sc_disabled
+- /MagicPedalboard/MagicDisplayGUI_GridDemo_Ext_Meters.sc_DISABLED
+- /MagicPedalboard/MagicDisplayGUI_GridDemo_Ext_Meters.scd
+- /MagicPedalboard/MagicDisplayGUI_GridDemo_Ext_SetOperations.sc
+- /MagicPedalboard/MagicDisplayGUI_GridDemo_Ext_TestMarker.sc
+- /MagicPedalboard/MagicDisplayGUI_GridDemo_Ext_TestMeter.sc
+- /MagicPedalboard/MagicDisplayGUI_Meters_Responders_Ext.sc_disabled
+- /MagicPedalboard/MagicDisplayGUI_PerfHUD_ActiveChain_Ext.scd
+- /MagicPedalboard/MagicDisplayGUI_PerfHUD_ActiveOverlay_Ext.scd
+- /MagicPedalboard/MagicDisplayGUI_PerfHUD_ActiveTint_Ext.scd
+- /MagicPedalboard/MagicDisplayGUI_PerfHUD_LevelsGUI_Listener_Ext.scd
+- /MagicPedalboard/MagicDisplayGUI_PerfHUD_MeterResponders_Ext.scd
+- /MagicPedalboard/MagicDisplayGUI_PerfHUD_MeterResponders_Ext_V0.1.0.scd
+- /MagicPedalboard/MagicDisplayGUI_PerfHUD_Meters_Ext.scd
+- /MagicPedalboard/MagicPedalboard.sc
+- /MagicPedalboard/MagicPedalboard.sc_DISABLED
+- /MagicPedalboard/MagicPedalboardNew.sc
+- /MagicPedalboard/MagicPedalboardNew.sc_buggy
+- /MagicPedalboard/MagicPedalboardNew.sc_v0.4.8.txt
+- /MagicPedalboard/MagicPedalboardTestRunner.sc
+- /MagicPedalboard/MagicProcessorLibrary.sc
+- /MagicPedalboard/MagicProcessorLibrary_defs.scd
+- /MagicPedalboard/Manage_MagicDisplayGUI_Singleton.scd
+- /MagicPedalboard/PERFHUD_UIWriter_Headroom_Overlay.scd
+- /MagicPedalboard/Quick_Switch_Toggle.scd
+- /MagicPedalboard/QuickRestore_AudioAndExclusive.scd
+- /MagicPedalboard/README20250915.md
+- /MagicPedalboard/README_DesignAndAPI_20250915.md
+- /MagicPedalboard/README_MagicPedalboard_Demo.md
+- /MagicPedalboard/retargetMeters.scd_OBSOLETE
+- /MagicPedalboard/RMS_From_ChainAB_Busses_ToHUD.scd_OBSOLETE
+- /MagicPedalboard/switchDelayCheck.scd
+- /MagicPedalboard/utils_mpb_force_reconnect.scd
+- /MDMiniLogger/MDMiniLogger.sc
+- /MDMiniLogger/test_MDMiniLogger.scd
+- /newClassExtensions/CommandManager_CanonicalPaths.sc
+- /newClassExtensions/LivePedalboardSystem_ApplyCanonical.sc
+- /newClassExtensions/MDCommandBuilder_NavHelpers.sc
+- /NextSessionPrompt_251005.txt
+- /notes/LPDisplay Layout Test (Windo.textClipping
+- /prefs/MagicDisplayGUI_window_bounds.txt
+- /README.md
+- /README.txt
+- /reports/LPDisplayLayoutWindow_layout_snapshot.txt
+- /reports/progress_report.txt
+- /RulesForChatGPT-Copilot.scd
+- /RunBook_20251002_Diagnostics.scd
+- /RunBook_20251002_Diagnostics_VARFIRST.scd
+- /Sim_MIDI_FootAndGuitar_Demo_v0.1.scd
+- /StartHere.md
+- /StartHere_LivePedalboardSuite.scd
+- /SystemSpecification_ModularGuitarPedalboard.md
+- /temporary/Combined_Patch_Pack_20251005.txt
+- /temporary/Diagnose_PostSwitch_States.scd
+- /temporary/Disable_CTFX_Crossfade_Adapter.scd
+- /temporary/Disable_LPDisplay_DemoAudio.scd
+- /temporary/Disable_LPS_ManualOverride.scd
+- /temporary/Disable_Ndef_Crossfade.scd
+- /temporary/Emergency_HardMute_Toggle.scd
+- /temporary/Enable_LPS_ManualOverride.scd
+- /temporary/Find_Rogue_Audio.scd
+- /temporary/Fix_LPAdapter_BindController.scd
+- /temporary/Hard_Reset_To_Silent.scd
+- /temporary/Hook_PostSwitch_Repair.scd
+- /temporary/Hook_Switch_NoXfade.scd
+- /temporary/Hook_Switch_NoXfade_FIX2.scd
+- /temporary/Hook_Switch_NoXfade_QCallback.scd
+- /temporary/Make_CURRENT_Audible.scd
+- /temporary/Make_CURRENT_Audible_Sticky.scd
+- /temporary/Make_CURRENT_Silent.scd
+- /temporary/Make_Project_Inventory.scd
+- /temporary/Make_Project_Inventory.scd.txt
+- /temporary/Probe_MPB_Switch_AudioOnly.scd
+- /temporary/Start_LivePedalboardSuite_BringUp.scd
+- /temporary/Start_LivePedalboardSuite_BringUp.scd_v0.9.0
+- /temporary/Start_LivePedalboardSuite_BringUp.scd_v0.9.1
+- /temporary/Test_LPDisplay_Highlight_Current_Inline.scd
+- /temporary/Test_LPS_ActiveVisual_Sanity.scd
+- /temporary/Test_LPS_ManualSwitch.scd
+- /temporary/Troubleshoot_MPB_Switch_Trace.scd
+- /temporary/Troubleshoot_MPB_Switch_Trace_v011.scd
+- /test 31tp8ve.scd
+- /Test_MagicDisplayGUI_BootAndScenarios.scd
+- /troubleshooting/00_Reset_KnownClean_State.scd
+- /troubleshooting/00A_HUD_Sanity_Check.scd
+- /troubleshooting/00B_HUD_Force_GridDemo_Now.scd
+- /troubleshooting/01_StartHere_LivePedalboardSuite.scd
+- /troubleshooting/01b.1_HUD_Ensure_GridDemo.scd
+- /troubleshooting/01b.1_HUD_EnsureGridDemo.scd
+- /troubleshooting/01b.1_HUD_EnsureGridDemo_v0.1.0.scd
+- /troubleshooting/01b.1_HUD_EnsureGridDemoREJECTED.scd
+- /troubleshooting/01b_1_HUD_Adapter.scd
+- /troubleshooting/01b_StartHere_NoReboot copy.scd
+- /troubleshooting/01b_StartHere_NoReboot.scd
+- /troubleshooting/01b_StartHere_NoRebootBROKEN.scd
+- /troubleshooting/01c_PerfHUD_CompatAdapter.scd
+- /troubleshooting/01c_PerfHUD_CompatAdapter.scd_v0.1.1
+- /troubleshooting/02_ForceMeters_FromBuses.scd
+- /troubleshooting/02A_Sanity_Wire_ChainA.scd
+- /troubleshooting/02A_Sanity_Wire_ChainB.scd
+- /troubleshooting/02B_ForceMeters_FromBuses_dB.scd
+- /troubleshooting/02B_HUD_AB_StrictAOnly copy.scd
+- /troubleshooting/02B_HUD_AB_StrictAOnly.scd
+- /troubleshooting/02B_HUD_AB_StrictAOnly_0.1.2.scd
+- /troubleshooting/02B_HUD_AB_StrictAOnly_PerfHUDorGrid.scd
+- /troubleshooting/02B_HUD_AB_StrictAOnly_v0.1.4.scd
+- /troubleshooting/02B_HUD_Receiver_dB_Map.scd
+- /troubleshooting/02B_Taps_dB_NoTest_and_HUD.scd
+- /troubleshooting/02C_Testmelody_Level_Boost.scd
+- /troubleshooting/02D_TestSource_CenteredStereo.scd
+- /troubleshooting/02D_TestSource_CenteredStereo_Pulsed.scd
+- /troubleshooting/02E_Meter_Floor_Adjust.scd
+- /troubleshooting/02F_HUD_TestContent_StateChoicesIncoming copy.scd
+- /troubleshooting/02F_HUD_TestContent_StateChoicesIncoming.scd
+- /troubleshooting/02F_HUD_TestContent_StateChoicesIncoming_v0.1.2.scd
+- /troubleshooting/02F_HUD_TestContent_StateChoicesIncoming_v0.1.3.scd
+- /troubleshooting/02F_HUD_TestContent_StateChoicesIncoming_v0.1.4.scd
+- /troubleshooting/02H_GridDemo_MinHUD_Overlay.scd
+- /troubleshooting/02H_GridDemo_MinHUD_Overlay_v0.1.0.scd
+- /troubleshooting/02H_GridDemo_MinHUD_Overlay_v0.1.1.scd
+- /troubleshooting/02H_GridDemo_MinHUD_Overlay_v0.1.2.scd
+- /troubleshooting/02M_GridDemo_AttachMeters_And_ShowDebugBar.scd
+- /troubleshooting/02M_GridDemo_AttachMeters_And_ShowDebugBar_v0.1.0.scd
+- /troubleshooting/02M_GridDemo_SimpleBusMeters.scd
+- /troubleshooting/02M_GridDemo_SimpleBusMeters_v0.1.0.scd
+- /troubleshooting/02M_GridDemo_SimpleBusMeters_v0.1.1.scd
+- /troubleshooting/02M_GridDemo_SimpleMeters_FromOSC.scd
+- /troubleshooting/02S_AssertStereo_ChainAB_and_Retap.scd
+- /troubleshooting/02S_AssertStereo_ChainAB_and_Retap_SAFE.scd
+- /troubleshooting/03_Sanity_Beep.scd
+- /troubleshooting/04_Probes.scd
+- /troubleshooting/98_PerfHUD_Triage_UIOnly.scd
+- /troubleshooting/99_HUD_GridDemo_OneShot.scd
+- /troubleshooting/99_PerfHUD_BringUp_OneShot.scd
+- /troubleshooting/99_PerfHUD_FixAndVerify_OneShot.scd
+- /troubleshooting/99_PerfHUD_MetersFromBusses.scd
+- /troubleshooting/99_PerfHUD_MetersFromBusses_v0.1.0.scd
+- /troubleshooting/99_PerfHUD_MetersNow.scd
+- /troubleshooting/99_PerfHUD_MetersNow_v2.scd
+- /troubleshooting/99_PerfHUD_MetersNow_v3.scd
+- /troubleshooting/99_PerfHUD_UIOnly_Wiggle_Toggle.scd
+- /troubleshooting/Accept_Meters_QuickCheck.scd
+- /troubleshooting/Accept_Meters_QuickCheck_GUI.scd
+- /troubleshooting/Bridge_mdlevels_to_ampAB.scd
+- /troubleshooting/Bridge_Meters_Universal.scd
+- /troubleshooting/Diag_0G_ALT_CreateGridGuiAndBind.scd
+- /troubleshooting/Diag_0G_CreateGuiAndBind.scd
+- /troubleshooting/Diag_1_CheckDisplayBinding.scd
+- /troubleshooting/Diag_2_LevelsSniffer.scd
+- /troubleshooting/Diag_3_AttachInlineOverlay.scd
+- /troubleshooting/Diag_B_DebugTaps_AmplitudeVsVisual.scd
+- /troubleshooting/Diag_Meters_BringUp_And_Verify.scd
+- /troubleshooting/Diag_Meters_QuickProbe_A_B_T.scd
+- /troubleshooting/Diag_MeterWiring_Inspector.scd
+- /troubleshooting/Feed_ChainA_TestTone_PlayChainA.scd
+- /troubleshooting/Fix_Meters_KnownGood.scd
+- /troubleshooting/Fix_Taps_CheckBadValues_SideEffect.scd
+- /troubleshooting/INSTALL_AmpA_AmpB_Responders_Min.scd
+- /troubleshooting/MD_BringUp_GridDemo_FeedA_SaveMeters_OneDrive.scd
+- /troubleshooting/MD_Check_Suite_Symlink.scd
+- /troubleshooting/MD_MeterDiagnostics_Proof_Min.scd
+- /troubleshooting/MD_Meters_D1_SpyAndRamp.scd
+- /troubleshooting/MD_Meters_D2_ListOSCdefs_ByPath.scd
+- /troubleshooting/MD_Meters_PhaseB_CompatProbe.scd
+- /troubleshooting/MD_Meters_PhaseC_Audio_FIX_TapOnTest.scd
+- /troubleshooting/MD_MinBringUp_FeedA_SimpleMeters_GridDemo.scd
+- /troubleshooting/MD_PerfHUD_LevelSubscriber.scd
+- /troubleshooting/MD_PhaseC_Smoke_PlayTest_TapTest.scd
+- /troubleshooting/MD_Probe_Sources_Chain_RawAmp_AutoStop.scd
+- /troubleshooting/MD_Reinstall_SimpleTaps_And_Sniff_AutoStop.scd
+- /troubleshooting/MD_Spy_md_levels_RawAutoStop.scd
+- /troubleshooting/MD_Taps_Clear_All.scd
+- /troubleshooting/MD_Taps_Clear_All_FIXED.scd
+- /troubleshooting/MODEL_Print_Amp_Model_Values.scd
+- /troubleshooting/Notes_Meters_2025-09-26.txt
+- /troubleshooting/PerfHUD_Adhoc_MeterFix_Overlay.scd
+- /troubleshooting/PERFHUD_Bus_Indices_Inspect.scd
+- /troubleshooting/PerfHUD_Diag_OverlayMeters.scd
+- /troubleshooting/PERFHUD_InlineTaps_On_ChainAB.scd
+- /troubleshooting/PERFHUD_Repoint_MeterSynth_To_Buses.scd
+- /troubleshooting/RMS_IsolatedHUD.scd
+- /troubleshooting/RMS_IsolatedHUD_BringUp.scd
+- /troubleshooting/Run_All_PerfHUD_RMS_Isolated.scd
+- /troubleshooting/Taps_Stable_Runtime_Shim.scd
+- /troubleshooting/turnintooneplease copy.scd.txt
+- /troubleshooting/turnintooneplease.scd
+- /troubleshooting/WorkingSequence_20250929-1649.scd
+- /utilities/ControlLogVerbosity.scd
+- /utilities/DEMO20250923.scd
+- /utilities/DEMO20250923_FIXED.scd
+- /utilities/Editor_AddCommands_Branch_Canonical.scd
+- /utilities/Fallback_Diag_OneShot.scd
+- /utilities/Fallback_Diag_OneShot.scd.bak
+- /utilities/FallbackDemo_ManualSequence.scd
+- /utilities/GUI_QuickFix_Choices_Contrast.scd
+- /utilities/Inspect_And_Queue_AddDelay_AutoRoute.scd
+- /utilities/Inspect_CommandTree_Under_Chain.scd
+- /utilities/Install_LightweightMeterPrinters.scd
+- /utilities/Install_QueueExport_AdapterBridge.scd
+- /utilities/Install_QueueExport_AdapterBridge.scd.bak
+- /utilities/Install_QuietProxyMeters.scd
+- /utilities/Install_QuietProxyMeters_Core.scd
+- /utilities/Make_Project_Inventory.scd
+- /utilities/MD_EOD_Status_Snapshot_FIXED.scd
+- /utilities/MD_Stop_All_MeterDiagnostics.scd
+- /utilities/Meters_Diagnostic_Bootstrap_FIX.scd
+- /utilities/Meters_QuickCheck_And_Enable.scd
+- /utilities/MIDI_Input_Tests2_20250922.scd
+- /utilities/MIDI_Input_Tests_20250922.scd
+- /utilities/MIDI_Log_Console.scd
+- /utilities/MIDI_Log_RefreshAndConnect.scd
+- /utilities/Queue_AddDelay_DirectCanonical.scd
+- /utilities/Quick_SetSource_Testmelody.scd
+- /utilities/Quick_Switch_Toggle.scd
+- /utilities/Rearm_Attach_Probes_AfterBringUp.scd
+- /utilities/Report_ChainPlayFlags.scd
+- /utilities/SimNav_Bridge_ApplyLeafPayload.scd
+- /utilities/SimNav_Bridge_ApplyLeafPayload.scd.bak
+- /utilities/SimNav_Bridge_ApplyLeafPayload_CommandsOnly.scd
+- /utilities/SimNav_Bridge_ApplyLeafPayload_CommandsOnly.scd.bak
+- /utilities/SimNav_Bridge_ApplyLeafPayload_FIX.scd
+- /utilities/Simulate_CommandTree_Queue_AddDelay.scd
+- /utilities/Simulate_CommandTree_Queue_AddDelay_Robust.scd
+- /utilities/Simulate_Step2_NavigateAndQueue_AddDelay.scd
+- /utilities/Test_MagicPedalboard_MIDI_Simulation.scd
+- /utilities/Verify_Baseline_CurrentAudible_NextSilent.scd
+----------------------------------------------------------------------------------------
+===== File headers (.sc / .scd; first 3  line(s)) =====
+========================================================================
+/_archived/Demo_5pm_SimHexGuitar_Footcontroller_BringUp.scd
+// Demo_5pm_SimHexGuitar_Footcontroller_BringUp.scd
+// v0.1.1
+// MD 2025-09-26 16:35 BST
+========================================================================
+/_archived/RunBook_20251002-1231.scd
+// RunBook_20251002-1231.scd
+// MD
+// 20251002-1157
+========================================================================
+/_archived/RunBook_20251002-1235.scd
+// RunBook_20251002-1235.scd
+// MD + Copilot
+// 20251002
+========================================================================
+/_archived/RunBook_20251002-1257.scd
+// RunBook_20251002-Now.scd
+// MD + Copilot
+// 2025-10-02
+========================================================================
+/_archived/RunBook_20251002.scd
+// RunBook.scd
+// MD
+// 20251002-1157
+========================================================================
+/_broken/StartHere_LivePedalboardSuite_Standalone.scd
+// StartHere_LivePedalboardSuite_Standalone.scd
+// v0.1.0
+// MD 20250928-1641
+========================================================================
+/_broken/StartHere_LivePedalboardSuite_Standalone_Reconstructed.scd
+// StartHere_LivePedalboardSuite_Standalone_Reconstructed.scd
+// v0.1.0
+// MD 20250928-1643
+========================================================================
+/_broken/StartHere_LivePedalboardSuite_Standalone_Refactored.scd
+// StartHere_LivePedalboardSuite_Standalone_Refactored.scd
+// v0.1.2
+// MD 20250928-1639
+========================================================================
+/_broken/StartHere_LivePedalboardSuite_StandaloneNEWERBROKEN.scd
+// StartHere_LivePedalboardSuite_Standalone.scd
+// v0.1.0
+// MD 20250929-1024
+========================================================================
+/_isolated_tests_and_experiments/testNdefsMetersWindow.scd
+// WindowLayout_Grid_WithNdefsMeters.scd
+// v1.0 - Minimal dark-green grid + Ndefs + live meters (sinkA/B) + chain labels
+// MD 20250930
+========================================================================
+/_isolated_tests_and_experiments/testNdefsMetersWindow_v0.7.scd
+// WindowLayout_Grid_WithNdefsMeters.scd
+// v1.0 - Minimal dark-green grid + Ndefs + live meters (sinkA/B) + chain labels
+// MD 20250930
+========================================================================
+/_isolated_tests_and_experiments/WindowLayout_Grid_WithSigChainsAndMeters.scd
+// WindowLayout_Grid_WithSigChainsAndMeters.scd
+// v1.2 - Aligns with sigChainOperations: <<> wiring + \in.ar(2) sinks; meters A & B
+// MD 20250930
+========================================================================
+/_isolated_tests_and_experiments/WindowLayout_Grid_WithSigChainsAndMeters_Debug.scd
+// WindowLayout_Grid_WithSigChainsAndMeters_Debug.scd
+// v1.6 - no non-local returns (no ^); robust SendPeakRMS parser; console prints restored
+// MD 20250930
+========================================================================
+/CommandTree/CircularSaves.sc
+// circularSaves.sc
+// v1.2.1
+// MD 20250819
+========================================================================
+/CommandTree/CommandManager.sc
+// CommandManager.sc
+// v1.6
+// MD 20250921-22:40
+========================================================================
+/CommandTree/martinTreeEditor.scd
+// martinTreeEditor.scd
+
+// v1.1 20250916-0847 - fixed 'tree'/'~tree' mismatch. All
+========================================================================
+/CommandTree/MDCommandBuilder.sc
+// MDCommandBuilder.sc
+// v0.2
+// MD 20250924-1008
+========================================================================
+/CommandTree/MDCommandBuilderTest.scd
+// MDCommandBuilderTest.scd
+// MD 20250801
+
+========================================================================
+/CommandTree/MDCommandNode test.scd
+(
+// Set a fixed random seed for reproducibility
+thisThread.randSeed = 12345;
+========================================================================
+/CommandTree/MDCommandNode.sc
+// MDCommandNode.sc
+// v1.0.1
+// MD 20250924
+========================================================================
+/CommandTree/MDCommandNode_FixIntegrity+DepthTag.sc
+// MDCommandNode_FixIntegrity+DepthTag.sc
+// v1.0 — 2025-09-21 MD
+
+========================================================================
+/CommandTree/MDCommandNodeTest20250731.scd
+(
+// Build a tree for testing
+var tree, root;
+========================================================================
+/CommandTree/MDCommandQueue.sc
+// MDCommandQueue.sc
+// Refactored for clarity and consistency
+// MD 20250818
+========================================================================
+/CommandTree/MDCommandQueue_Compat_AddAlias.sc
+// CommandTree/MDCommandQueue_Compat_AddAlias.sc
+// v1.0.1
+// MD 20250924-1249
+========================================================================
+/CommandTree/MDCommandSystemTest20250804.scd
+// MDCommandSystemTest20250804.scd
+// MD 20250804
+
+========================================================================
+/CommandTree/MDCommandSystemTest20250812.scd
+// MDCommandSystemTest20250804.scd
+// update 20250811
+// addiing changing |fret| to |string, fret| in navigateToChild methods
+========================================================================
+/CommandTree/MDCommandTree.sc
+// MDCommandTree.sc
+// v1.0.1
+// MD 20250924-1230
+========================================================================
+/CommandTree/MIDIHandlers.sc
+//MIDIHandlers.sc
+// MD 20250818
+// taken out of MIDIInputManager.sc to make smaller file and cleaner organisation.
+========================================================================
+/CommandTree/MIDIInputManager.sc
+// MIDIInputManager.sc
+// v1.1.1
+// v1.1 added things in send mode for LivePedalboardSystem
+========================================================================
+/CommandTree/test_circularSaves20250826.scd
+// test_circularSaves20250826.scd
+// MD
+
+========================================================================
+/CommandTree/testCircularSave_20250819.scd
+// Create a saver
+~saver = CircularFileSave.new("myTree");
+
+========================================================================
+/CommandTree/TestUserDisplay.scd
+(
+~displayTest = UserDisplay.new;
+
+========================================================================
+/CommandTree/testVerbosity.scd
+// temp
+
+(
+========================================================================
+/CommandTree/Verbosity.sc
+// Verbosity.sc
+// MD 20250819
+
+========================================================================
+/Demo-simulated/Sim_MIDIInput_Emulator_For_TreeNav.scd
+// Sim_MIDIInput_Emulator_For_TreeNav.scd
+// v0.1.2
+// MD 20250924-1510
+========================================================================
+/index_vsc_entrypoints.scd
+// index_vsc_entrypoints.scd
+// Project Entry Points Index for LivePedalboardSuite
+//
+========================================================================
+/LivePedalboardSystem/ LivePedalboardSystem_AutoBindLPDisplay.sc
+// LivePedalboardSystem_AutoBindLPDisplay.sc
+// v0.1.0
+// MD 20251003-1630
+========================================================================
+/LivePedalboardSystem/CommandTreeStructureDiagram.scd
+// updated 20250922-2147
+
+root
+========================================================================
+/LivePedalboardSystem/LivePedalboardSystem-AdapterBridge.sc
+// LivePedalboardSystem-AdapterBridge.sc
+// v0.1.5-displayOnly
+// MD 20251005-1633
+========================================================================
+/LivePedalboardSystem/LivePedalboardSystem-AutoMeters.sc
+// LivePedalboardSystem-AutoMeters.sc
+// v0.2.1
+// MD 20251003-1539
+========================================================================
+/LivePedalboardSystem/LivePedalboardSystem-Pathing.sc
+// LivePedalboardSystem-Pathing.sc
+// v0.3.1
+// MD 20250923-0959
+========================================================================
+/LivePedalboardSystem/LivePedalboardSystem.sc
+// LivePedalboardSystem.sc
+// v0.2.9
+// MD 2025-10-02 1350
+========================================================================
+/LivePedalboardSystem/LivePedalboardSystem_Accessors.sc
+// LivePedalboardSystem_Accessors.sc
+// v0.2.0
+// MD 20251003-1620
+========================================================================
+/LivePedalboardSystem/Start_LivePedalboardSystem.scd
+// Start_LivePedalboardSystem.scd
+// v0.2.7
+// MD 20250923-1331
+========================================================================
+/LPDisplay/LPDisplay_AllInOne_BringUp.scd
+// LPDisplay_AllInOne_BringUp.scd
+// v0.9.8 — open the layout test window + export helpers for a guided tour
+// MD 2025-10-01
+========================================================================
+/LPDisplay/LPDisplay_AllInOne_Demo_Tour.scd
+
+// LPDisplay_AllInOne_Demo_Tour.scd
+// v0.9.8.1 added check that GUI window is open at start of last block
+========================================================================
+/LPDisplay/LPDisplay_CompatExports.scd
+// LPDisplay_CompatExports.scd
+// v0.9.2 - shims for old tilde variables + bring-up
+// MD 20251001
+========================================================================
+/LPDisplay/LPDisplayAdapter.sc
+// LPDisplayAdapter.sc
+// v1.1.0
+// MD 20251003-1315
+========================================================================
+/LPDisplay/LPDisplayAdapter_ActiveForward.sc
+// LPDisplayAdapter_ActiveForward.sc
+// v0.1.0
+// MD 20251004-17:58
+========================================================================
+/LPDisplay/LPDisplayAdapter_SetController.sc
+// LPDisplayAdapter_SetController.sc
+// v0.1.0
+// MD 20251004-1820
+========================================================================
+/LPDisplay/LPDisplayClasses_tests.scd
+// LPDisplayClasses_tests.scd
+// v0.9
+// MD 20251002
+========================================================================
+/LPDisplay/LPDisplayHudMap.sc
+// LPDisplayHudMap.sc
+// v0.9.7.2 — dB→UI mapping (top/floor/gamma) + preview/print
+// MD 2025-10-01
+========================================================================
+/LPDisplay/LPDisplayLayoutWindow.sc
+// LPDisplayLayoutWindow.sc
+// v0.9.7.4 — Grid window with A/B chains, meters via SendPeakRMS, console prints gated
+// MD 2025-10-01
+========================================================================
+/LPDisplay/LPDisplayLayoutWindow_ActiveHighlight.sc
+// LPDisplayLayoutWindow_ActiveHighlight.sc
+// v0.1.1
+// MD 20251004-1718
+========================================================================
+/LPDisplay/LPDisplayLayoutWindow_DisableDemoAudio.sc
+// LPDisplayLayoutWindow_DisableDemoAudio.sc
+// v0.1.0
+// MD 20251005-1633
+========================================================================
+/LPDisplay/LPDisplaySigChain.sc
+// LPDisplaySigChain.sc
+// v0.9.7.2 — minimal [sink, ..., source] JITLib chain wrapper
+// MD 2025-10-01
+========================================================================
+/MagicPedalboard/adapter_CommandTree_to_MagicPedalboard.scd
+// adapter_commandtree_to_magicpedalboard.scd
+// v0.3.1
+// MD 20250916-14:49
+========================================================================
+/MagicPedalboard/Adapter_UIHook_Install.scd
+// Adapter_UIHook_Install.scd
+// v0.2.0
+// MD 20250918-20:10 BST
+========================================================================
+/MagicPedalboard/bootstrap_audio_and_fx_min.scd
+// bootstrap_audio_and_fx_min.scd
+// v0.1
+
+========================================================================
+/MagicPedalboard/demo_apply_after_fix.scd
+// demo_apply_after_fix.scd
+// v0.1
+// MD 20250916-1031
+========================================================================
+/MagicPedalboard/demo_commandtree_apply_hotfix.scd
+// demo_commandtree_apply_hotfix.scd
+// v0.1
+// MD 20250916-1020
+========================================================================
+/MagicPedalboard/demo_commandtree_apply_now.scd
+// demo_commandtree_apply_now.scd
+// v0.2
+// MD 20250916-1003
+========================================================================
+/MagicPedalboard/demo_commandtree_milestone.scd
+// demo_commandtree_milestone.scd
+// v0.1
+// MD 20250916-0852
+========================================================================
+/MagicPedalboard/demo_commandtree_preformed_queues.scd
+// demo_commandtree_preformed_queues.scd
+// v0.2
+// MD 20250916-1048
+========================================================================
+/MagicPedalboard/Demo_Install_MinProcessors.scd
+// Demo_Install_MinProcessors.scd
+// v0.1.0
+// MD 2025-09-18 11:58 BST
+========================================================================
+/MagicPedalboard/Diag_BusChannel_Map.scd
+// Diag_BusChannel_Map.scd
+// v0.1
+// MD 20250917-1154
+========================================================================
+/MagicPedalboard/editor_commandtree_add_demo_verbs.scd
+// editor_commandtree_add_demo_verbs.scd
+// v0.3
+// MD 20250916-0957
+========================================================================
+/MagicPedalboard/MagicDisplay.sc
+/* MagicDisplay.sc  v0.1.3
+   Console display adaptor for MagicPedalboardNew.
+   Prints structured messages now; later you can subclass with a real GUI.
+========================================================================
+/MagicPedalboard/MagicDisplayGUI.sc
+/* MagicDisplayGUI.sc v0.2.7
+ CURRENT column highlighted in green; top-down list (src → procs → sink);
+ expectation text + visual countdown; operations list with 3s pre-roll;
+========================================================================
+/MagicPedalboard/MagicDisplayGUI_Ext_VisualOnly.sc
+// MagicDisplayGUI_Ext_VisualOnly.sc
+// v0.1.1 (fixed: no ivar; uses window property bag instead)
+// MD 20250919-08:05 BST
+========================================================================
+/MagicPedalboard/MagicDisplayGUI_FixChoicesColors_Ext.sc
+// MagicDisplayGUI_FixChoicesColors_Ext.sc
+// v0.1.2  — MD 2025-09-24 23:10 BST
+/*
+========================================================================
+/MagicPedalboard/MagicDisplayGUI_GridDemo.sc
+// MagicDisplayGUI_GridDemo.sc
+// v0.1.6
+// MD 20250919-10:46 BST
+========================================================================
+/MagicPedalboard/MagicDisplayGUI_GridDemo_Ext_ContrastFix.scd
+// MagicDisplayGUI_GridDemo_Ext_ContrastFix.scd
+// v0.1.0
+// MD 2025-09-24 23:55 BST
+========================================================================
+/MagicPedalboard/MagicDisplayGUI_GridDemo_Ext_Meters.scd
+// MagicDisplayGUI_GridDemo_Ext_Meters.scd
+// v0.3.0
+// MD 2025-09-24 23:56 BST
+========================================================================
+/MagicPedalboard/MagicDisplayGUI_GridDemo_Ext_SetOperations.sc
+// MagicDisplayGUI_GridDemo_Ext_SetOperations.sc
+// v0.1.0
+// MD 2025-09-22 22:36 BST
+========================================================================
+/MagicPedalboard/MagicDisplayGUI_GridDemo_Ext_TestMarker.sc
+// MagicDisplayGUI_GridDemo_Ext_TestMarker.sc
+// v0.1.0
+// MD 2025-09-24 23:59 BST
+========================================================================
+/MagicPedalboard/MagicDisplayGUI_GridDemo_Ext_TestMeter.sc
+// MagicDisplayGUI_GridDemo_Ext_TestMeter.sc
+// v0.1.0
+// MD 2025-09-24 23:59 BST
+========================================================================
+/MagicPedalboard/MagicDisplayGUI_PerfHUD_ActiveChain_Ext.scd
+// MagicDisplayGUI_PerfHUD_ActiveChain_Ext.scd
+// v0.1.2
+// MD 2025-09-26 15:36 BST
+========================================================================
+/MagicPedalboard/MagicDisplayGUI_PerfHUD_ActiveOverlay_Ext.scd
+// MagicDisplayGUI_PerfHUD_ActiveOverlay_Ext.scd
+// v0.1.1 (robust attach + returns view)
+// MD 2025-09-26 15:58 BST
+========================================================================
+/MagicPedalboard/MagicDisplayGUI_PerfHUD_ActiveTint_Ext.scd
+// MagicDisplayGUI_PerfHUD_ActiveTint_Ext.scd
+// v0.1.0
+// MD 2025-09-26 15:36 BST
+========================================================================
+/MagicPedalboard/MagicDisplayGUI_PerfHUD_LevelsGUI_Listener_Ext.scd
+// MagicDisplayGUI_PerfHUD_LevelsGUI_Listener_Ext.scd
+// v0.1.0
+// MD 2025-09-26 16:10 BST
+========================================================================
+/MagicPedalboard/MagicDisplayGUI_PerfHUD_MeterResponders_Ext.scd
+// MagicDisplayGUI_PerfHUD_MeterResponders_Ext.scd
+// v0.1.0
+// MD 2025-09-26 15:36 BST
+========================================================================
+/MagicPedalboard/MagicDisplayGUI_PerfHUD_MeterResponders_Ext_V0.1.0.scd
+// MagicDisplayGUI_PerfHUD_MeterResponders_Ext.scd
+// v0.1.1
+// MD 2025-09-29 16:58 BST
+========================================================================
+/MagicPedalboard/MagicDisplayGUI_PerfHUD_Meters_Ext.scd
+// MagicDisplayGUI_PerfHUD_Meters_Ext.scd
+// v0.1.0
+// MD 2025-09-26 15:05 BST
+========================================================================
+/MagicPedalboard/MagicPedalboard.sc
+/* MagicPedalboard.sc v0.4.9
+ A/B pedalboard chain manager built on Ndefs.
+ - Chains are Arrays of Symbols ordered [sink, …, source].
+========================================================================
+/MagicPedalboard/MagicPedalboardNew.sc
+// MagicPedalboardNew.sc (DEPRECATED SHIM)
+// v0.0.2 — shim subclass; warns at compile-time + first construction only
+// MD 2025-10-02
+========================================================================
+/MagicPedalboard/MagicPedalboardTestRunner.sc
+// MagicPedalboardTestRunner.sc
+// v0.2.2
+// MD 20250919
+========================================================================
+/MagicPedalboard/MagicProcessorLibrary.sc
+/* MagicProcessorLibrary.sc
+   Holds a registry of processor/source functions and can ensure Ndefs exist.
+   MD 20250913
+========================================================================
+/MagicPedalboard/MagicProcessorLibrary_defs.scd
+/* MagicProcessorLibrary_defs.scd
+   Register a few defaults. Keep this file small and readable.
+*/
+========================================================================
+/MagicPedalboard/Manage_MagicDisplayGUI_Singleton.scd
+// Manage_MagicDisplayGUI_Singleton.scd
+// v0.1
+// MD 20250917-1230
+========================================================================
+/MagicPedalboard/PERFHUD_UIWriter_Headroom_Overlay.scd
+// PERFHUD_UIWriter_Headroom_Overlay.scd
+// v0.1.0
+// MD 2025-09-29
+========================================================================
+/MagicPedalboard/Quick_Switch_Toggle.scd
+// Quick_Switch_Toggle.scd
+// v0.1.0  MD 2025-09-26 15:28 BST
+(
+========================================================================
+/MagicPedalboard/QuickRestore_AudioAndExclusive.scd
+// QuickRestore_AudioAndExclusive.scd
+// v0.2
+// MD 20250917-1338
+========================================================================
+/MagicPedalboard/switchDelayCheck.scd
+// switchDelayCheck.scd
+// v0.1
+// MD 20250916
+========================================================================
+/MagicPedalboard/utils_mpb_force_reconnect.scd
+// utils_mpb_force_reconnect.scd
+// v0.2
+// MD 20250916-1057
+========================================================================
+/MDMiniLogger/MDMiniLogger.sc
+// MDMiniLogger.sc
+// v0.3.3
+// MD 20250919-13:51
+========================================================================
+/MDMiniLogger/test_MDMiniLogger.scd
+// test_MDMiniLogger.scd
+
+m = MDMiniLogger.get;
+========================================================================
+/newClassExtensions/CommandManager_CanonicalPaths.sc
+// CommandManager_CanonicalPaths.sc
+// v1.0 — restore canonical path helpers (non-invasive extension)
+// MD 2025-10-02
+========================================================================
+/newClassExtensions/LivePedalboardSystem_ApplyCanonical.sc
+// LivePedalboardSystem_ApplyCanonical.sc
+// v1.1 — add applyCanonicalPath (adapter shim) mapping canonical verbs to pedalboard
+// MD 2025-10-02
+========================================================================
+/newClassExtensions/MDCommandBuilder_NavHelpers.sc
+// MDCommandBuilder_NavHelpers.sc
+// v1.0 — add robust navigation helpers with fallback to currentNode_
+// MD 2025-10-02
+========================================================================
+/RulesForChatGPT-Copilot.scd
+// RulesForChatGPT-Copilot.scd
+
+/*
+========================================================================
+/RunBook_20251002_Diagnostics.scd
+// RunBook_20251002_Diagnostics.scd
+// MD + Copilot 2025-10-02
+// --- > RUN BLOCK BY BLOCK! <---
+========================================================================
+/RunBook_20251002_Diagnostics_VARFIRST.scd
+// RunBook_20251002_Diagnostics_1311.scd
+// v1.0.0 — diagnostic-first bring-up for LPS (headless) + LPDisplay window
+// MD 2025-10-02
+========================================================================
+/Sim_MIDI_FootAndGuitar_Demo_v0.1.scd
+// Sim_MIDI_FootAndGuitar_Demo_v0.1.scd
+// v0.1.2
+// MD 2025-09-26 10:45 BST
+========================================================================
+/StartHere_LivePedalboardSuite.scd
+// StartHere_LivePedalboardSuite.scd
+// v0.6.1
+// MD 20250928-1824
+========================================================================
+/temporary/Diagnose_PostSwitch_States.scd
+// Diagnose_PostSwitch_States.scd
+// v0.1.0
+// MD 20251005-1028
+========================================================================
+/temporary/Disable_CTFX_Crossfade_Adapter.scd
+// Disable_CTFX_Crossfade_Adapter.scd
+// v0.2.1
+// MD 20251005-1919
+========================================================================
+/temporary/Disable_LPDisplay_DemoAudio.scd
+// Disable_LPDisplay_DemoAudio.scd
+// v0.1.0
+// MD 20251005-1633
+========================================================================
+/temporary/Disable_LPS_ManualOverride.scd
+// Disable_LPS_ManualOverride.scd
+// v0.1.0
+// MD 20251005-1144
+========================================================================
+/temporary/Disable_Ndef_Crossfade.scd
+// Disable_Ndef_Crossfade.scd
+// v0.1.0
+// MD 20251005-1828
+========================================================================
+/temporary/Emergency_HardMute_Toggle.scd
+// Emergency_HardMute_Toggle.scd
+// v0.1.0
+// MD 20251005-1152
+========================================================================
+/temporary/Enable_LPS_ManualOverride.scd
+// Enable_LPS_ManualOverride.scd
+// v0.1.0
+// MD 20251005-1144
+========================================================================
+/temporary/Find_Rogue_Audio.scd
+// Find_Rogue_Audio.scd
+// v0.1.0
+// MD 20251005-1202
+========================================================================
+/temporary/Fix_LPAdapter_BindController.scd
+// Fix_LPAdapter_BindController.scd
+// v0.1.0
+// MD 20251004-1820
+========================================================================
+/temporary/Hard_Reset_To_Silent.scd
+// Hard_Reset_To_Silent.scd
+// v0.1.0
+// MD 20251005-1157
+========================================================================
+/temporary/Hook_PostSwitch_Repair.scd
+// Hook_PostSwitch_Repair.scd
+// v0.1.0
+// MD 20251005-1718
+========================================================================
+/temporary/Hook_Switch_NoXfade.scd
+// Hook_Switch_NoXfade_FIX.scd
+// v0.1.1
+// MD 20251005-1758
+========================================================================
+/temporary/Hook_Switch_NoXfade_FIX2.scd
+// Hook_Switch_NoXfade_FIX2.scd
+// v0.1.2
+// MD 20251005-1812
+========================================================================
+/temporary/Hook_Switch_NoXfade_QCallback.scd
+// Hook_Switch_NoXfade_QCallback.scd
+// v0.1.0
+// MD 20251005-1819
+========================================================================
+/temporary/Make_CURRENT_Audible.scd
+// Make_CURRENT_Audible.scd
+// v0.1.0
+// MD 20251004-1820
+========================================================================
+/temporary/Make_CURRENT_Audible_Sticky.scd
+// Make_CURRENT_Audible_Sticky.scd
+// v0.1.1
+// MD 20251005-1708
+========================================================================
+/temporary/Make_CURRENT_Silent.scd
+// Make_CURRENT_Silent.scd
+// v0.1.0
+// MD 20251004-1820
+========================================================================
+/temporary/Make_Project_Inventory.scd
+// Make_Project_Inventory.scd
+// v0.1.0
+// MD 20251005-2017
+========================================================================
+/temporary/Probe_MPB_Switch_AudioOnly.scd
+// Probe_MPB_Switch_AudioOnly.scd
+// v0.1.0
+// MD 20251005-1708
+========================================================================
+/temporary/Start_LivePedalboardSuite_BringUp.scd
+// Start_LivePedalboardSuite_BringUp.scd
+// v0.9.3
+// MD 20251004-17:35
+========================================================================
+/temporary/Test_LPDisplay_Highlight_Current_Inline.scd
+// Test_LPDisplay_Highlight_Current_Inline.scd
+// v0.1.0
+// MD 20251004-1616
+========================================================================
+/temporary/Test_LPS_ActiveVisual_Sanity.scd
+// Test_LPS_ActiveVisual_Sanity.scd
+// v0.1.0
+// MD 20251004-1728
+========================================================================
+/temporary/Test_LPS_ManualSwitch.scd
+// Test_LPS_ManualSwitch.scd
+// v0.1.0
+// MD 20251004-1807
+========================================================================
+/temporary/Troubleshoot_MPB_Switch_Trace.scd
+// Troubleshoot_MPB_Switch_Trace.scd
+// v0.1.0
+// MD 20251005-1828
+========================================================================
+/temporary/Troubleshoot_MPB_Switch_Trace_v011.scd
+// Troubleshoot_MPB_Switch_Trace_v011.scd
+// v0.1.1  (no nodeID usage; safer guards; var-first)
+// MD 20251005-1846
+========================================================================
+/test 31tp8ve.scd
+// test 31tp8ve.scd
+//
+
+========================================================================
+/Test_MagicDisplayGUI_BootAndScenarios.scd
+// Test_MagicDisplayGUI_BootAndScenarios.scd
+// v0.1.6
+// MD 2025-09-26 11:58 BST
+========================================================================
+/troubleshooting/00_Reset_KnownClean_State.scd
+// 00_Reset_KnownClean_State.scd
+// v1.0.1
+// MD 20250929-0918
+========================================================================
+/troubleshooting/00A_HUD_Sanity_Check.scd
+//////////////////////////////////////////////////////////////
+// 00A_HUD_Sanity_Check.scd
+// v0.1.0
+========================================================================
+/troubleshooting/00B_HUD_Force_GridDemo_Now.scd
+//////////////////////////////////////////////////////////////
+// 00B_HUD_Force_GridDemo_Now.scd
+// v0.1.0
+========================================================================
+/troubleshooting/01_StartHere_LivePedalboardSuite.scd
+// 01_StartHere_LivePedalboardSuite.scd
+// v0.6.2
+// MD 20250928-1935
+========================================================================
+/troubleshooting/01b.1_HUD_Ensure_GridDemo.scd
+// 01b.1_HUD_Ensure_GridDemo.scd
+// v0.1.1
+// MD 2025-09-29 13:20 BST
+========================================================================
+/troubleshooting/01b.1_HUD_EnsureGridDemo.scd
+// THIS IS NOT WHAT WE WANT. It's using the old GridDemo window, which does not have working meters.
+
+//01b.1_HUD_EnsureGridDemo.scd
+========================================================================
+/troubleshooting/01b.1_HUD_EnsureGridDemo_v0.1.0.scd
+// THIS IS NOT WHAT WE WANT. It's using the old GridDemo window, which does not have working meters.
+
+//01b.1_HUD_EnsureGridDemo.scd
+========================================================================
+/troubleshooting/01b.1_HUD_EnsureGridDemoREJECTED.scd
+// THIS IS NOT WHAT WE WANT. It's using the old GridDemo window, which does not have working meters.
+
+//01b.1_HUD_EnsureGridDemo.scd
+========================================================================
+/troubleshooting/01b_1_HUD_Adapter.scd
+// 01b_1_HUD_Adapter.scd
+// v0.1.0
+// MD 2025-09-29 13:05
+========================================================================
+/troubleshooting/01b_StartHere_NoReboot copy.scd
+// 01b_StartHere_NoReboot.scd
+// v0.6.2
+// MD 20250929-0918
+========================================================================
+/troubleshooting/01b_StartHere_NoReboot.scd
+// 01b_StartHere_NoReboot.scd
+// v0.6.3
+// MD 20250929-12:25
+========================================================================
+/troubleshooting/01b_StartHere_NoRebootBROKEN.scd
+// 01b_StartHere_NoReboot.scd
+// v0.6.3
+// MD 20250929-11:46
+========================================================================
+/troubleshooting/01c_PerfHUD_CompatAdapter.scd
+//////////////////////////////////////////////////////////////
+// 01c_PerfHUD_CompatAdapter.scd
+// v0.9.0  MD 2025-09-29 12:35
+========================================================================
+/troubleshooting/02_ForceMeters_FromBuses.scd
+// 02_ForceMeters_FromBuses.scd
+// v0.1.1
+// MD 20250928-1935
+========================================================================
+/troubleshooting/02A_Sanity_Wire_ChainA.scd
+// 02A_Sanity_Wire_ChainA.scd
+// v0.1.1
+// MD 20250929-0948
+========================================================================
+/troubleshooting/02A_Sanity_Wire_ChainB.scd
+// 02A_Sanity_Wire_ChainB.scd
+// v0.1.0
+// MD 20250929-1010
+========================================================================
+/troubleshooting/02B_ForceMeters_FromBuses_dB.scd
+// 02B_ForceMeters_FromBuses_dB.scd
+// v0.1.2
+// MD 20250929-0838
+========================================================================
+/troubleshooting/02B_HUD_AB_StrictAOnly copy.scd
+// 02B_HUD_AB_StrictAOnly.scd
+// v0.1.3
+// MD 20250929-1153
+========================================================================
+/troubleshooting/02B_HUD_AB_StrictAOnly.scd
+// 02B_HUD_AB_StrictAOnly.scd
+// v0.1.4
+// MD 2025-09-29 13:20 BST
+========================================================================
+/troubleshooting/02B_HUD_AB_StrictAOnly_0.1.2.scd
+//////////////////////////////////////////////////////////////
+// 02B_HUD_AB_StrictAOnly.scd
+// v0.1.2
+========================================================================
+/troubleshooting/02B_HUD_AB_StrictAOnly_PerfHUDorGrid.scd
+//02B_HUD_AB_StrictAOnly_PerfHUDorGrid.scd
+//v0.2.0
+//MD 20250929-13:05
+========================================================================
+/troubleshooting/02B_HUD_AB_StrictAOnly_v0.1.4.scd
+// 02B_HUD_AB_StrictAOnly.scd
+// v0.1.4
+// MD 2025-09-29 13:05
+========================================================================
+/troubleshooting/02B_HUD_Receiver_dB_Map.scd
+// 02B_HUD_Receiver_dB_Map.scd
+// v0.1.1
+// MD 20250928-2050
+========================================================================
+/troubleshooting/02B_Taps_dB_NoTest_and_HUD.scd
+// 02B_Taps_dB_NoTest_and_HUD.scd
+// v0.1.0
+// MD 20250929-0918
+========================================================================
+/troubleshooting/02C_Testmelody_Level_Boost.scd
+// 02C_Testmelody_Level_Boost.scd
+// v0.1.0
+// MD 20250928-2015
+========================================================================
+/troubleshooting/02D_TestSource_CenteredStereo.scd
+// 02D_TestSource_CenteredStereo_Pulsed.scd
+// v0.1.1
+// MD 20250929-0948
+========================================================================
+/troubleshooting/02D_TestSource_CenteredStereo_Pulsed.scd
+// 02D_TestSource_CenteredStereo_Pulsed.scd
+// v0.1.1
+// MD 20250929-0948
+========================================================================
+/troubleshooting/02E_Meter_Floor_Adjust.scd
+// 02E_Meter_Floor_Adjust.scd
+// v0.1.0
+// MD 20250929-0912
+========================================================================
+/troubleshooting/02F_HUD_TestContent_StateChoicesIncoming copy.scd
+// 02F_HUD_TestContent_StateChoicesIncoming.scd
+// v0.1.0
+// MD 20250929-1121
+========================================================================
+/troubleshooting/02F_HUD_TestContent_StateChoicesIncoming.scd
+// 02F_HUD_TestContent_StateChoicesIncoming.scd
+// v0.1.5
+// MD 2025-09-29 13:28 BST
+========================================================================
+/troubleshooting/02F_HUD_TestContent_StateChoicesIncoming_v0.1.2.scd
+//////////////////////////////////////////////////////////////
+// 02F_HUD_TestContent_StateChoicesIncoming.scd
+// v0.1.2
+========================================================================
+/troubleshooting/02F_HUD_TestContent_StateChoicesIncoming_v0.1.3.scd
+// 02F_HUD_TestContent_StateChoicesIncoming.scd
+// v0.1.3
+// MD 2025-09-29 12:35
+========================================================================
+/troubleshooting/02F_HUD_TestContent_StateChoicesIncoming_v0.1.4.scd
+// 02F_HUD_TestContent_StateChoicesIncoming.scd
+// v0.1.4
+// MD 2025-09-29 13:20 BST
+========================================================================
+/troubleshooting/02H_GridDemo_MinHUD_Overlay.scd
+// 02H_GridDemo_MinHUD_Overlay.scd
+// v0.1.3
+// MD 2025-09-29 13:42 BST
+========================================================================
+/troubleshooting/02H_GridDemo_MinHUD_Overlay_v0.1.0.scd
+// 02H_GridDemo_MinHUD_Overlay.scd
+// v0.1.0
+// MD 20250929-1310
+========================================================================
+/troubleshooting/02H_GridDemo_MinHUD_Overlay_v0.1.1.scd
+// 02H_GridDemo_MinHUD_Overlay.scd
+// v0.1.1
+// MD 2025-09-29 13:20 BST
+========================================================================
+/troubleshooting/02H_GridDemo_MinHUD_Overlay_v0.1.2.scd
+// 02H_GridDemo_MinHUD_Overlay.scd
+// v0.1.2
+// MD 2025-09-29 13:28 BST
+========================================================================
+/troubleshooting/02M_GridDemo_AttachMeters_And_ShowDebugBar.scd
+//////////////////////////////////////////////////////////////
+// 02M_GridDemo_AttachMeters_And_ShowDebugBar.scd
+// v0.1.1
+========================================================================
+/troubleshooting/02M_GridDemo_AttachMeters_And_ShowDebugBar_v0.1.0.scd
+// 02M_GridDemo_AttachMeters_And_ShowDebugBar.scd
+// v0.1.0
+// MD 20250929-1258
+========================================================================
+/troubleshooting/02M_GridDemo_SimpleBusMeters.scd
+// 02M_GridDemo_SimpleBusMeters.scd
+// v0.1.2
+// MD 2025-09-29 13:28 BST
+========================================================================
+/troubleshooting/02M_GridDemo_SimpleBusMeters_v0.1.0.scd
+// 02M_GridDemo_SimpleBusMeters.scd
+// v0.1.0
+// MD 20250929-13:10
+========================================================================
+/troubleshooting/02M_GridDemo_SimpleBusMeters_v0.1.1.scd
+// 02M_GridDemo_SimpleBusMeters.scd
+// v0.1.1
+// MD 2025-09-29 13:20 BST
+========================================================================
+/troubleshooting/02M_GridDemo_SimpleMeters_FromOSC.scd
+// 02M_GridDemo_SimpleMeters_FromOSC.scd
+// v0.2.0
+// MD 2025-09-29 13:42 BST
+========================================================================
+/troubleshooting/02S_AssertStereo_ChainAB_and_Retap.scd
+// 02S_AssertStereo_ChainAB_and_Retap.scd
+// v0.1.0
+// MD 20250929-0948
+========================================================================
+/troubleshooting/02S_AssertStereo_ChainAB_and_Retap_SAFE.scd
+// 02S_AssertStereo_ChainAB_and_Retap_SAFE.scd
+// v0.1.1
+// MD 20250929-1120
+========================================================================
+/troubleshooting/03_Sanity_Beep.scd
+// 03_Sanity_Beep.scd
+// v0.1.0
+// MD 20250929-0918
+========================================================================
+/troubleshooting/04_Probes.scd
+// 04_Probes.scd
+// v0.1.0
+// MD 20250928-1948
+========================================================================
+/troubleshooting/98_PerfHUD_Triage_UIOnly.scd
+// 98_PerfHUD_Triage_UIOnly.scd
+// v0.1.0
+// MD 2025-09-29 15:30 BST
+========================================================================
+/troubleshooting/99_HUD_GridDemo_OneShot.scd
+// 99_HUD_GridDemo_OneShot.scd
+// v0.1.1
+// MD 2025-09-29 14:05 BST
+========================================================================
+/troubleshooting/99_PerfHUD_BringUp_OneShot.scd
+// 99_PerfHUD_BringUp_OneShot.scd
+// v0.1.0
+// MD 2025-09-29 14:25 BST
+========================================================================
+/troubleshooting/99_PerfHUD_FixAndVerify_OneShot.scd
+// 99_PerfHUD_FixAndVerify_OneShot.scd
+// v0.2.0
+// MD 2025-09-29 14:32 BST
+========================================================================
+/troubleshooting/99_PerfHUD_MetersFromBusses.scd
+// 99_PerfHUD_MetersFromBusses.scd
+// v0.1.1
+// MD 2025-09-29 15:22 BST
+========================================================================
+/troubleshooting/99_PerfHUD_MetersFromBusses_v0.1.0.scd
+// 99_PerfHUD_MetersFromBusses.scd
+// v0.1.0
+// MD 2025-09-29 15:18 BST
+========================================================================
+/troubleshooting/99_PerfHUD_MetersNow.scd
+// 99_PerfHUD_MetersNow.scd
+// v0.1.0
+// MD 2025-09-29 14:40 BST
+========================================================================
+/troubleshooting/99_PerfHUD_MetersNow_v2.scd
+// 99_PerfHUD_MetersNow_v2.scd
+// v0.2.1
+// MD 2025-09-29 14:55 BST
+========================================================================
+/troubleshooting/99_PerfHUD_MetersNow_v3.scd
+// 99_PerfHUD_MetersNow_v3.scd
+// v0.3.0
+// MD 2025-09-29 15:05 BST
+========================================================================
+/troubleshooting/99_PerfHUD_UIOnly_Wiggle_Toggle.scd
+// 99_PerfHUD_UIOnly_Wiggle_Toggle.scd
+// v0.1.0
+// MD 2025-09-29 15:22 BST
+========================================================================
+/troubleshooting/Accept_Meters_QuickCheck.scd
+// Accept_Meters_QuickCheck.scd
+// v0.1.0  MD 2025-09-26 15:58 BST
+
+========================================================================
+/troubleshooting/Accept_Meters_QuickCheck_GUI.scd
+// Accept_Meters_QuickCheck_GUI.scd
+// v0.1.0  MD 2025-09-26 16:10 BST
+
+========================================================================
+/troubleshooting/Bridge_mdlevels_to_ampAB.scd
+// Bridge_mdlevels_to_ampAB.scd
+// v0.1.0
+// MD 2025-09-26 12:43 BST
+========================================================================
+/troubleshooting/Bridge_Meters_Universal.scd
+// Bridge_Meters_Universal.scd
+// v0.1.0
+// MD 2025-09-26 12:58 BST
+========================================================================
+/troubleshooting/Diag_0G_ALT_CreateGridGuiAndBind.scd
+// Diag_0G_ALT_CreateGridGuiAndBind.scd
+// v0.1.0
+// MD 2025-09-26 17:25 BST
+========================================================================
+/troubleshooting/Diag_0G_CreateGuiAndBind.scd
+// Diag_0G_CreateGuiAndBind.scd
+// v0.1.0
+// MD 2025-09-26 17:05 BST
+========================================================================
+/troubleshooting/Diag_1_CheckDisplayBinding.scd
+// Diag_1_CheckDisplayBinding.scd
+// v0.1.0
+// MD 2025-09-26 16:55 BST
+========================================================================
+/troubleshooting/Diag_2_LevelsSniffer.scd
+// Diag_2_LevelsSniffer_FIXED.scd
+// v0.1.2
+// MD 2025-09-26 17:25 BST
+========================================================================
+/troubleshooting/Diag_3_AttachInlineOverlay.scd
+// Diag_3_AttachInlineOverlay.scd
+// v0.1.0
+// MD 2025-09-26 16:55 BST
+========================================================================
+/troubleshooting/Diag_B_DebugTaps_AmplitudeVsVisual.scd
+// Diag_B_DebugTaps_AmplitudeVsVisual.scd
+// v0.1.0
+// MD 2025-09-26 17:45 BST
+========================================================================
+/troubleshooting/Diag_Meters_BringUp_And_Verify.scd
+// Diag_Meters_BringUp_And_Verify.scd
+// v0.1.2
+// MD 2025-09-26 14:31 BST
+========================================================================
+/troubleshooting/Diag_Meters_QuickProbe_A_B_T.scd
+// Diag_Meters_QuickProbe_A_B_T.scd
+// v0.1.0  MD 2025-09-26
+(
+========================================================================
+/troubleshooting/Diag_MeterWiring_Inspector.scd
+// Diag_MeterWiring_Inspector.scd
+(
+var wantedPaths, allDefs, summary, listForPath, printEntry;
+========================================================================
+/troubleshooting/Feed_ChainA_TestTone_PlayChainA.scd
+// Feed_ChainA_TestTone_PlayChainA.scd
+// v0.1.0
+// MD timestamp: 2025-09-26 19:40 GMT+1
+========================================================================
+/troubleshooting/Fix_Meters_KnownGood.scd
+// Fix_Meters_KnownGood.scd
+// v0.1.0
+// MD 2025-09-26 14:45 BST
+========================================================================
+/troubleshooting/Fix_Taps_CheckBadValues_SideEffect.scd
+// Fix_Taps_CheckBadValues_SideEffect.scd
+// v0.1.0
+// MD 2025-09-26 17:35 BST
+========================================================================
+/troubleshooting/INSTALL_AmpA_AmpB_Responders_Min.scd
+// INSTALL_AmpA_AmpB_Responders_Min.scd
+// v0.1.0
+// MD 2025-09-29
+========================================================================
+/troubleshooting/MD_BringUp_GridDemo_FeedA_SaveMeters_OneDrive.scd
+// MD_BringUp_GridDemo_FeedA_SaveMeters_OneDrive.scd
+// v0.1.0
+// MD 2025-09-26 19:12 BST
+========================================================================
+/troubleshooting/MD_Check_Suite_Symlink.scd
+// MD_Check_Suite_Symlink.scd
+// v0.1.0
+// MD 2025-09-26 19:55 BST
+========================================================================
+/troubleshooting/MD_MeterDiagnostics_Proof_Min.scd
+// MD_MeterDiagnostics_Proof_Min.scd
+// v0.1.1 (var-first everywhere; correct /md/levels format)
+// MD timestamp: 2025-09-27 19:52 GMT+1
+========================================================================
+/troubleshooting/MD_Meters_D1_SpyAndRamp.scd
+// MD_Meters_D1_SpyAndRamp.scd
+// v0.1.0
+// MD timestamp: 2025-09-28 09:55 GMT+1
+========================================================================
+/troubleshooting/MD_Meters_D2_ListOSCdefs_ByPath.scd
+// MD_Meters_D2_ListOSCdefs_ByPath.scd
+// v0.1.0
+// MD timestamp: 2025-09-28 10:05 GMT+1
+========================================================================
+/troubleshooting/MD_Meters_PhaseB_CompatProbe.scd
+// MD_Meters_PhaseB_CompatProbe.scd
+// v0.1.0
+// MD timestamp: 2025-09-27 20:12 GMT+1
+========================================================================
+/troubleshooting/MD_Meters_PhaseC_Audio_FIX_TapOnTest.scd
+// MD_Meters_PhaseC_Audio_FIX_TapOnTest.scd
+// v0.1.0
+// MD timestamp: 2025-09-28 10:27 GMT+1
+========================================================================
+/troubleshooting/MD_MinBringUp_FeedA_SimpleMeters_GridDemo.scd
+// MD_MinBringUp_FeedA_SimpleMeters_GridDemo.scd
+// v0.1.2
+// MD 2025-09-26 18:58 BST
+========================================================================
+/troubleshooting/MD_PerfHUD_LevelSubscriber.scd
+// MD_PerfHUD_LevelSubscriber.scd
+// v0.1.0
+// MD timestamp: 2025-09-28 10:15 GMT+1
+========================================================================
+/troubleshooting/MD_PhaseC_Smoke_PlayTest_TapTest.scd
+// MD_PhaseC_Smoke_PlayTest_TapTest.scd
+// v0.1.0
+// MD timestamp: 2025-09-28 10:58 GMT+1
+========================================================================
+/troubleshooting/MD_Probe_Sources_Chain_RawAmp_AutoStop.scd
+// MD_Probe_Sources_Chain_RawAmp_AutoStop.scd
+// v0.1.0
+// MD 2025-09-26 18:22 BST
+========================================================================
+/troubleshooting/MD_Reinstall_SimpleTaps_And_Sniff_AutoStop.scd
+// MD_Reinstall_SimpleTaps_And_Sniff_AutoStop.scd
+// v0.1.0
+// MD 2025-09-26 17:55 BST
+========================================================================
+/troubleshooting/MD_Spy_md_levels_RawAutoStop.scd
+// MD_Spy_md_levels_RawAutoStop.scd
+// v0.1.0
+// MD 2025-09-26 18:05 BST
+========================================================================
+/troubleshooting/MD_Taps_Clear_All.scd
+// MD_Taps_Clear_All.scd
+// v0.1.0
+// MD timestamp: 2025-09-28 10:45 GMT+1
+========================================================================
+/troubleshooting/MD_Taps_Clear_All_FIXED.scd
+// MD_Taps_Clear_All_FIXED.scd
+// v0.1.1 (clear proxies instead of filter(..., nil))
+// MD timestamp: 2025-09-28 10:52 GMT+1
+========================================================================
+/troubleshooting/MODEL_Print_Amp_Model_Values.scd
+// MODEL_Print_Amp_Model_Values.scd
+// v0.1.1
+// MD 2025-09-29
+========================================================================
+/troubleshooting/PerfHUD_Adhoc_MeterFix_Overlay.scd
+// PerfHUD_Adhoc_MeterFix_Overlay.scd
+// v0.1.0
+// MD 2025-09-26 13:42 BST
+========================================================================
+/troubleshooting/PERFHUD_Bus_Indices_Inspect.scd
+// PERFHUD_Bus_Indices_Inspect.scd
+// v0.1.0
+// MD 20250929-1518
+========================================================================
+/troubleshooting/PerfHUD_Diag_OverlayMeters.scd
+// PerfHUD_Diag_OverlayMeters.scd
+// v0.1.0
+// MD 2025-09-26 13:12 BST
+========================================================================
+/troubleshooting/PERFHUD_InlineTaps_On_ChainAB.scd
+// PERFHUD_InlineTaps_On_ChainAB.scd
+// v0.1.0
+// MD 2025-09-29 15:26 BST
+========================================================================
+/troubleshooting/PERFHUD_Repoint_MeterSynth_To_Buses.scd
+// PERFHUD_Repoint_MeterSynth_To_Buses.scd
+// v0.1.0
+// MD 20250929-1518
+========================================================================
+/troubleshooting/RMS_IsolatedHUD.scd
+// RMS_IsolatedHUD.scd
+// v0.1.0
+// MD 2025-09-29 19:25 BST
+========================================================================
+/troubleshooting/RMS_IsolatedHUD_BringUp.scd
+// RMS_IsolatedHUD_BringUp.scd
+//_v0.1.2
+// MD 2025-09-29 19:10 BST
+========================================================================
+/troubleshooting/Run_All_PerfHUD_RMS_Isolated.scd
+// Run_All_PerfHUD_RMS_Isolated.scd
+// v0.1.0
+// MD 2025-09-29 19:40 BST
+========================================================================
+/troubleshooting/Taps_Stable_Runtime_Shim.scd
+// Taps_Stable_Runtime_Shim.scd
+// v0.1.1 (fix SendReply replyID position)
+// MD timestamp: 2025-09-27 19:35 GMT+1
+========================================================================
+/troubleshooting/turnintooneplease.scd
+// 00_Reset_KnownClean_State.scd
+// v1.0.1
+// MD 20250929-0918
+========================================================================
+/troubleshooting/WorkingSequence_20250929-1649.scd
+// WorkingSequence_20250929-1649.scd
+
+/*
+========================================================================
+/utilities/ControlLogVerbosity.scd
+// ControlLogVerbosity.sc
+// v1
+// MD 20250923-0835
+========================================================================
+/utilities/DEMO20250923.scd
+// DEMO20250923.scd ----------------------------
+
+
+========================================================================
+/utilities/DEMO20250923_FIXED.scd
+// DEMO20250923_FIXED.scd
+// v0.2.0
+// MD 2025-09-23 10:46 BST
+========================================================================
+/utilities/Editor_AddCommands_Branch_Canonical.scd
+// Editor_AddCommands_Branch_Canonical.scd
+// v0.1.7
+// MD 20250923-0956
+========================================================================
+/utilities/Fallback_Diag_OneShot.scd
+//Fallback_Diag_OneShot_Verbose.scd
+//v0.1.3
+//MD 20250923-1523
+========================================================================
+/utilities/FallbackDemo_ManualSequence.scd
+// FallbackDemo_ManualSequence
+// v0.1.3
+// MD 20250923
+========================================================================
+/utilities/GUI_QuickFix_Choices_Contrast.scd
+// GUI_QuickFix_Choices_Contrast.scd
+// v0.1.0
+// MD 2025-09-23 14:10 BST
+========================================================================
+/utilities/Inspect_And_Queue_AddDelay_AutoRoute.scd
+// Inspect_And_Queue_AddDelay_AutoRoute.scd
+// v1.0.0
+// MD 2025-09-23 14:10 BST
+========================================================================
+/utilities/Inspect_CommandTree_Under_Chain.scd
+// Inspect_CommandTree_Under_Chain.scd
+// v0.1.0
+// MD 20250923--1255
+========================================================================
+/utilities/Install_LightweightMeterPrinters.scd
+// Install_LightweightMeterPrinters.scd
+// v0.1
+// MD 20250923-1556
+========================================================================
+/utilities/Install_QueueExport_AdapterBridge.scd
+// Install_QueueExport_AdapterBridge.scd
+// v0.1
+// MD 20250923-1456
+========================================================================
+/utilities/Install_QuietProxyMeters.scd
+// Install_QuietProxyMeters_NoRound.scd
+// v0.1
+// MD 20250923-1606
+========================================================================
+/utilities/Install_QuietProxyMeters_Core.scd
+// Install_QuietProxyMeters_Core.scd
+// v0.1
+// MD 20250923-1610
+========================================================================
+/utilities/Make_Project_Inventory.scd
+// Make_Project_Inventory.scd
+// v0.1.13
+// MD 20251005-1949
+========================================================================
+/utilities/MD_EOD_Status_Snapshot_FIXED.scd
+// MD_EOD_Status_Snapshot_FIXED.scd
+// v0.1.1
+// MD 2025-09-26 16:56 BST
+========================================================================
+/utilities/MD_Stop_All_MeterDiagnostics.scd
+// MD_Stop_All_MeterDiagnostics.scd
+// v0.1.1
+// MD 2025-09-26 18:05 BST
+========================================================================
+/utilities/Meters_Diagnostic_Bootstrap_FIX.scd
+// Meters_Diagnostic_Bootstrap_FIX.scd
+// v0.1.1
+// MD 20250923-1543
+========================================================================
+/utilities/Meters_QuickCheck_And_Enable.scd
+// Meters_QuickCheck_And_Enable.scd
+// v0.1.0
+// MD 2025-09-23 14:10 BST
+========================================================================
+/utilities/MIDI_Input_Tests2_20250922.scd
+//MIDI_Input_Tests2_20250922.scd
+
+// 0) Bring-up (Option B: default path)
+========================================================================
+/utilities/MIDI_Input_Tests_20250922.scd
+// MIDI_Input_Tests_20250922.scd
+// Run these step by step
+
+========================================================================
+/utilities/MIDI_Log_Console.scd
+// MIDI_Log_Console.scd
+// v0.1.0
+// MD 20250922-1420
+========================================================================
+/utilities/MIDI_Log_RefreshAndConnect.scd
+// MIDI_Log_RefreshAndConnect.scd
+// v0.1.0
+// MD 20250922-1422
+========================================================================
+/utilities/Queue_AddDelay_DirectCanonical.scd
+// Queue_AddDelay_DirectCanonical.scd
+// v0.1
+// MD 20250923-1302
+========================================================================
+/utilities/Quick_SetSource_Testmelody.scd
+// Quick_SetSource_Testmelody.scd
+// v0.1.0  MD 2025-09-26
+(
+========================================================================
+/utilities/Quick_Switch_Toggle.scd
+// Quick_Switch_Toggle.scd
+// v0.1.0  MD 2025-09-26 15:28 BST
+(
+========================================================================
+/utilities/Rearm_Attach_Probes_AfterBringUp.scd
+// Rearm_Attach_Probes_AfterBringUp.scd
+// v0.1.0  MD 2025-09-26
+(
+========================================================================
+/utilities/Report_ChainPlayFlags.scd
+// Report_ChainPlayFlags.scd
+// v0.1.0
+// MD 20250923-1032
+========================================================================
+/utilities/SimNav_Bridge_ApplyLeafPayload.scd
+// SimNav_Bridge_ApplyLeafPayload.scd
+// v0.1.1
+// MD 20250923-1021
+========================================================================
+/utilities/SimNav_Bridge_ApplyLeafPayload_CommandsOnly.scd
+// SimNav_Bridge_ApplyLeafPayload_CommandsOnly.scd
+// v0.1.2
+// MD 20250923-1040
+========================================================================
+/utilities/SimNav_Bridge_ApplyLeafPayload_FIX.scd
+// SimNav_Bridge_ApplyLeafPayload_FIX.scd
+// v0.1.2
+// MD 2025-09-23 10:45 BST
+========================================================================
+/utilities/Simulate_CommandTree_Queue_AddDelay.scd
+// Simulate_CommandTree_Queue_AddDelay.scd
+// v1.0.0
+// MD 20250923-12:36
+========================================================================
+/utilities/Simulate_CommandTree_Queue_AddDelay_Robust.scd
+// Simulate_CommandTree_Queue_AddDelay_Robust.scd
+// v1.0.4
+// MD 2025-09-23 14:08 BST
+========================================================================
+/utilities/Simulate_Step2_NavigateAndQueue_AddDelay.scd
+// Simulate_Step2_NavigateAndQueue_AddDelay.scd
+// v1.0.0
+// MD 20250923-1258
+========================================================================
+/utilities/Test_MagicPedalboard_MIDI_Simulation.scd
+// Test_MagicPedalboard_MIDI_Simulation.scd
+// v0.1.1
+// MD 20250922-18-15
+========================================================================
+/utilities/Verify_Baseline_CurrentAudible_NextSilent.scd
+// Verify_Baseline_CurrentAudible_NextSilent.scd
+// v0.1.0
+// MD 20250923-1032

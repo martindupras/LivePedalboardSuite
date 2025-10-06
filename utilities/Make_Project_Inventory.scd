@@ -1,200 +1,166 @@
 // Make_Project_Inventory.scd
-// v0.1.13
-// MD 20251005-1949
+// v0.2.2
+// MD 20251006-0849
 
 /*
 Purpose
-- Build a concise, readable manifest of the LivePedalboardSuite:
-  • Top-level tree (depth 2) for quick orientation
-  • List all .sc / .scd files with their first 3 header lines (filename / version / MD stamp)
-  • Confirm the adapter file path: adapter_CommandTree_to_MagicPedalboard.scd (if present)
-- Opens a new IDE Document with the inventory text (no file I/O).
-  The FIRST LINE is the intended filename so you can copy-paste it when saving.
+- Scan the LivePedalboardSuite tree (default depth = 2), list files, and
+  include the first N header lines from each .sc / .scd file.
+- Write to a new IDE Document (no file I/O). The FIRST line is the intended
+  filename for manual save.
 
 Style
-- var-first; lowercase; descriptive variable names; no single-letter locals; no server.sync; conservative file reads; no non-local returns.
+- var-first; descriptive lowercase names; no single-letter locals.
+- STRICT: no non-local returns (^) in this script; only final-expression returns.
+- Known-good sclang only. Cross-platform paths via PathName. No server.sync.
 */
 
 (
-var candidateRoots, chosenRootDirectoryPath, rootDirectoryPath;
-var linesList, newlineChar, stampYYMMDD_HHMM, mdStampYYYYMMDD_HHMM, separatorLine;
-var addString, addSeparator, addKeyValueLine, addSectionTitle;
-var isSuperColliderCodeFile, relativePathOf, printTreeDepth2, collectFirstHeaderLines;
-var inventoryBodyText, intendedFileName, documentTitle, inventoryDocument;
+var nowStamp, userExtDir, suiteRoot, maxDepth, headerLines, ignoreNames;
+var isScFile, takeFirstNLines, toRelPath, sorter, collectFiles, buildDocText;
+var entries, lines, doc, intendedName, divider;
 
-// ----- timestamps
-newlineChar = Char.nl;
-stampYYMMDD_HHMM = Date.getDate.stamp;  // e.g., "251005_1949"
-mdStampYYYYMMDD_HHMM = (
-    "20" ++ stampYYMMDD_HHMM.copyRange(0, 1)   // YY → YYYY with "20" prefix
-    ++ stampYYMMDD_HHMM.copyRange(2, 3)        // MM
-    ++ stampYYMMDD_HHMM.copyRange(4, 5)        // DD
-    ++ "-" ++ stampYYMMDD_HHMM.copyRange(7, 10)  // HHMM
-);
+// ----- configuration -----
+nowStamp    = Date.getDate.stamp;
+userExtDir  = Platform.userExtensionDir;
+suiteRoot   = (userExtDir ++ "/LivePedalboardSuite").standardizePath; // canonical
+maxDepth    = 2;          // directory recursion depth
+headerLines = 3;          // first N lines from .sc/.scd headers
+ignoreNames = [".DS_Store", ".git", ".cache", "build", "out", "node_modules", "_archived"];
 
-// intended filename (copy-paste this when saving)
-intendedFileName = "Project_Inventory_" ++ stampYYMMDD_HHMM ++ ".txt";
-
-// ----- helpers to build the text
-separatorLine = "--------------------------------------------------------------------------------";
-linesList = List.new;
-
-addString = { |stringToAdd| linesList.add(stringToAdd) };
-addSeparator = { linesList.add(separatorLine) };
-addKeyValueLine = { |labelKey, labelValue| linesList.add(labelKey ++ ": " ++ labelValue.asString) };
-addSectionTitle = { |sectionTitle|
-    linesList.add("");
-    linesList.add("===== " ++ sectionTitle ++ " =====");
+// ----- helpers -----
+isScFile = { arg path;
+    var p;
+    p = path.asString;
+    (p.endsWith(".sc") or: { p.endsWith(".scd") })
 };
 
-isSuperColliderCodeFile = { |pathName|
-    var fileExtension;
-    fileExtension = pathName.extension ? "";
-    ["sc", "scd"].includes(fileExtension.asString.toLower)
-};
-
-// ----- locate suite root (prefer OneDrive copy that contains MagicPedalboard/)
-candidateRoots = [
-    (Platform.userHomeDir ++ "/Library/CloudStorage/OneDrive-TheOpenUniversity/LivePedalboardSuite").standardizePath,
-    (Platform.userExtensionDir ++ "/LivePedalboardSuite").standardizePath,
-    (Platform.userHomeDir ++ "/PhD_projects/LivePedalboardSuite").standardizePath
-];
-
-chosenRootDirectoryPath = nil;
-candidateRoots.do { |candidatePath|
-    if(File.exists(candidatePath) and: { File.exists(candidatePath ++ "/MagicPedalboard") }) {
-        chosenRootDirectoryPath = candidatePath;
+takeFirstNLines = { arg pathString, n = 3;
+    var text, parts, firstN;
+    text = "";
+    parts = #[];
+    firstN = #[];
+    File.use(pathString, "r", { arg f;
+        text = f.readAllString;
+    });
+    parts = (text ? "").split(Char.nl);
+    firstN = if(parts.size == 0) {
+        #[]
+    } {
+        parts.copyRange(0, (n-1).clip(0, parts.size-1))
     };
+    firstN
 };
-if(chosenRootDirectoryPath.isNil) {
-    candidateRoots.do { |candidatePath|
-        if(File.exists(candidatePath)) { chosenRootDirectoryPath = candidatePath };
+
+// safer relative path (no unknown selectors)
+toRelPath = { arg fullPath, rootPath;
+    var norm, root, rel;
+    norm = fullPath.standardizePath;
+    root = rootPath.standardizePath;
+    rel = if(norm.beginsWith(root)) {
+        norm.copyRange(root.size, norm.size - 1)
+    } {
+        norm
     };
-};
-if(chosenRootDirectoryPath.isNil) {
-    chosenRootDirectoryPath = (Platform.userExtensionDir ++ "/LivePedalboardSuite").standardizePath;
-    File.mkdir(chosenRootDirectoryPath);  // last resort so the script can still run
+    rel
 };
 
-rootDirectoryPath = chosenRootDirectoryPath;
-
-// relative-path helper
-relativePathOf = { |fullPathString|
-    fullPathString.asString.replace(rootDirectoryPath, "").replace("//", "/")
+// simple “by-string” sorter that works on Arrays and PathName lists
+sorter = { arg coll, keyFunc;
+    var arr;
+    arr = coll.asArray.copy;
+    arr.sort({ arg a, b;
+        var ka, kb;
+        ka = keyFunc.value(a).asString.toLower;
+        kb = keyFunc.value(b).asString.toLower;
+        ka < kb
+    });
+    arr
 };
 
-// ----- directory tree (depth 2)
-printTreeDepth2 = { |directoryPath|
-    var directoryPathName, levelOneDirectories;
+collectFiles = { arg rootPath, depthLimit = 2;
+    var out, walk;
+    out = List.new;
 
-    if(File.exists(directoryPath).not) {
-        addString.("[!] Directory does not exist: " ++ directoryPath);
-    }{
-        directoryPathName = PathName.new(directoryPath);
+    walk = { arg pn, level;
+        var name, okToEnter, children;
+        name = pn.fileName.asString;
+        okToEnter = ignoreNames.any({ arg bad; name == bad }).not;
 
-        addString.("ROOT: " ++ directoryPath);
-        addSeparator.();
-
-        // level 0 files
-        directoryPathName.files.do { |filePathName|
-            addString.("- " ++ relativePathOf.(filePathName.fullPath));
-        };
-
-        // level 1 folders and their files (depth 2 total)
-        levelOneDirectories = directoryPathName.folders;
-        levelOneDirectories.do { |levelOnePathName|
-            addString.("> " ++ relativePathOf.(levelOnePathName.fullPath));
-
-            // files in level-one folder
-            PathName.new(levelOnePathName.fullPath).files.do { |levelOneFilePathName|
-                addString.("  - " ++ relativePathOf.(levelOneFilePathName.fullPath));
-            };
-
-            // subfolders one level deeper
-            PathName.new(levelOnePathName.fullPath).folders.do { |levelTwoPathName|
-                addString.("  > " ++ relativePathOf.(levelTwoPathName.fullPath));
-                PathName.new(levelTwoPathName.fullPath).files.do { |levelTwoFilePathName|
-                    addString.("    - " ++ relativePathOf.(levelTwoFilePathName.fullPath));
+        if(okToEnter) {
+            if(pn.isFile) {
+                out.add(pn.fullPath);
+            } {
+                if(level < depthLimit) {
+                    // sort children by fileName with only known-good calls
+                    children = sorter.value(pn.entries, { arg x; x.fileName.asString });
+                    children.do({ arg child; walk.value(child, level + 1) });
                 };
             };
         };
-    };
-};
-
-// ----- collect first 3 header lines from .sc/.scd
-collectFirstHeaderLines = {
-    var recursePathname, rootPathName;
-
-    addSectionTitle.("Code files with headers (.sc / .scd)");
-    addString.("(first 3 lines per file, if present: filename / version / MD stamp)");
-    addSeparator.();
-
-    recursePathname = { |currentPathName|
-        currentPathName.files.do { |filePathName|
-            var fileFullPath, fileContents, headerLines, headerLine1, headerLine2, headerLine3;
-
-            if(isSuperColliderCodeFile.(filePathName)) {
-                fileFullPath = filePathName.fullPath;
-
-                fileContents = "";
-                File.use(fileFullPath, "r", { |fileHandle| fileContents = fileHandle.readAllString; });
-
-                headerLines = fileContents.split(Char.nl);
-                headerLine1 = (headerLines.size > 0).if({ headerLines[0] }, { "" });
-                headerLine2 = (headerLines.size > 1).if({ headerLines[1] }, { "" });
-                headerLine3 = (headerLines.size > 2).if({ headerLines[2] }, { "" });
-
-                addString.(relativePathOf.(fileFullPath));
-                addString.(" " ++ headerLine1);
-                addString.(" " ++ headerLine2);
-                addString.(" " ++ headerLine3);
-                addString.("");
-            };
-        };
-
-        currentPathName.folders.do { |childFolderPathName|
-            recursePathname.(PathName.new(childFolderPathName.fullPath));
-        };
+        nil // explicit last expression; no ^ in scripts
     };
 
-    rootPathName = PathName.new(rootDirectoryPath);
-    recursePathname.(rootPathName);
+    walk.value(PathName(rootPath), 0);
+    sorter.value(out, { arg p; p.asString })
 };
 
-// -------------------- build the inventory text (no file writes)
-// 1) Put the intended filename on line 1 for copy-paste when saving
-// 2) Then the rest of the inventory body
-linesList = List.new; // reset to assemble the body cleanly
-addString.("Make_Project_Inventory.scd - Project Inventory");
-addKeyValueLine.("Generated", mdStampYYYYMMDD_HHMM);
-addKeyValueLine.("UserExtensionDir", Platform.userExtensionDir);
-addKeyValueLine.("Chosen suite root", rootDirectoryPath);
-addSeparator.();
+buildDocText = { arg rootPath, filesArray;
+    var linesOut, div;
+    linesOut = List.new;
+    div = String.fill(88, $-);
 
-addSectionTitle.("Directory tree (depth 2)");
-printTreeDepth2.(rootDirectoryPath);
+    // header metadata
+    linesOut.add("Make_Project_Inventory.scd - Project Inventory");
+    linesOut.add("Generated: " ++ nowStamp);
+    linesOut.add("UserExtensionDir: " ++ userExtDir);
+    linesOut.add("Chosen suite root: " ++ rootPath);
+    linesOut.add(div);
+    linesOut.add("===== Directory tree (depth " ++ maxDepth + ") =====");
+    linesOut.add("ROOT: " ++ rootPath);
+    linesOut.add(div);
 
-addSectionTitle.("Adapter file");
-{
-    var adapterFileCandidatePath;
-    adapterFileCandidatePath = (rootDirectoryPath ++ "/MagicPedalboard/adapter_CommandTree_to_MagicPedalboard.scd").standardizePath;
-    addKeyValueLine.(
-        "adapter_CommandTree_to_MagicPedalboard.scd",
-        File.exists(adapterFileCandidatePath).if({ adapterFileCandidatePath }, { "[missing]" })
-    );
+    // flat listing
+    filesArray.do({ arg fullPath;
+        var rel;
+        rel = toRelPath.value(fullPath, rootPath);
+        linesOut.add("- " ++ rel);
+    });
+
+    linesOut.add(div);
+    linesOut.add("===== File headers (.sc / .scd; first " ++ headerLines + " line(s)) =====");
+
+    // file header previews
+    filesArray.do({ arg fullPath;
+        var rel, previewLines, blockSep;
+        if(isScFile.value(fullPath)) {
+            rel = toRelPath.value(fullPath, rootPath);
+            previewLines = takeFirstNLines.value(fullPath, headerLines);
+            blockSep = String.fill(72, $=);
+            linesOut.add(blockSep);
+            linesOut.add(rel);
+            linesOut.addAll(previewLines);
+        };
+    });
+
+    linesOut.join(Char.nl.asString) // final expression return
 };
 
-collectFirstHeaderLines.();
+// ----- run -----
+divider = String.fill(88, $-);
+intendedName = "Project_Inventory_" ++ nowStamp.replace($:, $_) ++ ".txt";
 
-inventoryBodyText = linesList.collect({ |element| element.asString }).join(newlineChar);
+// collect & sort
+entries = collectFiles.value(suiteRoot, maxDepth);
 
-// Prepend the intended filename as the very first line
-inventoryBodyText = intendedFileName ++ newlineChar ++ inventoryBodyText;
+// build text & open a Document (first line = intended filename)
+lines = List.new;
+lines.add(intendedName);
+lines.add(buildDocText.value(suiteRoot, entries));
 
-// -------------------- open a new IDE document; you save it manually
-documentTitle = intendedFileName; // pre-fills the save name on many setups
-inventoryDocument = Document.new(documentTitle, inventoryBodyText);
-inventoryDocument.front;
-("Inventory prepared. First line is the filename to copy-paste: " ++ intendedFileName).postln;
-// End
+doc = Document.new("Project Inventory (" ++ nowStamp ++ ")", lines.join(Char.nl.asString));
+doc.front;
+
+// tidy locals (optional)
+lines = nil; entries = nil; doc = nil;
 )
