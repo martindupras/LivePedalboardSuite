@@ -1,11 +1,6 @@
 // LivePedalboardSystem-EnsurePedalboard.sc
-// v0.2.1
-// MD 20251008-2056
-
-/* Purpose
-- Guarantee MagicPedalboard exists and sinks (\chainA/\chainB) are defined AR.
-- Add bringUpAllSafe that wraps original bringUpAll and enforces checks.
-*/
+// v0.2.2
+// MD 20251008-2106
 
 + LivePedalboardSystem {
 
@@ -28,6 +23,7 @@
     }
 
     ensureSinksDefined {
+        // Unconditional pass-through sinks (idempotent)
         Ndef(\chainA, { var x; x = \in.ar(0!2); x }).ar(2);
         Ndef(\chainB, { var y; y = \in.ar(0!2); y }).ar(2);
         ^this
@@ -35,7 +31,7 @@
 
     bringUpAllSafe {
         var win;
-        win = this.bringUpAll;   // -> a Window
+        win = this.bringUpAll;   // -> a Window (may install AutoMeters)
         this.ensurePedalboardExists;
         ^win
     }
