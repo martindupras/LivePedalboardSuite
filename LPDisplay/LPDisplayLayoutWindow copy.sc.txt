@@ -227,11 +227,11 @@ LPDisplayLayoutWindow {
 		^this
 	}
 
-	// NEW: convenience setter to toggle console prints
+/*	// NEW: convenience setter to toggle console prints
 	setConsoleLevelsOn { |flag = false|
 		consoleLevelsOn = flag.asBoolean;
 		^this
-	}
+	}*/
 
 	// --- Internal build steps -------------------------------------------------
 
@@ -274,7 +274,7 @@ LPDisplayLayoutWindow {
 		choicesText  = TextView();
 		recvText     = TextView();
 
-		window = Window("Layout Test", Rect(100, 100, 800, 600))
+		window = Window("LPDisplay – LayoutWindow", Rect(100, 100, 800, 600))
 		.background_(Color.white)
 		.front;
 
@@ -314,9 +314,27 @@ LPDisplayLayoutWindow {
 	// NEW only OSC reponders for the meters here:
 
 	//---
-	installMeterResponders {
+/*	installMeterResponders {
 		// Bind only GUI responders (no audio graph here).
 		// Keys stable so re-eval replaces existing.
+		OSCdef(\rmsA_toGUI, { arg msg;
+			var v = msg.last.asFloat;
+			{ this.setLeftMeter(v) }.defer;
+		}, '/peakrmsA');
+
+		OSCdef(\rmsB_toGUI, { arg msg;
+			var v = msg.last.asFloat;
+			{ this.setRightMeter(v) }.defer;
+		}, '/peakrmsB');
+
+		^this
+	}*/
+
+	installMeterResponders {
+		var oldA, oldB;
+		oldA = OSCdef(oscNameA); if (oldA.notNil) { oldA.free };
+		oldB = OSCdef(oscNameB); if (oldB.notNil) { oldB.free };
+
 		OSCdef(\rmsA_toGUI, { arg msg;
 			var v = msg.last.asFloat;
 			{ this.setLeftMeter(v) }.defer;

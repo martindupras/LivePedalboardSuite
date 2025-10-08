@@ -29,8 +29,8 @@ Style
             Ndef(\testmelody).ar(2);
 
             // Silent stereo placeholder
-            if (Ndef(\ts0).source.isNil) { Ndef(\ts0, { Silent.ar(2) }) };
-            Ndef(\ts0).ar(2);
+            if (Ndef(\stereoSilence).source.isNil) { Ndef(\stereoSilence, { Silent.ar(2) }) };
+            Ndef(\stereoSilence).ar(2);
 
             // Ensure A/B sinks have 2‑ch audio buses pre‑armed
             Ndef(\chainA).ar(2);

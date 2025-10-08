@@ -50,7 +50,9 @@ LivePedalboardSystem : Object {
         // Initial snapshot to the display (chains + active side + status)
         this.refreshDisplay;
 
-        logger.info("LivePedalboardSystem", "✅ System is ready.");
+		this.ensureLogger;
+		this.logInfo("LivePedalboardSystem", "System is ready.");
+        //logger.info("LivePedalboardSystem", "✅ System is ready.");
         ^win
     }
 

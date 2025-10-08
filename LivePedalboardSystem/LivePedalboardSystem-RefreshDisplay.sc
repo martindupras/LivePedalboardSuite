@@ -12,7 +12,7 @@
         aSyms = this.pedalboard.tryPerform(\chainSymbolsA);
         bSyms = this.pedalboard.tryPerform(\chainSymbolsB);
         aSyms = aSyms ? [\chainA, \testmelody];
-        bSyms = bSyms ? [\chainB, \ts0];
+        bSyms = bSyms ? [\chainB, \stereoSilence];
 
         adapter.setChains(aSyms, bSyms);
 
