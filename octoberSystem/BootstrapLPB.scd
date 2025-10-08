@@ -71,6 +71,12 @@ lpbSystem = LivePedalboardSystem.new;
 displayWindow = lpbSystem.bringUpAll;  // -> a Window (handles LPDisplay, bridges, auto-meters)
 
 AppClock.sched(0.0, { var nothing; if(displayWindow.notNil) { displayWindow.front }; nil });
+
+// now set testmelodyA as source for chain A:
+
+lpbSystem.
+
+
 displayWindow
 )
 
@@ -88,11 +94,6 @@ displayWindow
    - local Ndefs: sinkA/B, meterA/B (SendPeakRMS), testmelodyA/B, etc.
    (All intentionally omitted in v0.0.3.)
 ───────────────────────────────────────────────────────────────────────────── */
-
-
-
-
-
 
 //----------------
 // Meters
@@ -122,7 +123,6 @@ displayWindow
 // Ndef(\sinkA) <<> Ndef(\meterA) <<> Ndef(\testmelodyA);
 // Ndef(\sinkB) <<> Ndef(\meterB) <<> Ndef(\testmelodyB);
 //
-
 
 //  TESTING CODE - uncomment and evaluate line by line.
 
