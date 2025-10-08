@@ -1,6 +1,6 @@
 // BootstrapLPB.scd
-// v0.0.4
-// MD 20251008-1455
+// v0.0.3
+// MD 20251008-1505
 
 /* Purpose
 - Minimal bring-up that defers to LivePedalboardSystem to open its own LPDisplay.
@@ -13,6 +13,59 @@ Style
 (
 var lpbSystem, displayWindow;
 
+lpbSystem = LivePedalboardSystem.new;
+displayWindow = lpbSystem.bringUpAll;  // -> a Window (handles LPDisplay, bridges, auto-meters)
+
+AppClock.sched(0.0, { var nothing; if(displayWindow.notNil) { displayWindow.front }; nil });
+displayWindow
+)
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   LEGACY (COMMENTED OUT ON PURPOSE)
+
+   The original BootstrapLPB.scd created its own LPDisplayLayoutWindow and had
+   local Ndefs for /peakrmsA/B meters and test sources. That's disabled here to
+   avoid a second LPDisplay window and competing meter senders. If you need
+   ad-hoc sources for testing, use a separate test script instead.
+
+   Reference (original structure observed in BootstrapLPB.scd v0.0.1):
+   - openDisplay = { LPDisplayLayoutWindow.new.open ... }
+   - bringUp = { openDisplay.value; ... LivePedalboardSystem.new; ... }
+   - local Ndefs: sinkA/B, meterA/B (SendPeakRMS), testmelodyA/B, etc.
+   (All intentionally omitted in v0.0.3.)
+───────────────────────────────────────────────────────────────────────────── */
+
+
+
+
+
+
+
+
+
+
+
+// BootstrapLPB.scd
+// v0.0.1
+// MD 20251008-1323
+
+/*
+Purpose
+- Open LPDisplayLayoutWindow and make the top-row meters react to SendPeakRMS
+  arriving on '/peakrmsA' and '/peakrmsB'.
+- Also (optionally) install safe, pass-through meter taps on Ndef(\chainA/\chainB)
+  if you want to drive the meters from those proxies.
+
+Style
+- GUI work only on AppClock; server ops wrapped in Server.default.bind.
+- Returns '-> a Window'.
+*/
+
+(
+
+var lpDisplay, openDisplay, bringUp;
+//var installMinimalTaps; // no longer used
+var lpbSystem, displayWindow;
 
 //----------------
 // Tests signals:
@@ -66,63 +119,79 @@ Ndef(\srcBleeps, {
                 (Pulse.ar(f, 0.35) * e * 0.20)!2
             });
 
+//----------------
+// Meters
+//----------------
+Ndef(\meterA, { var inSig;
+	inSig = \in.ar(0!2);
+	//SendPeakRMS.kr(sig:, rate:, peakLag:,  cmdName:'/peakrmsA',  replyId:3601);
+	SendPeakRMS.kr(inSig, 20, 3, '/peakrmsA' ,  9876);
+	inSig }).numChannels.postln;
 
-lpbSystem = LivePedalboardSystem.new;
-displayWindow = lpbSystem.bringUpAll;  // -> a Window (handles LPDisplay, bridges, auto-meters)
+Ndef(\meterB, { var inSig;
+	inSig = \in.ar(0!2);
+	SendPeakRMS.kr(inSig, 20, 3, '/peakrmsB' ,  9877);
+	inSig }).numChannels.postln;
 
-AppClock.sched(0.0, { var nothing; if(displayWindow.notNil) { displayWindow.front }; nil });
+//----------------
+// Sinks
+//----------------
 
-// now set testmelodyA as source for chain A:
+Ndef(\sinkA, { var inSig; inSig = \in.ar(0!2);       inSig }).numChannels.postln;
+Ndef(\sinkB, { var inSig; inSig = \in.ar(0!2);       inSig }).numChannels.postln;
 
-lpbSystem.
+//////////////////////////////
+// ----------- default chains
+// comment out if not wanted, or set the beginning to Ndef(\silence)
 
+Ndef(\sinkA) <<> Ndef(\meterA) <<> Ndef(\testmelodyA);
+Ndef(\sinkB) <<> Ndef(\meterB) <<> Ndef(\testmelodyB);
+
+
+
+// 1) Open the LPDisplay controller/window (meters auto-bind to /peakrmsA/B)
+openDisplay = {
+    var win;
+    lpDisplay = LPDisplayLayoutWindow.new;
+    win = lpDisplay.open;            // -> a Window; GUI OSCdefs are armed for /peakrmsA/B
+    // Optional: mapping and console quieting (safe no-ops if you skip)
+    lpDisplay.setHudMap(LPDisplayHudMap.new(-6, -60, 1.0));
+    lpDisplay.setConsoleLevelsOn(false);
+
+
+	// IMPORTANT: disable the built-in sources in LPDisplay:
+	lpDisplay.setSourceA(\srcZ);
+	lpDisplay.setSourceB(\srcZ);
+
+    win
+};
+
+
+// 3) Bring it up: open the window, install taps (optional), front it, and return the window
+bringUp = {
+    //var win;
+    //win = openDisplay.value;
+    // If your graph already emits /peakrmsA/B, comment out the line below.
+    //installMinimalTaps.value;
+    AppClock.sched(0.0, { win.front; nil });
+
+    lpbSystem = LivePedalboardSystem.new; // keep a ref to avoid GC
+	displayWindow = lpbSystem.bringUpAll;
+
+    displayWindow;
+};
+
+
+
+// Run and return -> a Window
+displayWindow = bringUp.value;
+
+Ndef(\sinkA).stop;
+Ndef(\sinkB).play;
 
 displayWindow
 )
 
-/* ─────────────────────────────────────────────────────────────────────────────
-   LEGACY (COMMENTED OUT ON PURPOSE)
-
-   The original BootstrapLPB.scd created its own LPDisplayLayoutWindow and had
-   local Ndefs for /peakrmsA/B meters and test sources. That's disabled here to
-   avoid a second LPDisplay window and competing meter senders. If you need
-   ad-hoc sources for testing, use a separate test script instead.
-
-   Reference (original structure observed in BootstrapLPB.scd v0.0.1):
-   - openDisplay = { LPDisplayLayoutWindow.new.open ... }
-   - bringUp = { openDisplay.value; ... LivePedalboardSystem.new; ... }
-   - local Ndefs: sinkA/B, meterA/B (SendPeakRMS), testmelodyA/B, etc.
-   (All intentionally omitted in v0.0.3.)
-───────────────────────────────────────────────────────────────────────────── */
-
-//----------------
-// Meters
-//----------------
-// Ndef(\meterA, { var inSig;
-// 	inSig = \in.ar(0!2);
-// 	//SendPeakRMS.kr(sig:, rate:, peakLag:,  cmdName:'/peakrmsA',  replyId:3601);
-// 	SendPeakRMS.kr(inSig, 20, 3, '/peakrmsA' ,  9876);
-// inSig }).numChannels.postln;
-//
-// Ndef(\meterB, { var inSig;
-// 	inSig = \in.ar(0!2);
-// 	SendPeakRMS.kr(inSig, 20, 3, '/peakrmsB' ,  9877);
-// inSig }).numChannels.postln;
-
-// //----------------
-// // Sinks
-// //----------------
-//
-// Ndef(\sinkA, { var inSig; inSig = \in.ar(0!2);       inSig }).numChannels.postln;
-// Ndef(\sinkB, { var inSig; inSig = \in.ar(0!2);       inSig }).numChannels.postln;
-//
-// //////////////////////////////
-// // ----------- default chains
-// // comment out if not wanted, or set the beginning to Ndef(\silence)
-//
-// Ndef(\sinkA) <<> Ndef(\meterA) <<> Ndef(\testmelodyA);
-// Ndef(\sinkB) <<> Ndef(\meterB) <<> Ndef(\testmelodyB);
-//
 
 //  TESTING CODE - uncomment and evaluate line by line.
 

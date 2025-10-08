@@ -1,28 +1,28 @@
 // LivePedalboardSystem-EnsurePedalboard.sc
-// v0.2.0
-// MD 20251008-2034
+// v0.2.1
+// MD 20251008-2056
 
 /* Purpose
-- Guarantee MagicPedalboard + sinks exist and report status during bring-up.
-- Adds bringUpAllSafe so callers can opt into strict checks immediately.
+- Guarantee MagicPedalboard exists and sinks (\chainA/\chainB) are defined AR.
+- Add bringUpAllSafe that wraps original bringUpAll and enforces checks.
 */
 
 + LivePedalboardSystem {
 
     ensurePedalboardExists {
-        var made;
-        made = false;
+        var created;
+        created = false;
 
         if(this.pedalboard.isNil) {
             this.pedalboard = MagicPedalboard.new(this.statusDisplay ? nil);
-            made = true;
+            created = true;
         };
 
         this.ensureSinksDefined;
 
-        this.tryPerform(\logInfo, "LPS", made.if({ "Pedalboard created." }, { "Pedalboard present." }));
+        this.tryPerform(\logInfo, "LPS", created.if({ "Pedalboard created." }, { "Pedalboard present." }));
         if(this.tryPerform(\lpDisplay).notNil) {
-            this.lpDisplay.tryPerform(\sendPaneText, \system, made.if({ "PEDALBOARD CREATED" }, { "PEDALBOARD OK" }));
+            this.lpDisplay.tryPerform(\sendPaneText, \system, created.if({ "PEDALBOARD CREATED" }, { "PEDALBOARD OK" }));
         };
         ^this
     }
@@ -35,7 +35,7 @@
 
     bringUpAllSafe {
         var win;
-        win = this.bringUpAll;     // -> a Window (original behavior)
+        win = this.bringUpAll;   // -> a Window
         this.ensurePedalboardExists;
         ^win
     }
