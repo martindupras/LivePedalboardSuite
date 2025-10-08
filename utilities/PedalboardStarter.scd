@@ -1,38 +1,25 @@
 // PedalboardStarter.scd
-// v0.1.3
-// MD 20251008-1238
+// v0.1.4
+// MD 20251008-1308
 
 /*
 Purpose
-- Minimal bring-up using yesterday's working test generators and chain wiring.
-- A/B chains via Ndefs with your <<> operator; meters send /peakrmsA and /peakrmsB.
-- LPDisplayLayoutWindow opens with top-pane titles:
-  Left:  "Chain A (Active)"   Right: "Chain B (Next)"  (reflect state)
-- Manual helpers switch A/B (MIDI deferred).
+- Minimal bring-up using yesterday's proven chains and metering.
+- LPDisplay window opens immediately; audio graphs and .play/.stop run after server boots.
+- A = Active (audible), B = Next (stopped). Top panes titled and highlighted accordingly.
 
 Style / Guards
 - One single block; var-first; lowercase identifiers; no server.sync; no non-local returns.
-- GUI on AppClock only; script returns '-> a Window'.
-- Inside meter/sink graphs, use \in.ar(0!2) (stereo zeros) — NOT \in.ar(2).  // from your notes
+- GUI on AppClock only; returns '-> a Window'.
 */
 
 (
 var displayLayoutWindow, topWindow, hudMapFunction;
-var setupServer, defineGeneratorsMetersSinks, connectDefaultChains, openDisplayWindow, setTopPaneTitlesAndStyles;
-var switchToChainA, switchToChainB, findWindowByPrefix, closeExistingLpDisplayWindows;
+var openDisplayWindow, setTopPaneTitlesAndStyles;
+var defineGeneratorsMetersSinks, connectDefaultChains, bringUpAudioAfterBoot;
+var findWindowByPrefix, closeExistingLpDisplayWindows;
 
-"==================== PedalboardStarter (v0.1.2) ====================".postln;
-
-// ---------- server boot to known state ----------
-setupServer = {
-    s.waitForBoot({
-        Server.default.bind({
-            "Audio outputs: %".format(s.options.numOutputBusChannels).postln;
-            s.initTree;
-            s.defaultGroup.freeAll;
-        });
-    });
-};
+"==================== PedalboardStarter (v0.1.4) ====================".postln;
 
 // ---------- enforce single LPDisplay window ----------
 closeExistingLpDisplayWindows = {
@@ -48,9 +35,56 @@ findWindowByPrefix = { |prefixStr|
     ?? { Window.allWindows.last };
 };
 
-// ---------- your generators, meters, sinks (as in yesterday's file) ----------
+// ---------- LPDisplay bring-up (safe to do before server boot) ----------
+openDisplayWindow = {
+    var prefix;
+    closeExistingLpDisplayWindows.();
+
+    // Headroom map: top -6 dB, floor -60 dB, gamma 1.0
+    hudMapFunction = { |linear|
+        var safeLin = linear.max(1e-9);
+        var db = safeLin.ampdb.clip(-60.0, -6.0);
+        var ui = (db + 60.0) / 54.0; // (-60..-6) -> (0..1)
+        ui.pow(1.0)
+    };
+
+    displayLayoutWindow = LPDisplayLayoutWindow.new(hudMapFunction);
+    displayLayoutWindow.setHudMap(hudMapFunction);
+    displayLayoutWindow.installMeterResponders();      // listens on /peakrmsA and /peakrmsB
+    displayLayoutWindow.setConsoleLevelsOn(false);
+    displayLayoutWindow.open();
+
+    // Titles + highlight for bring-up: A active, B next (visuals first; audio follows after boot)
+    setTopPaneTitlesAndStyles.(\A);
+
+    prefix = "LPDisplay";
+    topWindow = findWindowByPrefix.(prefix);
+    if(topWindow.isNil) { topWindow = Window.allWindows.last };
+
+    "LPDisplay window opened; waiting for server to boot for audio...".postln;
+};
+
+// ---------- helper: set top-pane titles and highlight ----------
+setTopPaneTitlesAndStyles = { |activeChainSym|  // \A or \B
+    // Assuming \left / \right for title/style calls
+    if(activeChainSym == \A) {
+        displayLayoutWindow.setTopPaneTitle(\left,  "Chain A (Active)");
+        displayLayoutWindow.setTopPaneTitle(\right, "Chain B (Next)");
+        displayLayoutWindow.setTopPaneStyle(\left,  true);
+        displayLayoutWindow.setTopPaneStyle(\right, false);
+        displayLayoutWindow.setActiveChainVisual(\A);
+    }{
+        displayLayoutWindow.setTopPaneTitle(\left,  "Chain A (Next)");
+        displayLayoutWindow.setTopPaneTitle(\right, "Chain B (Active)");
+        displayLayoutWindow.setTopPaneStyle(\left,  false);
+        displayLayoutWindow.setTopPaneStyle(\right, true);
+        displayLayoutWindow.setActiveChainVisual(\B);
+    };
+};
+
+// ---------- your generators, meters, sinks (from yesterday's working code) ----------
 defineGeneratorsMetersSinks = {
-    // --- Generators: test melodies (stereo) ---
+    // Test melodies (stereo)
     Ndef(\testmelodyA, {
         var t = Impulse.kr(2.2);
         var e = Decay2.kr(t, 0.01, 0.30);
@@ -65,7 +99,7 @@ defineGeneratorsMetersSinks = {
         (Pulse.ar(f, 0.35) * e * 0.20)!2
     });
 
-    // --- Meters: use your SendPeakRMS + in.ar(0!2) pattern ---
+    // Meters: use \in.ar(0!2) + SendPeakRMS to canonical OSC paths
     Ndef(\meterA, {
         var inSig = \in.ar(0!2);
         SendPeakRMS.kr(inSig, 20, 3, '/peakrmsA', 9876);
@@ -78,105 +112,64 @@ defineGeneratorsMetersSinks = {
         inSig
     });
 
-    // --- Sinks: pass-through of in.ar(0!2) (audible via .play on the sink) ---
+    // Sinks: pass-through of \in.ar(0!2); audible by playing the sink
     Ndef(\sinkA, { var inSig = \in.ar(0!2); inSig });
     Ndef(\sinkB, { var inSig = \in.ar(0!2); inSig });
 
-    "Generators/meters/sinks defined (testmelodyA/B, meterA/B, sinkA/B).".postln;
+    "Generators/meters/sinks defined.".postln;
 };
 
-// ---------- connect default chains (A audible, B stopped) ----------
+// ---------- connect chains and set audible state (A play, B stop) ----------
 connectDefaultChains = {
-    // Use your preferred operator: Ndef(left) <<> Ndef(right)
     Ndef(\sinkA) <<> Ndef(\meterA) <<> Ndef(\testmelodyA);
     Ndef(\sinkB) <<> Ndef(\meterB) <<> Ndef(\testmelodyB);
 
-    // Audible state: A=true, B=false (play/stop on sinks)
+    // Audible state on the sinks (play/stop after server boot)
     Ndef(\sinkA).play;
     Ndef(\sinkB).stop;
 
     "Chains connected: sinkA<<meterA<<testmelodyA (PLAY), sinkB<<meterB<<testmelodyB (STOP).".postln;
 };
 
-// ---------- LPDisplay bring-up and top-pane titles/styles ----------
-openDisplayWindow = {
-    var prefix;
-    closeExistingLpDisplayWindows.();
+// ---------- bring up audio only after server is ready ----------
+bringUpAudioAfterBoot = {
+    s.waitForBoot({
+        Server.default.bind({
+            s.initTree;
+            s.defaultGroup.freeAll;
 
-    // Headroom map: top -6 dB, floor -60 dB, gamma 1.0
-    hudMapFunction = { |linear|
-        var safeLin = linear.max(1e-9);
-        var db = safeLin.ampdb.clip(-60.0, -6.0);
-        var ui = (db + 60.0) / (54.0);  // (-60..-6) -> (0..1)
-        ui.pow(1.0)
-    };
+            defineGeneratorsMetersSinks.();
+            connectDefaultChains.();
 
-    // Build LPDisplay and arm meter responders
-    displayLayoutWindow = LPDisplayLayoutWindow.new(hudMapFunction);
-    displayLayoutWindow.setHudMap(hudMapFunction);
+            // Titles already set; ensure visual is consistent with audible A
+            setTopPaneTitlesAndStyles.(\A);
 
-    // If you want labels, you can enable these; commented to keep minimal
-    // displayLayoutWindow.setSourceA(\chainA);
-    // displayLayoutWindow.setSourceB(\chainB);
-
-    displayLayoutWindow.installMeterResponders();
-    displayLayoutWindow.setConsoleLevelsOn(false);  // quieter console
-    displayLayoutWindow.open();
-
-    // Set titles + highlight for bring-up (A active, B next)
-    setTopPaneTitlesAndStyles.(\A);
-
-    prefix = "LPDisplay";
-    topWindow = findWindowByPrefix.(prefix);
-    if(topWindow.isNil) { topWindow = Window.allWindows.last };
-
-    "LPDisplay window opened and armed for /peakrmsA/B.".postln;
+            "Audio bring-up completed.".postln;
+        });
+    });
 };
 
-// ---------- helper: set top-pane titles and highlight ----------
-setTopPaneTitlesAndStyles = { |activeChainSym|  // \A or \B
-    // Assuming API uses \left / \right for top panes:
-    if(activeChainSym == \A) {
-        displayLayoutWindow.setTopPaneTitle(\left, "Chain A (Active)");
-        displayLayoutWindow.setTopPaneTitle(\right, "Chain B (Next)");
-        displayLayoutWindow.setTopPaneStyle(\left, true);
-        displayLayoutWindow.setTopPaneStyle(\right, false);
-        displayLayoutWindow.setActiveChainVisual(\A);
-    }{
-        displayLayoutWindow.setTopPaneTitle(\left, "Chain A (Next)");
-        displayLayoutWindow.setTopPaneTitle(\right, "Chain B (Active)");
-        displayLayoutWindow.setTopPaneStyle(\left, false);
-        displayLayoutWindow.setTopPaneStyle(\right, true);
-        displayLayoutWindow.setActiveChainVisual(\B);
-    };
-};
+// ---------- sequence ----------
+openDisplayWindow.();      // open GUI now so we still return -> a Window
+bringUpAudioAfterBoot.();  // defer audio graphs and .play/.stop until server is ready
 
-// ---------- manual chain switch helpers (MIDI deferred) ----------
-switchToChainA = {
+"Bring-up running. Use ~switchToChainB.() / ~switchToChainA.() to toggle once audio is up.".postln;
+
+// Manual toggle helpers published to the interpreter (defined *after* Ndefs exist)
+// We define them now; they will work after the server boot sequence finishes.
+~switchToChainA = {
     Ndef(\sinkB).stop;
     Ndef(\sinkA).play;
     setTopPaneTitlesAndStyles.(\A);
     "[SWITCH] Active chain = A".postln;
 };
 
-switchToChainB = {
+~switchToChainB = {
     Ndef(\sinkA).stop;
     Ndef(\sinkB).play;
     setTopPaneTitlesAndStyles.(\B);
     "[SWITCH] Active chain = B".postln;
 };
 
-// ---------- bring-up sequence ----------
-setupServer.();
-defineGeneratorsMetersSinks.();
-connectDefaultChains.();
-openDisplayWindow.();
-
-// export helpers for quick manual toggles
-~switchToChainA = switchToChainA;
-~switchToChainB = switchToChainB;
-
-"Bring-up complete. Use ~switchToChainB.() / ~switchToChainA.() to toggle.".postln;
-
-topWindow;  // -> a Window
+topWindow;  // -> a Window (immediate)
 )
