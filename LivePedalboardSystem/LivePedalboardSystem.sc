@@ -78,3 +78,41 @@ LivePedalboardSystem : Object {
         ^this
     }
 }
+
+
+
+/*
+ pedalboard (  )
+   pedalboard_ (  )
+   pedalboardGUI (  )
+   pedalboardGUI_ (  )
+   commandManager (  )
+   commandManager_ (  )
+   statusDisplay (  )
+   statusDisplay_ (  )
+   lpDisplay (  )
+   lpDisplay_ (  )
+   logger (  )
+   logger_ (  )
+   treeFilePath (  )
+   treeFilePath_ (  )
+   bringUpMagicDisplayGUI (  )
+   bringUpAll (  )
+   refreshDisplay (  )
+   applyCanonicalPath ( shortPath )
+   ensureLogger (  )
+   logInfo ( tag, msg )
+   logWarn ( tag, msg )
+   logError ( tag, msg )
+   closeExistingMagicDisplayWindows (  )
+   closeExistingLPDisplayWindows (  )
+   enableAutoMeters ( rate, postSwitchDelay )
+   ensureServerReady (  )
+   installTestMelodies (  )
+   routeTestMelodiesToAB (  )
+   ensureAudioOn (  ) -- LivePedalboardSystem-EnsureAudioOn.sc
+   bringUpLPDisplay (  ) --LivePedalboardSystem-BringUpLPDisplay.sc
+   bringUpPedalboard (  ) -- LivePedalboardSystem-BringUpPedalboard.sc
+   installAdapterBridge (  ) -- LivePedalboardSystem-AdapterBridge.sc
+   bringUpCommandSystem (  ) -- LivePedalboardSystem-BringUpCommandSystem.sc
+   */
