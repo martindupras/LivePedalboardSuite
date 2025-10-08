@@ -1,29 +1,29 @@
 // PedalboardStarter.scd
-// v0.1.1
-// MD 20251008-1206
+// v0.1.3
+// MD 20251008-1238
 
 /*
 Purpose
-- Clean boot + single-window bring-up using LPDisplayLayoutWindow with A/B chains (JITLib Ndefs).
-- Generated test source only (no SoundIn) for predictable, repeatable audio.
-- Level taps *inside* the chain graphs send OSC to /peakrmsA and /peakrmsB for LPDisplay.
-- Manual helpers are provided to switch A/B audibility (MIDI deferred for now).
+- Minimal bring-up using yesterday's working test generators and chain wiring.
+- A/B chains via Ndefs with your <<> operator; meters send /peakrmsA and /peakrmsB.
+- LPDisplayLayoutWindow opens with top-pane titles:
+  Left:  "Chain A (Active)"   Right: "Chain B (Next)"  (reflect state)
+- Manual helpers switch A/B (MIDI deferred).
 
 Style / Guards
-- One single block; var declarations first; lowercase identifiers; no server.sync; no non-local returns.
-- GUI uses AppClock only (LPDisplay manages its own refresh if needed).
-- JITLib routing via .source; audible switching via Ndef(\chainX).play/stop (do not use isPlaying).
-- Returns '-> a Window' at the end.
+- One single block; var-first; lowercase identifiers; no server.sync; no non-local returns.
+- GUI on AppClock only; script returns '-> a Window'.
+- Inside meter/sink graphs, use \in.ar(0!2) (stereo zeros) — NOT \in.ar(2).  // from your notes
 */
 
 (
 var displayLayoutWindow, topWindow, hudMapFunction;
-var setupServer, closeExistingLpDisplayWindows, findWindowByPrefix;
-var setupAudioGraphs, openDisplayWindow, switchToChainA, switchToChainB;
+var setupServer, defineGeneratorsMetersSinks, connectDefaultChains, openDisplayWindow, setTopPaneTitlesAndStyles;
+var switchToChainA, switchToChainB, findWindowByPrefix, closeExistingLpDisplayWindows;
 
-"==================== PedalboardStarter (v0.1.1) ====================".postln;
+"==================== PedalboardStarter (v0.1.2) ====================".postln;
 
-// --- boot to a known state ---
+// ---------- server boot to known state ----------
 setupServer = {
     s.waitForBoot({
         Server.default.bind({
@@ -34,124 +34,149 @@ setupServer = {
     });
 };
 
-// --- enforce a single LPDisplay window ---
+// ---------- enforce single LPDisplay window ----------
 closeExistingLpDisplayWindows = {
     Window.allWindows.do({ |w|
-        var name;
-        name = w.name.asString;
+        var name = w.name.asString;
         if(name.beginsWith("LPDisplay")) { w.close };
     });
 };
 
-// --- find a window by prefix (so we can return -> a Window) ---
+// ---------- window lookup so we can return -> a Window ----------
 findWindowByPrefix = { |prefixStr|
     Window.allWindows.detect({ |w| w.name.asString.beginsWith(prefixStr.asString) })
-    ?? { Window.allWindows.last }; //if window is found, return it, else return last window
+    ?? { Window.allWindows.last };
 };
 
-// --- A/B chains with in-graph level taps (generated audio only) ---
-setupAudioGraphs = {
-    // Test source: stereo sine (audible), modest level.
-    Ndef(\src).source = { SinOsc.ar([220, 221]) * 0.2 };
+// ---------- your generators, meters, sinks (as in yesterday's file) ----------
+defineGeneratorsMetersSinks = {
+    // --- Generators: test melodies (stereo) ---
+    Ndef(\testmelodyA, {
+        var t = Impulse.kr(2.2);
+        var e = Decay2.kr(t, 0.01, 0.30);
+        var f = Demand.kr(t, 0, Dseq([220, 277.18, 329.63, 392], inf));
+        (SinOsc.ar(f) * e * 0.22)!2
+    });
 
-    // Chain A (audible by default)
-    Ndef(\chainA).source = {
-        var signal, mono, ampLin;
-        signal = Ndef.ar(\src);                 // stereo
-        mono   = Mix.new(signal);               // mono for measurement
-        // Simple in-graph meter: ~10 Hz updates -> /peakrmsA with linear amplitude
-        ampLin = Amplitude.kr(mono, 0.01, 0.3).clip(0.0, 1.0);
-        SendReply.kr(Impulse.kr(10), "/peakrmsA", [ampLin]);
-        signal;                                 // pass-through audio
-    };
+    Ndef(\testmelodyB, {
+        var t = Impulse.kr(3.1);
+        var e = Decay2.kr(t, 0.02, 0.18);
+        var f = Demand.kr(t, 0, Dseq([392, 329.63, 246.94, 220, 246.94], inf));
+        (Pulse.ar(f, 0.35) * e * 0.20)!2
+    });
 
-    // Chain B (initially silent by stopped state)
-    Ndef(\chainB).source = {
-        var signal, mono, ampLin;
-        signal = Ndef.ar(\src);
-        mono   = Mix.new(signal);
-        ampLin = Amplitude.kr(mono, 0.01, 0.3).clip(0.0, 1.0);
-        SendReply.kr(Impulse.kr(10), "/peakrmsB", [ampLin]);
-        signal;
-    };
+    // --- Meters: use your SendPeakRMS + in.ar(0!2) pattern ---
+    Ndef(\meterA, {
+        var inSig = \in.ar(0!2);
+        SendPeakRMS.kr(inSig, 20, 3, '/peakrmsA', 9876);
+        inSig
+    });
 
-    // Audible state: A=true, B=false (use play/stop; do not rely on isPlaying)
-    Ndef(\chainA).play;
-    Ndef(\chainB).stop;
+    Ndef(\meterB, {
+        var inSig = \in.ar(0!2);
+        SendPeakRMS.kr(inSig, 20, 3, '/peakrmsB', 9877);
+        inSig
+    });
 
-    "Audio graphs ready: ChainA=play, ChainB=stop".postln;
+    // --- Sinks: pass-through of in.ar(0!2) (audible via .play on the sink) ---
+    Ndef(\sinkA, { var inSig = \in.ar(0!2); inSig });
+    Ndef(\sinkB, { var inSig = \in.ar(0!2); inSig });
+
+    "Generators/meters/sinks defined (testmelodyA/B, meterA/B, sinkA/B).".postln;
 };
 
-// --- LPDisplay bring-up and meter wiring ---
+// ---------- connect default chains (A audible, B stopped) ----------
+connectDefaultChains = {
+    // Use your preferred operator: Ndef(left) <<> Ndef(right)
+    Ndef(\sinkA) <<> Ndef(\meterA) <<> Ndef(\testmelodyA);
+    Ndef(\sinkB) <<> Ndef(\meterB) <<> Ndef(\testmelodyB);
+
+    // Audible state: A=true, B=false (play/stop on sinks)
+    Ndef(\sinkA).play;
+    Ndef(\sinkB).stop;
+
+    "Chains connected: sinkA<<meterA<<testmelodyA (PLAY), sinkB<<meterB<<testmelodyB (STOP).".postln;
+};
+
+// ---------- LPDisplay bring-up and top-pane titles/styles ----------
 openDisplayWindow = {
     var prefix;
     closeExistingLpDisplayWindows.();
 
-    // Headroom map: top -6 dB, floor -60 dB, gamma 1.0 (linear-ish UI)
+    // Headroom map: top -6 dB, floor -60 dB, gamma 1.0
     hudMapFunction = { |linear|
-        var safeLin, db, ui, topDb, floorDb, gamma;
-        topDb   = -6.0;
-        floorDb = -60.0;
-        gamma   = 1.0;
-        safeLin = linear.max(1e-9);
-        db  = safeLin.ampdb.clip(floorDb, topDb);
-        ui  = (db - floorDb) / (topDb - floorDb);
-        ui.pow(gamma)
+        var safeLin = linear.max(1e-9);
+        var db = safeLin.ampdb.clip(-60.0, -6.0);
+        var ui = (db + 60.0) / (54.0);  // (-60..-6) -> (0..1)
+        ui.pow(1.0)
     };
 
-    // Build LPDisplay with the HUD map; then wire canonical responders
+    // Build LPDisplay and arm meter responders
     displayLayoutWindow = LPDisplayLayoutWindow.new(hudMapFunction);
     displayLayoutWindow.setHudMap(hudMapFunction);
 
-    // Optional labels for sources
-    displayLayoutWindow.setSourceA(\chainA);
-    displayLayoutWindow.setSourceB(\chainB);
+    // If you want labels, you can enable these; commented to keep minimal
+    // displayLayoutWindow.setSourceA(\chainA);
+    // displayLayoutWindow.setSourceB(\chainB);
 
-    // Install meter responders (expects /peakrmsA and /peakrmsB)
     displayLayoutWindow.installMeterResponders();
-
-    // Optional console prints for levels while debugging
-    displayLayoutWindow.setConsoleLevelsOn(true);
-
-    // Open window and set initial active-chain visual
+    displayLayoutWindow.setConsoleLevelsOn(false);  // quieter console
     displayLayoutWindow.open();
-    displayLayoutWindow.setActiveChainVisual(\A);
+
+    // Set titles + highlight for bring-up (A active, B next)
+    setTopPaneTitlesAndStyles.(\A);
 
     prefix = "LPDisplay";
     topWindow = findWindowByPrefix.(prefix);
-    if(topWindow.isNil) {
-        "Warning: could not locate LPDisplay window by prefix; falling back to last window".postln;
-        topWindow = Window.allWindows.last;
-    };
+    if(topWindow.isNil) { topWindow = Window.allWindows.last };
 
-    "LPDisplay window opened.".postln;
+    "LPDisplay window opened and armed for /peakrmsA/B.".postln;
 };
 
-// --- chain switch helpers (manual; MIDI deferred) ---
+// ---------- helper: set top-pane titles and highlight ----------
+setTopPaneTitlesAndStyles = { |activeChainSym|  // \A or \B
+    // Assuming API uses \left / \right for top panes:
+    if(activeChainSym == \A) {
+        displayLayoutWindow.setTopPaneTitle(\left, "Chain A (Active)");
+        displayLayoutWindow.setTopPaneTitle(\right, "Chain B (Next)");
+        displayLayoutWindow.setTopPaneStyle(\left, true);
+        displayLayoutWindow.setTopPaneStyle(\right, false);
+        displayLayoutWindow.setActiveChainVisual(\A);
+    }{
+        displayLayoutWindow.setTopPaneTitle(\left, "Chain A (Next)");
+        displayLayoutWindow.setTopPaneTitle(\right, "Chain B (Active)");
+        displayLayoutWindow.setTopPaneStyle(\left, false);
+        displayLayoutWindow.setTopPaneStyle(\right, true);
+        displayLayoutWindow.setActiveChainVisual(\B);
+    };
+};
+
+// ---------- manual chain switch helpers (MIDI deferred) ----------
 switchToChainA = {
-    Ndef(\chainB).stop;
-    Ndef(\chainA).play;
-    if(displayLayoutWindow.notNil) { displayLayoutWindow.setActiveChainVisual(\A) };
+    Ndef(\sinkB).stop;
+    Ndef(\sinkA).play;
+    setTopPaneTitlesAndStyles.(\A);
     "[SWITCH] Active chain = A".postln;
 };
 
 switchToChainB = {
-    Ndef(\chainA).stop;
-    Ndef(\chainB).play;
-    if(displayLayoutWindow.notNil) { displayLayoutWindow.setActiveChainVisual(\B) };
+    Ndef(\sinkA).stop;
+    Ndef(\sinkB).play;
+    setTopPaneTitlesAndStyles.(\B);
     "[SWITCH] Active chain = B".postln;
 };
 
-// --- bring-up sequence ---
+// ---------- bring-up sequence ----------
 setupServer.();
-setupAudioGraphs.();
+defineGeneratorsMetersSinks.();
+connectDefaultChains.();
 openDisplayWindow.();
 
-// Export helpers for quick manual toggles in the post window
+// export helpers for quick manual toggles
 ~switchToChainA = switchToChainA;
 ~switchToChainB = switchToChainB;
 
-"Bring-up complete. Try ~switchToChainB.() then ~switchToChainA.() to toggle chains.".postln;
+"Bring-up complete. Use ~switchToChainB.() / ~switchToChainA.() to toggle.".postln;
 
 topWindow;  // -> a Window
 )
