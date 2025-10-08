@@ -1,0 +1,211 @@
+ // BootstrapLPB.scd
+// v0.0.1
+// MD 20251008-1323
+
+/*
+Purpose
+- Open LPDisplayLayoutWindow and make the top-row meters react to SendPeakRMS
+  arriving on '/peakrmsA' and '/peakrmsB'.
+- Also (optionally) install safe, pass-through meter taps on Ndef(\chainA/\chainB)
+  if you want to drive the meters from those proxies.
+
+Style
+- GUI work only on AppClock; server ops wrapped in Server.default.bind.
+- Returns '-> a Window'.
+*/
+
+(
+
+var lpDisplay, displayWindow, openDisplay, bringUp;
+//var installMinimalTaps; // no longer used
+var lpbSystem;
+
+//----------------
+// Tests signals:
+//----------------
+Ndef(\sinkA).ar(2); // initialises stereo
+Ndef(\sinkB).ar(2);
+Ndef(\meterA).ar(2);
+Ndef(\meterB).ar(2);
+
+Ndef(\silence, { Silent.ar(2) }).numChannels.postln;
+
+// Pink noise
+Ndef(\srcPink, { PinkNoise.ar(1 ! 2) * \amp.kr(0.125).clip(0.0, 1.0); }).numChannels.postln;
+
+// Square wave at 88 Hz
+Ndef(\srcSquare88, { Pulse.ar(88, 0.5) ! 2 * \amp.kr(0.125).clip(0.0, 1.0); }).numChannels.postln;
+
+// Pulse train at 134 Hz (narrow duty)
+Ndef(\srcPulseTrain134, { LFPulse.ar(134, 0, 0.12) ! 2 * \amp.kr(0.125).clip(0.0, 1.0); }).numChannels.postln;
+
+// Pulsed noise (white noise * sinusoid 7 Hz)
+Ndef(\srcPulsedNoise7, {
+    WhiteNoise.ar(1 ! 2) * SinOsc.kr(7).range(0, 1) * \amp.kr(0.125).clip(0.0, 1.0);
+}).numChannels.postln;
+
+// Random bleeps & bloops
+Ndef(\srcBleeps, {
+    var trig = Dust.kr(3);
+    var freq = TExpRand.kr(180, 2800, trig);
+    var env = Decay2.kr(trig, 0.005, 0.20);
+    var tone = SinOsc.ar(freq + TRand.kr(-6, 6, trig));
+    var sig = RLPF.ar(tone, (freq * 2).clip(80, 9000), 0.25) * env;
+    Pan2.ar(sig * \amp.kr(0.125).clip(0.0, 1.0), LFNoise1.kr(0.3).range(-0.6, 0.6));
+}).numChannels.postln;
+
+
+//----------------
+// Test melodies
+//----------------
+    Ndef(\testmelodyA, {
+                var t = Impulse.kr(2.2);
+                var e = Decay2.kr(t, 0.01, 0.30);
+                var f = Demand.kr(t, 0, Dseq([220, 277.18, 329.63, 392], inf));
+                (SinOsc.ar(f) * e * 0.22)!2
+            });
+
+    Ndef(\testmelodyB, {
+                var t = Impulse.kr(3.1);
+                var e = Decay2.kr(t, 0.02, 0.18);
+                var f = Demand.kr(t, 0, Dseq([392, 329.63, 246.94, 220, 246.94], inf));
+                (Pulse.ar(f, 0.35) * e * 0.20)!2
+            });
+
+//----------------
+// Meters
+//----------------
+Ndef(\meterA, { var inSig;
+	inSig = \in.ar(0!2);
+	//SendPeakRMS.kr(sig:, rate:, peakLag:,  cmdName:'/peakrmsA',  replyId:3601);
+	SendPeakRMS.kr(inSig, 20, 3, '/peakrmsA' ,  9876);
+	inSig }).numChannels.postln;
+
+Ndef(\meterB, { var inSig;
+	inSig = \in.ar(0!2);
+	SendPeakRMS.kr(inSig, 20, 3, '/peakrmsB' ,  9877);
+	inSig }).numChannels.postln;
+
+//----------------
+// Sinks
+//----------------
+
+Ndef(\sinkA, { var inSig; inSig = \in.ar(0!2);       inSig }).numChannels.postln;
+Ndef(\sinkB, { var inSig; inSig = \in.ar(0!2);       inSig }).numChannels.postln;
+
+//////////////////////////////
+// ----------- default chains
+// comment out if not wanted, or set the beginning to Ndef(\silence)
+
+Ndef(\sinkA) <<> Ndef(\meterA) <<> Ndef(\testmelodyA);
+Ndef(\sinkB) <<> Ndef(\meterB) <<> Ndef(\testmelodyB);
+
+
+
+// 1) Open the LPDisplay controller/window (meters auto-bind to /peakrmsA/B)
+openDisplay = {
+    var win;
+    lpDisplay = LPDisplayLayoutWindow.new;
+    win = lpDisplay.open;            // -> a Window; GUI OSCdefs are armed for /peakrmsA/B
+    // Optional: mapping and console quieting (safe no-ops if you skip)
+    lpDisplay.setHudMap(LPDisplayHudMap.new(-6, -60, 1.0));
+    lpDisplay.setConsoleLevelsOn(false);
+
+
+	// IMPORTANT: disable the built-in sources in LPDisplay:
+	lpDisplay.setSourceA(\srcZ);
+	lpDisplay.setSourceB(\srcZ);
+
+    win
+};
+
+
+// 3) Bring it up: open the window, install taps (optional), front it, and return the window
+bringUp = {
+    var win;
+    win = openDisplay.value;
+    // If your graph already emits /peakrmsA/B, comment out the line below.
+    //installMinimalTaps.value;
+    AppClock.sched(0.0, { win.front; nil });
+
+    lpbSystem = LivePedalboardSystem.new; // keep a ref to avoid GC
+
+    win
+};
+
+
+
+// Run and return -> a Window
+displayWindow = bringUp.value;
+
+Ndef(\sinkA).stop;
+Ndef(\sinkB).play;
+
+displayWindow
+)
+
+
+//  TESTING CODE - uncomment and evaluate line by line.
+
+/*
+
+Ndef(\sinkA) <<> Ndef(\meterA) <<> Ndef(\testmelodyA);
+Ndef(\sinkB) <<> Ndef(\meterB) <<> Ndef(\testmelodyB);
+
+
+// "SWITCH" to B
+Ndef(\sinkA).stop;
+Ndef(\sinkB).play;
+
+// "SWITCH" to A
+Ndef(\sinkB).stop;
+Ndef(\sinkA).play;
+
+// set both sources to silent
+Ndef(\sinkA) <<> Ndef(\meterA) <<> Ndef(\silent);
+Ndef(\sinkB) <<> Ndef(\meterB) <<> Ndef(\silent);
+
+Ndef(\sinkA) <<> Ndef(\meterA) <<> Ndef(\srcPink);
+
+Ndef(\sinkB) <<> Ndef(\meterB) <<> Ndef(\srcPink);
+
+
+Ndef(\sinkA) <<> Ndef(\meterA) <<> Ndef(\srcPink);
+
+Ndef(\sinkB) <<> Ndef(\meterB) <<> Ndef(\srcPink).set(\amp,0.25); // <- set changes the volume at the SOURCE
+Ndef(\sinkB) <<> Ndef(\meterB) <<> Ndef(\srcPink).set(\amp,0.025);
+
+Ndef(\sinkA) <<> Ndef(\meterA) <<> Ndef(\srcSquare88);
+
+// diagnostics
+
+// Pink noise
+Ndef(\srcPink).stop
+
+// Square wave at 88 Hz
+Ndef(\srcSquare88).stop;
+Ndef(\srcSquare88).play;
+
+// Pulse train at 134 Hz (narrow duty)
+Ndef(\srcPulseTrain134).stop;
+
+// Pulsed noise (white noise * sinusoid 7 Hz)
+Ndef(\srcPulsedNoise7).stop;
+
+// Random bleeps & bloops
+Ndef(\srcBleeps).stop;
+
+Ndef(\meterA) <<> Ndef(\srcSquare88);
+Ndef(\meterA).play;
+Ndef(\meterA).stop;
+
+Ndef(\sinkA) <<> Ndef(\testmelodyA);
+Ndef(\sinkA).play;
+Ndef(\sinkB) <<> Ndef(\testmelodyB);
+
+
+Ndef(\sinkA).set(\in, Ndef(\meterA).bus);
+Ndef(\sinkA).play;
+Ndef(\meterA).set(\in, Ndef(\testmelodyA).bus);
+
+*/
