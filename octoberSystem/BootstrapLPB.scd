@@ -10,14 +10,15 @@ Purpose
   if you want to drive the meters from those proxies.
 
 Style
-- var-first in every block; descriptive lowercase names; no server.sync.
 - GUI work only on AppClock; server ops wrapped in Server.default.bind.
 - Returns '-> a Window'.
 */
 
 (
 
-var lpDisplay, displayWindow, openDisplay, installMinimalTaps, bringUp;
+var lpDisplay, displayWindow, openDisplay, bringUp;
+//var installMinimalTaps; // no longer used
+var lpbSystem;
 
 //----------------
 // Tests signals:
@@ -57,15 +58,14 @@ Ndef(\srcBleeps, {
 //----------------
 // Test melodies
 //----------------
-Ndef(\testmelodyA, {
+    Ndef(\testmelodyA, {
                 var t = Impulse.kr(2.2);
                 var e = Decay2.kr(t, 0.01, 0.30);
                 var f = Demand.kr(t, 0, Dseq([220, 277.18, 329.63, 392], inf));
                 (SinOsc.ar(f) * e * 0.22)!2
             });
 
-
-            Ndef(\testmelodyB, {
+    Ndef(\testmelodyB, {
                 var t = Impulse.kr(3.1);
                 var e = Decay2.kr(t, 0.02, 0.18);
                 var f = Demand.kr(t, 0, Dseq([392, 329.63, 246.94, 220, 246.94], inf));
@@ -127,6 +127,9 @@ bringUp = {
     // If your graph already emits /peakrmsA/B, comment out the line below.
     //installMinimalTaps.value;
     AppClock.sched(0.0, { win.front; nil });
+
+    lpbSystem = LivePedalboardSystem.new; // keep a ref to avoid GC
+
     win
 };
 
