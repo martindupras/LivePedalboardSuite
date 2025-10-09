@@ -45,7 +45,7 @@ LivePedalboardSystem : Object {
 
         // Install the CommandTree->MPB bridge and auto meters (LPDisplay-visible taps)
         this.installAdapterBridge;
-        this.enableAutoMeters(24, 0.35);
+        //this.enableAutoMeters(24, 0.35);
 
         // Initial snapshot to the display (chains + active side + status)
         this.refreshDisplay;
