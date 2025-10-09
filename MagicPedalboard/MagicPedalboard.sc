@@ -1,5 +1,6 @@
-/* MagicPedalboard.sc v0.5.1.2
+/* MagicPedalboard.sc v0.5.1.3
 
+v0.5.1.3 moved docs (*help, *api, *test) to MagicPedalboard_docs.sc
 
 v0.5.1.2 remove commented out code.
 
@@ -74,7 +75,7 @@ MagicPedalboard : Object {
 
     *initClass {
         var text;
-        version = "v0.5.1.1";
+        version = "v0.5.1.3";
         text = "MagicPedalboard " ++ version;
         text.postln;
     }
@@ -126,6 +127,7 @@ MagicPedalboard : Object {
 /* Server.default.bind({
  Ndef(\chainA).play(numChannels: defaultNumChannels);
  });*/
+
         if(display.notNil) {
             display.showInit(this, version, currentChain, nextChain);
         };
@@ -147,6 +149,8 @@ MagicPedalboard : Object {
     setProcessorLib { arg lib;
         processorLib = lib;
     }
+
+    // REVIEW: IS THIS STILL THE WAY TO SET THE DISPLAY?
     setDisplay { arg disp;
         var shouldShow;
         display = disp;
@@ -644,6 +648,8 @@ MagicPedalboard : Object {
         ^this
     }
     // ---- Ready helpers (internal; no leading underscore) ----
+
+    // REVIEW: IS THIS STILL NEEDED?
     // light background poll started from init (OPTION A)
     startReadyPoll {
         var alreadyTrue;
@@ -677,6 +683,7 @@ MagicPedalboard : Object {
      ^this;
     }
 
+    /*
     // --- Added in v0.4.9: class-side helpers ---------------------------------
 
     *help {
