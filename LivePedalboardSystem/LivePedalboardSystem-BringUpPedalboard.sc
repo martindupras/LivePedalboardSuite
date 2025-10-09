@@ -10,34 +10,34 @@
 
 + LivePedalboardSystem {
 
-    bringUpPedalboard {
-        var klass, pb;
+    // bringUpPedalboard {
+    //     var klass, pb;
 
-        // Find MagicPedalboard class defensively
-        klass = \MagicPedalboard.asClass;
-        if(klass.isNil) {
-            "[LPS] MagicPedalboard class not found on classpath; skipping bringUpPedalboard."
-            .warn;
-            ^this;
-        };
+    //     // Find MagicPedalboard class defensively
+    //     klass = \MagicPedalboard.asClass;
+    //     if(klass.isNil) {
+    //         "[LPS] MagicPedalboard class not found on classpath; skipping bringUpPedalboard."
+    //         .warn;
+    //         ^this;
+    //     };
 
-        // Construct, optionally wiring the display adapter if we have one
-        pb = if(this.statusDisplay.notNil) {
-            klass.new(this.statusDisplay)
-        } {
-            klass.new
-        };
+    //     // Construct, optionally wiring the display adapter if we have one
+    //     pb = if(this.statusDisplay.notNil) {
+    //         klass.new(this.statusDisplay)
+    //     } {
+    //         klass.new
+    //     };
 
-        if(this.statusDisplay.notNil and: { pb.respondsTo(\setDisplay) }) {
-            pb.setDisplay(this.statusDisplay);
-        };
+    //     if(this.statusDisplay.notNil and: { pb.respondsTo(\setDisplay) }) {
+    //         pb.setDisplay(this.statusDisplay);
+    //     };
 
-        this.pedalboard = pb;       // store reference
-        this.pedalboardGUI = nil;   // no runner GUI in the LPDisplay path
+    //     this.pedalboard = pb;       // store reference
+    //     this.pedalboardGUI = nil;   // no runner GUI in the LPDisplay path
 
-        " [LPS] MagicPedalboard initialized and bound to LPDisplay adapter."
-        .postln;
+    //     " [LPS] MagicPedalboard initialized and bound to LPDisplay adapter."
+    //     .postln;
 
-        ^this
-    }
+    //     ^this
+    // }
 }
