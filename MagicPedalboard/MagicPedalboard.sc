@@ -1,4 +1,9 @@
-/* MagicPedalboard.sc v0.5.1
+/* MagicPedalboard.sc v0.5.1.1
+
+v0.5.1.1 Try approach where chain is always ending with \chainXout, and the ouput is always \lpbOut. Switching becomes simply Ndef(\lpbOut).set(\in, Ndef(\chainAout).
+
+
+
 
 v0.5.1 General tidy of class code and simplifcation.
  changed \in.ar(defaultNumChannels); to \in.ar(0!defaultNumChannels); Argument is an array of channel indices, not a count.
@@ -62,10 +67,13 @@ MagicPedalboard : Object {
     var < processorLib;
     var < ready; 
 
+    var <> activeChain;
+    var <> nextChain;
+
 
     *initClass {
         var text;
-        version = "v0.5.1";
+        version = "v0.5.1.1";
         text = "MagicPedalboard " ++ version;
         text.postln;
     }
@@ -75,15 +83,17 @@ MagicPedalboard : Object {
     init { arg disp;
         var sinkFunc;
         display = disp;
-        defaultNumChannels = 2;
+        defaultNumChannels = 2; // become 6 when hexaphonic
         defaultSource = \ts0;
-        // less good than the version below
+        
+        // the default re-routable "pass-through" Ndef function
         // sinkFunc = { arg inSignal; inSignal };
         sinkFunc = {
             var inputSignal;
             inputSignal = \in.ar(0!defaultNumChannels); //Fixed! We need to ! to numChannels. IMPORTANT SYNTAX!
             inputSignal
         };
+
         Ndef(\chainA, sinkFunc);
         Ndef(\chainB, sinkFunc);
         // Guarantee sink buses are audio-rate early (prevents kr-meter races)
