@@ -1,8 +1,9 @@
-/* MagicPedalboard.sc v0.5.1.1
+/* MagicPedalboard.sc v0.5.1.2
+
+
+v0.5.1.2 remove commented out code.
 
 v0.5.1.1 Try approach where chain is always ending with \chainXout, and the ouput is always \lpbOut. Switching becomes simply Ndef(\lpbOut).set(\in, Ndef(\chainAout).
-
-
 
 
 v0.5.1 General tidy of class code and simplifcation.
@@ -84,6 +85,8 @@ MagicPedalboard : Object {
         var sinkFunc;
         display = disp;
         defaultNumChannels = 2; // become 6 when hexaphonic
+
+        // REVIEW WHERE SOURCE IS DEFINED AND CHANGE TO \silent or something
         defaultSource = \ts0;
         
         // the default re-routable "pass-through" Ndef function
@@ -94,15 +97,22 @@ MagicPedalboard : Object {
             inputSignal
         };
 
-        Ndef(\chainA, sinkFunc);
-        Ndef(\chainB, sinkFunc);
-        // Guarantee sink buses are audio-rate early (prevents kr-meter races)
+        Ndef(\chainA, sinkFunc); // to be retired
+        Ndef(\chainB, sinkFunc); // to be retired
+
+
+        Ndef(\lpbOut, sinkFunc);
+        Ndef(\chainAout, sinkFunc);
+        Ndef(\chainBout, sinkFunc);
+        // If the code inside sends server messages, they’re gathered and sent together with a single timestamp, preserving order
+
         Server.default.bind({
-            Ndef(\chainA).ar(defaultNumChannels); // typically 2
-            Ndef(\chainB).ar(defaultNumChannels);
+            Ndef(\lpbOut).ar(0!defaultNumChannels); // typically 2
+            Ndef(\chainA).ar(0!defaultNumChannels); 
+            Ndef(\chainB).ar(0!defaultNumChannels);
         });
-        chainAList = [\chainA, defaultSource];
-        chainBList = [\chainB, defaultSource];
+        chainAList = [\chainAout, defaultSource];
+        chainBList = [\chainBout, defaultSource];
         bypassA = IdentityDictionary.new;
         bypassB = IdentityDictionary.new;
         currentChain = chainAList;
@@ -119,10 +129,13 @@ MagicPedalboard : Object {
         if(display.notNil) {
             display.showInit(this, version, currentChain, nextChain);
         };
+
+        // REVIEW TO SEE IF NEEDED:
         // enforce exclusive invariant (Option A) at first bring-up
         this.enforceExclusiveCurrentOptionA(0.1);
         // set initial state; the poll will flip it once conditions are true
         ready = false;
+
         // OPTION A: enable background poll (comment out if you prefer Option B)
         this.startReadyPoll;
         ^this
@@ -456,29 +469,7 @@ MagicPedalboard : Object {
         this.enforceExclusiveCurrentOptionA(0.1);
         if(display.notNil) { display.showReset(currentChain, nextChain) };
     }
-/* OLDreset {
- var sinkAKey, sinkBKey;
- sinkAKey = \chainA;
- sinkBKey = \chainB;
- chainAList = [sinkAKey, defaultSource];
- chainBList = [sinkBKey, defaultSource];
- bypassA.clear;
- bypassB.clear;
- currentChain = chainAList;
- nextChain = chainBList;
- // SAFE server reset ONLY here, using Server.default.* (not 's')
- Server.default.waitForBoot({
- Server.default.bind({
- Server.default.initTree;
- Server.default.defaultGroup.freeAll;
- this.rebuildUnbound(nextChain);
- this.rebuildUnbound(currentChain);
- Ndef(sinkBKey).stop;
- Ndef(sinkAKey).play(numChannels: defaultNumChannels);
- });
- });
- if(display.notNil) { display.showReset(currentChain, nextChain) };
- } */
+
     // ───────────────────────────────────────────────────────────────
     // internal helpers (lowercase, no leading underscore)
     // ───────────────────────────────────────────────────────────────
@@ -543,28 +534,7 @@ MagicPedalboard : Object {
         });
         ^this
     }
-/*    enforceExclusiveCurrentOptionA { arg fadeCurrent = 0.1;
-        var currentSink, nextSink, chans, fadeCur;
-        currentSink = currentChain[0];
-        nextSink = nextChain[0];
-        chans = defaultNumChannels;
-        fadeCur = fadeCurrent.clip(0.05, 0.2);
-        Server.default.bind({
-            // CURRENT: robust sink that consumes embedded input; ensure playing
-            Ndef(currentSink, { \in.ar(chans) });
-            Ndef(currentSink).ar(chans);
-            Ndef(currentSink).fadeTime_(fadeCur);
-            if (Ndef(currentSink).isPlaying.not) {
-                Ndef(currentSink).play(numChannels: chans)
-            };
-            // NEXT: hard silence at the sink source; stop its monitor quickly
-            Ndef(nextSink, { Silent.ar(chans) });
-            Ndef(nextSink).ar(chans);
-            Ndef(nextSink).fadeTime_(0.01);
-            Ndef(nextSink).stop;
-        });
-        ^this
-    }*/
+
     effectiveListForInternal { arg listRef;
         var dict, resultList, lastIndex, isProcessor, isBypassed;
         dict = this.bypassDictForListInternal(listRef);
@@ -622,8 +592,7 @@ MagicPedalboard : Object {
             if(isPlaying) { Ndef(sinkKey).stop };
         };
     }
-/*    rebuildUnbound { arg listRef;
-        var effective, indexCounter, leftKey, rightKey, sinkKey, hasMinimum, shouldPlay, isPlaying;
+
         hasMinimum = listRef.size >= 2;
         if(hasMinimum.not) { ^this };
         effective = this.effectiveListForInternal(listRef);
@@ -644,62 +613,7 @@ MagicPedalboard : Object {
             if(isPlaying) { Ndef(sinkKey).stop };
         };
     }*/
-/*    // At end of rebuildUnbound
-    rebuildUnbound { arg listRef;
-        var effective, indexCounter, leftKey, rightKey, sinkKey, hasMinimum, shouldPlay, isPlaying;
-/*        if(processorLib.notNil) {
-            // Ask the lib to make sure each symbol in this chain has an Ndef with a function.
-            // It will quietly do nothing for unknown keys.
-            processorLib.ensureFromChain(listRef, defaultNumChannels);
-        };*/
-        hasMinimum = listRef.size >= 2;
-        if(hasMinimum.not) { ^this };
-        effective = this.effectiveListForInternal(listRef);
-        effective.do({ arg keySymbol; this.ensureStereoInternal(keySymbol) });
-        indexCounter = 0;
-        while({ indexCounter < (effective.size - 1) }, {
-            leftKey = effective[indexCounter];
-            rightKey = effective[indexCounter + 1];
-            Ndef(leftKey) <<> Ndef(rightKey);
-            indexCounter = indexCounter + 1;
-        });
-        sinkKey = effective[0];
-        shouldPlay = (listRef === currentChain);
-        isPlaying = Ndef(sinkKey).isPlaying;
-        if(shouldPlay) {
-            if(isPlaying.not) { Ndef(sinkKey).play(numChannels: defaultNumChannels) };
-        }{
-            if(isPlaying) { Ndef(sinkKey).stop };
-        };
-    }*/
-/* OLD rebuildUnbound { arg listRef;
- var effective, indexCounter, leftKey, rightKey, sinkKey, hasMinimum;
- hasMinimum = listRef.size >= 2;
- if(hasMinimum.not) { ^this };
- effective = this.effectiveListForInternal(listRef);
- effective.do({ arg keySymbol;
- this.ensureStereoInternal(keySymbol);
- });
- indexCounter = 0;
- while({ indexCounter < (effective.size - 1) }, {
- leftKey = effective[indexCounter];
- rightKey = effective[indexCounter + 1];
- Ndef(leftKey) <<> Ndef(rightKey);
- });
-        // sinkKey = effective[0];
-        // if(listRef === currentChain) {
-        //     Ndef(sinkKey).play(numChannels: defaultNumChannels);
-        // }{
-        //     Ndef(sinkKey).stop;
-        // };
-        // At the end of rebuildUnbound:
-        sinkKey = effective[0];
-        if(listRef === currentChain) {
-            if(Ndef(sinkKey).isPlaying.not) { Ndef(sinkKey).play(numChannels: defaultNumChannels) };
-        } {
-            if(Ndef(sinkKey).isPlaying) { Ndef(sinkKey).stop };
-        };
- } */
+
     // ---- Ready helpers (public API) ----
     // boolean snapshot (no server ops)
     isReady {
@@ -751,20 +665,7 @@ MagicPedalboard : Object {
         currentPlaying = Ndef(curSink).isPlaying;
         ^(serverOk and: { busesOk } and: { currentPlaying })
     }
-    // handleCommand { |oscPath|
-    //     var path;
-    //     path = oscPath.asString;
-    //
-    //     // Route to your existing mutation logic
-    //     // Update this if you use a different handler name
-    //     if(this.respondsTo(\applyOSCPath)) {
-    //         this.applyOSCPath(path);
-    //     } {
-    //         ("[MPB] handleCommand: " ++ path ++ " → no handler found").warn;
-    //     };
-    //
-    //     ^this;
-    // }
+
     handleCommand { |oscPath|
      var path;
      path = oscPath.asString;
