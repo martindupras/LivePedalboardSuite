@@ -1,4 +1,9 @@
-/* MagicPedalboard.sc v0.4.9
+/* MagicPedalboard.sc v0.5.1
+
+v0.5.1 General tidy of class code and simplifcation.
+ changed \in.ar(defaultNumChannels); to \in.ar(0!defaultNumChannels); Argument is an array of channel indices, not a count.
+
+
  A/B pedalboard chain manager built on Ndefs.
  - Chains are Arrays of Symbols ordered [sink, …, source].
  - Uses JITLib embedding: Ndef(left) <<> Ndef(right).
@@ -46,7 +51,7 @@ MagicPedalboard : Object {
     // instance state
     // ───────────────────────────────────────────────────────────────
     var < currentChain; // read-only pointer to Array of Symbols
-    var <nextChain; // read-only pointer to Array of Symbols
+    var < nextChain; // read-only pointer to Array of Symbols
     var chainAList; // [\chainA, ...processors..., source]
     var chainBList; // [\chainB, ...processors..., source]
     var bypassA; // IdentityDictionary: key(Symbol) -> Bool
@@ -55,17 +60,17 @@ MagicPedalboard : Object {
     var < defaultSource;
     var < display; // optional display adaptor
     var < processorLib;
-    var < ready; // <-- ADD this line
+    var < ready; 
+
+
     *initClass {
         var text;
-        version = "v0.4.9";
+        version = "v0.5.1";
         text = "MagicPedalboard " ++ version;
         text.postln;
     }
     *new { arg disp = nil;
-        var instance;
-        instance = super.new;
-        ^instance.init(disp);
+        ^this.super.init(disp);
     }
     init { arg disp;
         var sinkFunc;
@@ -76,7 +81,7 @@ MagicPedalboard : Object {
         // sinkFunc = { arg inSignal; inSignal };
         sinkFunc = {
             var inputSignal;
-            inputSignal = \in.ar(defaultNumChannels);
+            inputSignal = \in.ar(0!defaultNumChannels); //Fixed! We need to ! to numChannels. IMPORTANT SYNTAX!
             inputSignal
         };
         Ndef(\chainA, sinkFunc);
