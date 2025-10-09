@@ -17,7 +17,7 @@ LivePedalboardSystem : Object {
     var <>logger;
     var <>treeFilePath;
 
-    bringUpMagicDisplayGUI { // keep name for now (compat), but do LPDisplay work
+    bringUpLPDisplay { // canonical name: perform LPDisplay setup and return the Window
         var win;
         // Close legacy LPDisplay test windows as well
         this.closeExistingMagicDisplayWindows; // keeps your existing filter
@@ -35,6 +35,9 @@ LivePedalboardSystem : Object {
         // 5) No MagicDisplay.ensureMeterDefs anymore (taps live in Ndefs)
         ^win // satisfy your "-> a Window" acceptance
     }
+
+    // Backwards-compatible shim for callers that still use the old name.
+    bringUpMagicDisplayGUI { ^this.bringUpLPDisplay }
 
     bringUpAll {
         var didBoot, win;
