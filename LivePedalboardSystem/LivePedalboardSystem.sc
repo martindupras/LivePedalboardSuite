@@ -53,7 +53,7 @@ LivePedalboardSystem : Object {
         this.bringUpPedalboard;
         this.bringUpCommandSystem;
 
-        // Install the CommandTree->MPB bridge and auto meters (LPDisplay-visible taps)
+        // Install the CommandTree->MthePedalboard bridge and auto meters (LPDisplay-visible taps)
         this.installAdapterBridge;
         //this.enableAutoMeters(24, 0.35);
 
@@ -66,8 +66,10 @@ LivePedalboardSystem : Object {
         ^win
     }
 
-bringUpPedalboard {
-        var klass, pb;
+    // Construct and initialize the MagicPedalboard (if available), wiring the LPDisplay adapter when present.
+    // Stores the new pedalboard on the system and returns the system instance for chaining.
+    bringUpPedalboard {
+        var klass, thePedalboard;
 
         // Find MagicPedalboard class defensively
         klass = \MagicPedalboard.asClass;
@@ -78,17 +80,17 @@ bringUpPedalboard {
         };
 
         // Construct, optionally wiring the display adapter if we have one
-        pb = if(this.statusDisplay.notNil) {
+        thePedalboard = if(this.statusDisplay.notNil) {
             klass.new(this.statusDisplay)
         } {
             klass.new
         };
 
-        if(this.statusDisplay.notNil and: { pb.respondsTo(\setDisplay) }) {
-            pb.setDisplay(this.statusDisplay);
+        if(this.statusDisplay.notNil and: { thePedalboard.respondsTo(\setDisplay) }) {
+            thePedalboard.setDisplay(this.statusDisplay);
         };
 
-        this.pedalboard = pb;       // store reference
+        this.pedalboard = thePedalboard;       // store reference
         this.pedalboardGUI = nil;   // no runner GUI in the LPDisplay path
 
         " [LPS] MagicPedalboard initialized and bound to LPDisplay adapter."
