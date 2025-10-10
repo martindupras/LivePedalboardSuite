@@ -10,10 +10,14 @@ Purpose
 Style
 - var-first; descriptive names; no server.sync; no non-local returns.
 */
-// wher does thsi get created?
+// SH_suggestion
+// wher does this get created?
 // should be created  by misnamed livepedalboard system
+
+//SH_suggestion
 // looks like none of these methods  should be here
-// logger should have nethods into, warn & error
+// logger should have nethods info, warn & error
+
 
 + LivePedalboardSystem {
 

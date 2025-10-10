@@ -1,5 +1,5 @@
 // CommandManager.sc
-// v1.7.1
+// v2
 // MD 20250921-22:40
 
 // Purpose: Central controller; uses injected display (MagicDisplayGUI), does NOT create windows.
@@ -28,16 +28,39 @@ CommandManager {
 
 
 	init { arg anLpDisplay;
-		var defaultPath, savedPath, stateDir, stateFile;
-		var explicitOk, savedOk;
-		var treePath;
-		treePath = nil;
 
 		lpDisplay = anLpDisplay;
 		// statusDisplay = LPDisplayAdapter.new(anLpDisplay);
 		//who actually needs this?
 
 		currentState = \idle;
+		//this.initCircularFileSaveStuff ;
+
+		this.createNewTree;        // will harden path again inside
+		this.createBuilder;
+		this.createCommandQueue;
+
+		// midiManager = MIDIInputManager.new(builder, nil, nil, nil);
+		midiManager = MIDIInputManager.new(builder, nil, nil, nil, nil);
+
+		midiManager.parentCommandManager = this;
+		this.displayTest();
+
+		^this
+	}
+
+	displayTest{
+		lpDisplay.sendPaneText(\choices, 'Hello from command manager');
+
+	}
+
+
+
+	initCircularFileSaveStuff {
+		var defaultPath, savedPath, stateDir, stateFile;
+		var explicitOk, savedOk;
+		var treePath;
+		treePath = nil;
 		// saver = CircularFileSave.new("myTree", "~/CommandTreeSavefiles", 10);
 		saver = CircularFileSave.new("myTree", nil, 10);
 // or simply: saver = CircularFileSave.new("myTree");
@@ -59,20 +82,7 @@ CommandManager {
 		if (filePath.isString and: { filePath.size > 0 }) {
 			this.writeLastPath(stateDir, stateFile, filePath);
 		};
-
-		this.createNewTree;        // will harden path again inside
-		this.createBuilder;
-		this.createCommandQueue;
-
-		// midiManager = MIDIInputManager.new(builder, nil, nil, nil);
-		midiManager = MIDIInputManager.new(builder, nil, nil, nil, nil);
-
-		midiManager.parentCommandManager = this;
-
-
-		^this
 	}
-
 
 
 	// --- Build pieces --------------------------------------------------------
