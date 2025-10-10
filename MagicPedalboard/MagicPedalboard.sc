@@ -1,4 +1,4 @@
-/* MagicPedalboard.sc v0.5.1.5
+/* MagicPedalboard.sc v0.5.1.6
 
 v0.5.1.3 moved docs (*help, *api, *test) to MagicPedalboard_docs.sc
 
@@ -69,8 +69,8 @@ MagicPedalboard : Object {
     // ───────────────────────────────────────────────────────────────
     // instance state
     // ───────────────────────────────────────────────────────────────
-    var < currentChain; // read-only pointer to Array of Symbols
-    var < nextChain; // read-only pointer to Array of Symbols
+    var <> currentChain; // read-only pointer to Array of Symbols
+    var <> nextChain; // read-only pointer to Array of Symbols
     var chainAList; // [\chainA, ...processors..., source]
     var chainBList; // [\chainB, ...processors..., source]
     var bypassA; // IdentityDictionary: key(Symbol) -> Bool
@@ -82,11 +82,10 @@ MagicPedalboard : Object {
     var < ready; 
 
     var <> activeChain;
-    var <> nextChain;
 
     *initClass {
         var text;
-        version = "v0.5.1.5";
+        version = "v0.5.1.6";
         text = "MagicPedalboard " ++ version;
         text.postln;
     }
@@ -664,27 +663,7 @@ MagicPedalboard : Object {
         }{
             if(isPlaying) { Ndef(sinkKey).stop };
         };
-    
-
-        hasMinimum = listRef.size >= 2;
-        if(hasMinimum.not) { ^this };
-        effective = this.effectiveListForInternal(listRef);
-        effective.do({ arg keySymbol; this.ensureStereoInternal(keySymbol) });
-        indexCounter = 0;
-        while({ indexCounter < (effective.size - 1) }, {
-            leftKey = effective[indexCounter];
-            rightKey = effective[indexCounter + 1];
-            Ndef(leftKey) <<> Ndef(rightKey);
-            indexCounter = indexCounter + 1;
-        });
-        sinkKey = effective[0];
-        shouldPlay = (listRef === currentChain);
-        isPlaying = Ndef(sinkKey).isPlaying;
-        if(shouldPlay) {
-            if(isPlaying.not) { Ndef(sinkKey).play(numChannels: defaultNumChannels) };
-        }{
-            if(isPlaying) { Ndef(sinkKey).stop };
-        };
+        
     }
 
     // ---- Ready helpers (public API) ----
