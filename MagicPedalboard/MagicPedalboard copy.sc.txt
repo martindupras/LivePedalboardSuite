@@ -1,6 +1,5 @@
-/* MagicPedalboard.sc v0.5.1.9
+/* MagicPedalboard.sc v0.5.1.8
 
-v0.5.1.9slight reorganisation of the order of methods for clarity
 v0.5.1.8 absorbed back class extensions into main class
 v0.5.1.7 renamed some variable for clarity
 v0.5.1.6 Mostly de-duping. *test still not working -- do not use. 
@@ -86,16 +85,12 @@ MagicPedalboard : Object {
     var < ready; 
 
     
-// --- class methods
+
     *initClass {
         var text;
-        version = "v0.5.1.9";
+        version = "v0.5.1.8";
         text = "MagicPedalboard " ++ version;
         text.postln;
-    }
-
-    *new { arg disp = nil;
-        ^super.new.init(disp);
     }
 
     //// NOT WORKING RIGHT NOW -- IGNORE
@@ -149,7 +144,9 @@ MagicPedalboard : Object {
         ^instance
     }
 
-// --- instance methods
+    *new { arg disp = nil;
+        ^super.new.init(disp);
+    }
     init { arg disp;
         var sinkFunc; // code for passthrough Ndef
         display = disp;
@@ -231,16 +228,78 @@ MagicPedalboard : Object {
             display.showInit(this, version, activeChain, nextChain);
         };
     }
-
-    setDefaultSource { arg key;
-        var k;
-        // update the instance default; does not modify existing chains immediately
-        k = key ? \testmelody;
-        defaultSource = k;
-        ^this
+    help {
+        var text;
+        text = String.new;
+        text = text
+        ++ "MagicPedalboard " ++ version ++ "\n"
+        ++ "Chains are Arrays of Symbols ordered [sink, …, source].\n"
+        ++ "On init, creates \\chainA and \\chainB and plays CURRENT.\n\n"
+        ++ "Core methods (operate mostly on the *next* chain):\n"
+        ++ " printChains\n"
+        ++ " playCurrent, stopCurrent, switchChain([fadeTime])\n"
+        ++ " add(key), addAt(key, index)\n"
+        ++ " removeAt(index), swap(indexA, indexB)\n"
+        ++ " bypass(key, state=true), bypassAt(index, state=true)\n"
+        ++ " clearChain\n"
+        ++ "Current-chain bypass helpers:\n"
+        ++ " bypassCurrent(key, state=true), bypassAtCurrent(index, state=true)\n"
+        ++ "Diagnostics/helpers:\n"
+        ++ " effectiveCurrent, effectiveNext, bypassKeysCurrent, bypassKeysNext, reset\n"
+        ++ "Source setters:\n"
+        ++ " setSource(key) [next], setSourceCurrent(key) [current]\n";
+        text.postln;
     }
-
-    
+    // Detailed printing routed through display if available
+    printChains {
+        var bypassAKeys, bypassBKeys, effectiveA, effectiveB, hasDisplay;
+        var headerFunc, formatOne;
+        bypassAKeys = this.bypassKeysForListInternal(chainAList);
+        bypassBKeys = this.bypassKeysForListInternal(chainBList);
+        effectiveA = this.effectiveListForInternal(chainAList);
+        effectiveB = this.effectiveListForInternal(chainBList);
+        hasDisplay = display.notNil and: { display.respondsTo(\showChainsDetailed) };
+        if(hasDisplay) {
+            display.showChainsDetailed(
+                chainAList, chainBList,
+                bypassAKeys, bypassBKeys,
+                effectiveA, effectiveB
+            );
+        }{
+            headerFunc = { arg titleString;
+                var lineText;
+                lineText = "==== " ++ titleString ++ " ====";
+                lineText.postln;
+            };
+            formatOne = { arg titleString, listRef, bypassKeys, effectiveList;
+                var sinkKey, sourceKey, lastIndex, indexCounter, processorsList, lineText, isBypassed, markText;
+                lastIndex = listRef.size - 1;
+                sinkKey = listRef[0];
+                sourceKey = listRef[lastIndex];
+                headerFunc.(titleString);
+                ("src : " ++ sourceKey).postln;
+                if(listRef.size > 2) {
+                    "procs:".postln;
+                    processorsList = listRef.copyRange(1, lastIndex - 1);
+                    indexCounter = 1;
+                    processorsList.do({ arg procKey;
+                        isBypassed = bypassKeys.includes(procKey);
+                        markText = if(isBypassed) { "BYP" } { "ON " };
+                        lineText = " [" ++ indexCounter ++ "] " ++ procKey ++ " (" ++ markText ++ ")";
+                        lineText.postln;
+                        indexCounter = indexCounter + 1;
+                    });
+                }{
+                    "procs: (none)".postln;
+                };
+                ("sink: " ++ sinkKey).postln;
+                ("eff : " ++ effectiveList.join(" -> ")).postln;
+                "".postln;
+            };
+            formatOne.("CURRENT", chainAList, bypassAKeys, effectiveA);
+            formatOne.("NEXT", chainBList, bypassBKeys, effectiveB);
+        };
+    }
     playCurrent {
         var sinkKey, canRun;
         sinkKey = activeChain[0];
@@ -300,37 +359,7 @@ MagicPedalboard : Object {
             display.showSwitch(oldSinkKey, activeChain[0], activeChain, nextChain);
         };
     }
-
-
-    reset {
-        var sinkAKey, sinkBKey, canRun;
-        sinkAKey = \chainA;
-        sinkBKey = \chainB;
-        chainAList = [sinkAKey, defaultSource];
-        chainBList = [sinkBKey, defaultSource];
-        bypassA.clear;
-        bypassB.clear;
-        activeChain = chainAList;
-        nextChain = chainBList;
-        canRun = this.ensureServerTree;
-        if(canRun.not) { ^this };
-        Server.default.bind({
-            // soft reset: stop both, then rebuild clean connections
-            Ndef(sinkAKey).stop;
-            Ndef(sinkBKey).stop;
-            // Rebuild NEXT first (stays stopped), then CURRENT (plays)
-            this.rebuildUnbound(nextChain);
-            this.rebuildUnbound(activeChain);
-        });
-        // enforce exclusive invariant (Option A): CURRENT audible; NEXT silent
-        this.enforceExclusiveCurrentOptionA(0.1);
-        if(display.notNil) { display.showReset(activeChain, nextChain) };
-    }
-
-
-
-    // ─── next-chain mutations ----
-
+    // ─── next-chain mutations ─────────────────────────────────────
     add { arg key;
         var insertIndex;
         insertIndex = nextChain.size - 1;
@@ -345,6 +374,7 @@ MagicPedalboard : Object {
         this.rebuild(nextChain);
         if(display.notNil) { display.showMutation(\addAt, [key, indexClamped], nextChain) };
     }
+
 
     removeAt { arg index;
         var sizeNow, lastIndex, newList, removedKey;
@@ -412,17 +442,6 @@ MagicPedalboard : Object {
         keyAtIndex = nextChain[clampedIndex];
         this.bypass(keyAtIndex, state);
     }
-
-    setSource { arg key;
-        var newList, lastIndex;
-        lastIndex = nextChain.size - 1;
-        newList = nextChain.copy;
-        newList[lastIndex] = key;
-        this.setNextListInternal(newList);
-        this.rebuild(nextChain);
-        if(display.notNil) { display.showMutation(\setSource, [key], nextChain) };
-    }
-
     // ─── current-chain bypass ─────────────────────────────────────
     bypassCurrent { arg key, state = true;
         var dict;
@@ -441,7 +460,15 @@ MagicPedalboard : Object {
         this.bypassCurrent(keyAtIndex, state);
     }
     // ─── source setters ───────────────────────────────────────────
-
+    setSource { arg key;
+        var newList, lastIndex;
+        lastIndex = nextChain.size - 1;
+        newList = nextChain.copy;
+        newList[lastIndex] = key;
+        this.setNextListInternal(newList);
+        this.rebuild(nextChain);
+        if(display.notNil) { display.showMutation(\setSource, [key], nextChain) };
+    }
     setSourceCurrent { arg key;
         var newList, lastIndex, isAList;
         lastIndex = activeChain.size - 1;
@@ -452,8 +479,6 @@ MagicPedalboard : Object {
         this.rebuild(activeChain);
         if(display.notNil) { display.showMutation(\setSourceCurrent, [key], activeChain) };
     }
-
-    // ---- dual chain helpers ----
     setSourcesBoth { arg key;
         var k, lastA, lastB, curWasA, nextWasA, newA, newB, sizeOk;
         // pick a sensible key (today we want \testmelody)
@@ -484,218 +509,43 @@ MagicPedalboard : Object {
         };
         ^this
     }
-
-
-  
+    setDefaultSource { arg key;
+        var k;
+        // update the instance default; does not modify existing chains immediately
+        k = key ? \testmelody;
+        defaultSource = k;
+        ^this
+    }
 
     // ─── diagnostics helpers ──────────────────────────────────────
-
-    // Detailed printing routed through display if available
-    printChains {
-        var bypassAKeys, bypassBKeys, effectiveA, effectiveB, hasDisplay;
-        var headerFunc, formatOne;
-        bypassAKeys = this.bypassKeysForListInternal(chainAList);
-        bypassBKeys = this.bypassKeysForListInternal(chainBList);
-        effectiveA = this.effectiveListForInternal(chainAList);
-        effectiveB = this.effectiveListForInternal(chainBList);
-        hasDisplay = display.notNil and: { display.respondsTo(\showChainsDetailed) };
-        if(hasDisplay) {
-            display.showChainsDetailed(
-                chainAList, chainBList,
-                bypassAKeys, bypassBKeys,
-                effectiveA, effectiveB
-            );
-        }{
-            headerFunc = { arg titleString;
-                var lineText;
-                lineText = "==== " ++ titleString ++ " ====";
-                lineText.postln;
-            };
-            formatOne = { arg titleString, listRef, bypassKeys, effectiveList;
-                var sinkKey, sourceKey, lastIndex, indexCounter, processorsList, lineText, isBypassed, markText;
-                lastIndex = listRef.size - 1;
-                sinkKey = listRef[0];
-                sourceKey = listRef[lastIndex];
-                headerFunc.(titleString);
-                ("src : " ++ sourceKey).postln;
-                if(listRef.size > 2) {
-                    "procs:".postln;
-                    processorsList = listRef.copyRange(1, lastIndex - 1);
-                    indexCounter = 1;
-                    processorsList.do({ arg procKey;
-                        isBypassed = bypassKeys.includes(procKey);
-                        markText = if(isBypassed) { "BYP" } { "ON " };
-                        lineText = " [" ++ indexCounter ++ "] " ++ procKey ++ " (" ++ markText ++ ")";
-                        lineText.postln;
-                        indexCounter = indexCounter + 1;
-                    });
-                }{
-                    "procs: (none)".postln;
-                };
-                ("sink: " ++ sinkKey).postln;
-                ("eff : " ++ effectiveList.join(" -> ")).postln;
-                "".postln;
-            };
-            formatOne.("CURRENT", chainAList, bypassAKeys, effectiveA);
-            formatOne.("NEXT", chainBList, bypassBKeys, effectiveB);
-        };
-    }
-
-
-    help {
-        var text;
-        text = String.new;
-        text = text
-        ++ "MagicPedalboard " ++ version ++ "\n"
-        ++ "Chains are Arrays of Symbols ordered [sink, …, source].\n"
-        ++ "On init, creates \\chainA and \\chainB and plays CURRENT.\n\n"
-        ++ "Core methods (operate mostly on the *next* chain):\n"
-        ++ " printChains\n"
-        ++ " playCurrent, stopCurrent, switchChain([fadeTime])\n"
-        ++ " add(key), addAt(key, index)\n"
-        ++ " removeAt(index), swap(indexA, indexB)\n"
-        ++ " bypass(key, state=true), bypassAt(index, state=true)\n"
-        ++ " clearChain\n"
-        ++ "Current-chain bypass helpers:\n"
-        ++ " bypassCurrent(key, state=true), bypassAtCurrent(index, state=true)\n"
-        ++ "Diagnostics/helpers:\n"
-        ++ " effectiveCurrent, effectiveNext, bypassKeysCurrent, bypassKeysNext, reset\n"
-        ++ "Source setters:\n"
-        ++ " setSource(key) [next], setSourceCurrent(key) [current]\n";
-        text.postln;
-    }
     effectiveCurrent { ^this.effectiveListForInternal(activeChain) }
     effectiveNext { ^this.effectiveListForInternal(nextChain) }
     bypassKeysCurrent { ^this.bypassKeysForListInternal(activeChain) }
     bypassKeysNext { ^this.bypassKeysForListInternal(nextChain) }
-
-// ---- rebuild ----
-
-    // Public rebuild: bundles server ops; guard only
-    rebuild { arg listRef;
-        var whichChain, canRun;
-        whichChain = if(listRef === activeChain) { \current } { \next };
+    reset {
+        var sinkAKey, sinkBKey, canRun;
+        sinkAKey = \chainA;
+        sinkBKey = \chainB;
+        chainAList = [sinkAKey, defaultSource];
+        chainBList = [sinkBKey, defaultSource];
+        bypassA.clear;
+        bypassB.clear;
+        activeChain = chainAList;
+        nextChain = chainBList;
         canRun = this.ensureServerTree;
         if(canRun.not) { ^this };
         Server.default.bind({
-            this.rebuildUnbound(listRef);
+            // soft reset: stop both, then rebuild clean connections
+            Ndef(sinkAKey).stop;
+            Ndef(sinkBKey).stop;
+            // Rebuild NEXT first (stays stopped), then CURRENT (plays)
+            this.rebuildUnbound(nextChain);
+            this.rebuildUnbound(activeChain);
         });
-        if(display.notNil) {
-            display.showRebuild(whichChain, listRef, this.effectiveListForInternal(listRef));
-        };
+        // enforce exclusive invariant (Option A): CURRENT audible; NEXT silent
+        this.enforceExclusiveCurrentOptionA(0.1);
+        if(display.notNil) { display.showReset(activeChain, nextChain) };
     }
-    // Internal rebuild that assumes we are already inside a server bind (no resets)
-    rebuildUnbound { arg listRef;
-        var effective, indexCounter, leftKey, rightKey, sinkKey, hasMinimum, shouldPlay, isPlaying;
-        hasMinimum = listRef.size >= 2;
-        if(hasMinimum.not) { ^this };
-        // (NEW 2D) Ensure Ndefs for symbols present in the *declared* chain (includes bypassed ones)
-        if(processorLib.notNil) {
-            processorLib.ensureFromChain(listRef, defaultNumChannels);
-        };
-        // From here on, this is your original "effective / do / connect"
-        effective = this.effectiveListForInternal(listRef);
-        effective.do({ arg keySymbol; this.ensureStereoInternal(keySymbol) });
-        indexCounter = 0;
-        while({ indexCounter < (effective.size - 1) }, {
-            leftKey = effective[indexCounter];
-            rightKey = effective[indexCounter + 1];
-            Ndef(leftKey) <<> Ndef(rightKey);
-            indexCounter = indexCounter + 1;
-        });
-        sinkKey = effective[0];
-        shouldPlay = (listRef === activeChain);
-        isPlaying = Ndef(sinkKey).isPlaying;
-        if(shouldPlay) {
-            if(isPlaying.not) { Ndef(sinkKey).play(numChannels: defaultNumChannels) };
-        }{
-            if(isPlaying) { Ndef(sinkKey).stop };
-        };
-        
-    }
-
-
-
-// ---- readiness ----
-
-    // ---- Ready helpers (public API) ----
-    // boolean snapshot (no server ops)
-    isReady {
-        ^ready
-    }
-    // AppClock polling; onReadyFunc is optional
-    waitUntilReady { arg timeoutSec = 2.0, pollSec = 0.05, onReadyFunc = nil;
-        var startTime, tick;
-        startTime = Main.elapsedTime;
-        AppClock.sched(0, {
-            tick = {
-                if(this.readyConditionOk) {
-                    ready = true;
-                    if(onReadyFunc.notNil) { onReadyFunc.value };
-                    nil
-                }{
-                    if((Main.elapsedTime - startTime) > timeoutSec) {
-                        // timed out; leave 'ready' as-is
-                        nil
-                    }{
-                        AppClock.sched(pollSec, tick)
-                    }
-                }
-            };
-            tick.value;
-            nil
-        });
-        ^this
-    }
-    // ---- Ready helpers (internal; no leading underscore) ----
-
-
-    stopReadyPoll {
-        // No scheduled poll in this shim; nothing to stop.
-        ^this
-    }
-
-    // REVIEW: IS THIS STILL NEEDED?
-    // light background poll started from init (OPTION A)
-    startReadyPoll {
-        var alreadyTrue;
-        alreadyTrue = this.readyConditionOk;
-        if(alreadyTrue) { ready = true; ^this };
-        this.waitUntilReady(2.0, 0.05, { nil });
-        ^this
-    }
-
-
-    /* POSSIBLY MORE RECENT VERSION -- REVIEW
-    startReadyPoll { arg everySeconds = 0.25, timeoutSeconds = 8.0;
-        var msg;
-        // Minimal, conservative behaviour: declare the board ready now.
-        ready = true;
-
-        // Inform LPDisplay (harmless if no display wired yet)
-        msg = "READY";
-        this.display.tryPerform(\sendPaneText, \system, msg);
-
-        ^this
-    }
-    */
-
-
-    // compute the readiness condition; no server ops here
-    readyConditionOk {
-        var curSink, nxtSink, serverOk, curBus, nxtBus, busesOk, currentPlaying;
-        curSink = activeChain[0];
-        nxtSink = nextChain[0];
-        serverOk = Server.default.serverRunning;
-        curBus = Ndef(curSink).bus;
-        nxtBus = Ndef(nxtSink).bus;
-        busesOk = curBus.notNil and: { nxtBus.notNil }
-        and: { curBus.rate == \audio } and: { nxtBus.rate == \audio };
-        currentPlaying = Ndef(curSink).isPlaying;
-        ^(serverOk and: { busesOk } and: { currentPlaying })
-    }
-
-
 
     // ───────────────────────────────────────────────────────────────
     // internal helpers (lowercase, no leading underscore)
@@ -811,9 +661,125 @@ MagicPedalboard : Object {
         });
         ^resultList
     }
+    // Public rebuild: bundles server ops; guard only
+    rebuild { arg listRef;
+        var whichChain, canRun;
+        whichChain = if(listRef === activeChain) { \current } { \next };
+        canRun = this.ensureServerTree;
+        if(canRun.not) { ^this };
+        Server.default.bind({
+            this.rebuildUnbound(listRef);
+        });
+        if(display.notNil) {
+            display.showRebuild(whichChain, listRef, this.effectiveListForInternal(listRef));
+        };
+    }
+    // Internal rebuild that assumes we are already inside a server bind (no resets)
+    rebuildUnbound { arg listRef;
+        var effective, indexCounter, leftKey, rightKey, sinkKey, hasMinimum, shouldPlay, isPlaying;
+        hasMinimum = listRef.size >= 2;
+        if(hasMinimum.not) { ^this };
+        // (NEW 2D) Ensure Ndefs for symbols present in the *declared* chain (includes bypassed ones)
+        if(processorLib.notNil) {
+            processorLib.ensureFromChain(listRef, defaultNumChannels);
+        };
+        // From here on, this is your original "effective / do / connect"
+        effective = this.effectiveListForInternal(listRef);
+        effective.do({ arg keySymbol; this.ensureStereoInternal(keySymbol) });
+        indexCounter = 0;
+        while({ indexCounter < (effective.size - 1) }, {
+            leftKey = effective[indexCounter];
+            rightKey = effective[indexCounter + 1];
+            Ndef(leftKey) <<> Ndef(rightKey);
+            indexCounter = indexCounter + 1;
+        });
+        sinkKey = effective[0];
+        shouldPlay = (listRef === activeChain);
+        isPlaying = Ndef(sinkKey).isPlaying;
+        if(shouldPlay) {
+            if(isPlaying.not) { Ndef(sinkKey).play(numChannels: defaultNumChannels) };
+        }{
+            if(isPlaying) { Ndef(sinkKey).stop };
+        };
+        
+    }
+
+    // ---- Ready helpers (public API) ----
+    // boolean snapshot (no server ops)
+    isReady {
+        ^ready
+    }
+    // AppClock polling; onReadyFunc is optional
+    waitUntilReady { arg timeoutSec = 2.0, pollSec = 0.05, onReadyFunc = nil;
+        var startTime, tick;
+        startTime = Main.elapsedTime;
+        AppClock.sched(0, {
+            tick = {
+                if(this.readyConditionOk) {
+                    ready = true;
+                    if(onReadyFunc.notNil) { onReadyFunc.value };
+                    nil
+                }{
+                    if((Main.elapsedTime - startTime) > timeoutSec) {
+                        // timed out; leave 'ready' as-is
+                        nil
+                    }{
+                        AppClock.sched(pollSec, tick)
+                    }
+                }
+            };
+            tick.value;
+            nil
+        });
+        ^this
+    }
+    // ---- Ready helpers (internal; no leading underscore) ----
 
 
-// ---- etxernal integration ----
+    stopReadyPoll {
+        // No scheduled poll in this shim; nothing to stop.
+        ^this
+    }
+
+    // REVIEW: IS THIS STILL NEEDED?
+    // light background poll started from init (OPTION A)
+    startReadyPoll {
+        var alreadyTrue;
+        alreadyTrue = this.readyConditionOk;
+        if(alreadyTrue) { ready = true; ^this };
+        this.waitUntilReady(2.0, 0.05, { nil });
+        ^this
+    }
+
+
+    /* POSSIBLY MORE RECENT VERSION -- REVIEW
+    startReadyPoll { arg everySeconds = 0.25, timeoutSeconds = 8.0;
+        var msg;
+        // Minimal, conservative behaviour: declare the board ready now.
+        ready = true;
+
+        // Inform LPDisplay (harmless if no display wired yet)
+        msg = "READY";
+        this.display.tryPerform(\sendPaneText, \system, msg);
+
+        ^this
+    }
+    */
+
+
+    // compute the readiness condition; no server ops here
+    readyConditionOk {
+        var curSink, nxtSink, serverOk, curBus, nxtBus, busesOk, currentPlaying;
+        curSink = activeChain[0];
+        nxtSink = nextChain[0];
+        serverOk = Server.default.serverRunning;
+        curBus = Ndef(curSink).bus;
+        nxtBus = Ndef(nxtSink).bus;
+        busesOk = curBus.notNil and: { nxtBus.notNil }
+        and: { curBus.rate == \audio } and: { nxtBus.rate == \audio };
+        currentPlaying = Ndef(curSink).isPlaying;
+        ^(serverOk and: { busesOk } and: { currentPlaying })
+    }
 
     handleCommand { |oscPath|
      var path;
@@ -825,9 +791,6 @@ MagicPedalboard : Object {
      };
      ^this;
     }
-
-
-    //---- Compatibility shims ----
 
 /*
  rebuildCompat was origianlly just "rebuild" in MagicPedalboard_Compat-Rebuild.sc, so probably loaded AFTER the class native rebuild. Kept here in case we need to get back to it. Probably not.
@@ -910,6 +873,7 @@ MagicPedalboard : Object {
 
         ^this
     }
+
 
     // absorbed back from MagicPedalboard_ExclusivityOptionA.sc
     // Infer which chain is current (\A or \B) from available lists.
