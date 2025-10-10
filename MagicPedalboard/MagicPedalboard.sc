@@ -1,4 +1,4 @@
-/* MagicPedalboard.sc v0.5.1.4
+/* MagicPedalboard.sc v0.5.1.5
 
 v0.5.1.3 moved docs (*help, *api, *test) to MagicPedalboard_docs.sc
 
@@ -48,6 +48,18 @@ Notes
 - This update only adds class-side utilities (*help, *api, *test) and a supplementary header.
 - No behavior changes to public or internal instance methods (including the existing instance help).
 */
+
+// ------------------------------------------------------------------
+// NOTE: Detailed class-side helpers (*help, *api, and an interactive *test/demo)
+// were intentionally moved into the companion file
+//    MagicPedalboard/MagicPedalboard_docs.sc
+// Evaluate that file in the SuperCollider IDE or load it via File(...).interpret
+// to access the long-form help, API dictionary, and the demo-style *test.
+//
+// This main class file contains a small lightweight class-side *test (for CI/dev)
+// that checks presence of key selectors and performs safe, non-audio calls by default.
+// For interactive examples and demos use the docs file.
+// ------------------------------------------------------------------
 
 MagicPedalboard : Object {
     // ───────────────────────────────────────────────────────────────
