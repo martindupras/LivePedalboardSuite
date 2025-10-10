@@ -16,7 +16,7 @@ LPOrchestrator : Object {
 
 
 	init{
-		this.ensureServerReady;
+		// this.ensureServerReady;
 		lpDisplay = LPDisplay.new();  //pass 'this' if want control buttons on lpDisplay
 		lpLibrary = LPLibrary.new();
 		logger = MDMiniLogger.new();

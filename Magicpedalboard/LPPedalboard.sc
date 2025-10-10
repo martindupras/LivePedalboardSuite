@@ -62,10 +62,10 @@ LPPedalboard : Object {
         text = "MagicPedalboard " ++ version;
         text.postln;
     }
-    *new { arg disp = nil;
-        ^super.new.init(disp, aProcessorLib);
+    *new { arg disp = nil, aProcessorLib;
+        ^super.new.init(disp, );
     }
-    init { arg disp;
+    init { arg disp, aProcessorLib;
         var sinkFunc;
         display = disp;
 		processorLib = aProcessorLib;
@@ -78,7 +78,12 @@ LPPedalboard : Object {
             inputSignal = \in.ar(defaultNumChannels);
             inputSignal
         };
-        Ndef(\chainA, sinkFunc);
+
+		Ndef(\lpbOut, sinkFunc);  //new
+        Ndef(\chainAout, sinkFunc);
+        Ndef(\chainBout, sinkFunc);
+
+        Ndef(\chainA, sinkFunc);  //to be replaced
         Ndef(\chainB, sinkFunc);
         // Guarantee sink buses are audio-rate early (prevents kr-meter races)
         Server.default.bind({
@@ -110,8 +115,68 @@ LPPedalboard : Object {
         ready = false;
         // OPTION A: enable background poll (comment out if you prefer Option B)
         this.startReadyPoll;
+
+		this.initChainTest();
+
+
         ^this
     }
+
+initChainTest {
+
+		// Unconditional test sources
+		Ndef(\testmelodyA, {
+			var t, e, f, sig;
+			t = Impulse.kr(2.2);
+			e = Decay2.kr(t, 0.01, 0.30);
+			f = Demand.kr(t, 0, Dseq([220, 277.18, 329.63, 392], inf));
+			sig = SinOsc.ar(f) * e * 0.22;
+			sig ! 2
+		});
+		Ndef(\testmelodyB, {
+			var t, e, f, sig;
+			t = Impulse.kr(3.1);
+			e = Decay2.kr(t, 0.02, 0.18);
+			f = Demand.kr(t, 0, Dseq([392, 329.63, 246.94, 220, 246.94], inf));
+			sig = Pulse.ar(f, 0.35) * e * 0.20;
+			sig ! 2
+		});
+		Ndef(\srcBleeps, {
+			var trig, freq, env, tone, sig;
+			trig = Dust.kr(3);
+			freq = TExpRand.kr(180, 2800, trig);
+			env  = Decay2.kr(trig, 0.005, 0.20);
+			tone = SinOsc.ar(freq + TRand.kr(-6, 6, trig));
+			sig  = RLPF.ar(tone, (freq * 2).clip(80, 9000), 0.25) * env;
+			Pan2.ar(sig, LFNoise1.kr(0.3).range(-0.6, 0.6)) * 0.2
+		});
+		Ndef(\srcPulsedNoise7, {
+			WhiteNoise.ar(1!2) * SinOsc.kr(7).range(0,1) * 0.2
+		});
+
+				Ndef(\chainA, {
+					var x;
+					x = \in.ar(0!2);
+					SendPeakRMS.kr(x, 24, 3, '/peakrmsA', 2001);
+					x
+				}).ar(2);
+
+				Ndef(\chainB, {
+					var y;
+					y = \in.ar(0!2);
+					SendPeakRMS.kr(y, 24, 3, '/peakrmsB', 2002);
+					y
+				}).ar(2);
+
+
+		Ndef(\chainA)<<>Ndef(\testmelodyA);
+		Ndef(\chainB)<<>Ndef(\testmelodyB);
+
+		postln('initChainTest done');
+
+	}
+
+
     // ───────────────────────────────────────────────────────────────
     // public API
     // ───────────────────────────────────────────────────────────────
