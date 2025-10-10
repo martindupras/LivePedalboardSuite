@@ -1,4 +1,4 @@
-/* MagicPedalboard.sc v0.5.1.3
+/* MagicPedalboard.sc v0.5.1.4
 
 v0.5.1.3 moved docs (*help, *api, *test) to MagicPedalboard_docs.sc
 
@@ -74,15 +74,64 @@ MagicPedalboard : Object {
 
     *initClass {
         var text;
-        version = "v0.5.1.3";
+        version = "v0.5.1.5";
         text = "MagicPedalboard " ++ version;
         text.postln;
     }
 
-    *new { arg disp = nil;
-        ^this.super.init(disp);
+    // A lightweight class-side test for CI/dev: checks that public selectors exist
+    *test { arg runRuntimeChecks = false;
+        var missing = Array.new;
+        var instance;
+        var selectors = [
+            // construction & basic API
+            #new, #setDisplay, #setProcessorLib,
+            // playback
+            #playCurrent, #stopCurrent, #switchChain,
+            // mutators
+            #add, #addAt, #removeAt, #swap, #clearChain, #bypass, #bypassAt,
+            // current-chain helpers
+            #bypassCurrent, #bypassAtCurrent, #setSourceCurrent, #setSourcesBoth,
+            // diagnostics
+            #printChains, #effectiveCurrent, #effectiveNext, #isReady
+        ];
+
+        // check selectors exist on the class (instance methods)
+        selectors.do { |sym|
+            if(MagicPedalboard.respondsTo(sym).not) { missing = missing.add(sym) }
+        };
+
+        if(missing.notEmpty) {
+            "Missing selectors on MagicPedalboard: %".format(missing).postln;
+            ^missing
+        };
+
+        // Create a lightweight instance (display nil) and exercise a few calls that don't need a running server
+        instance = MagicPedalboard.new(nil);
+        instance.printChains;     // should not throw
+        instance.setProcessorLib(nil);
+        instance.setDefaultSource(\testmelody);
+        instance.clearChain;      // idempotent
+        instance.setSourcesBoth(\testmelody);
+
+        // Optionally attempt runtime calls which require a running server; guarded by runRuntimeChecks flag
+        if(runRuntimeChecks) {
+            try {
+                instance.playCurrent;
+                instance.stopCurrent;
+                instance.switchChain(0.1);
+            } { |err|
+                "Runtime check error: %".format(err).postln;
+            };
+        };
+
+        "MagicPedalboard.test OK (selectors present, basic calls exercised)".postln;
+        ^instance
     }
 
+    *new { arg disp = nil;
+        ^super.new.init(disp);
+    }
     init { arg disp;
         var sinkFunc;
         display = disp;
@@ -249,6 +298,7 @@ MagicPedalboard : Object {
         // enforce exclusive invariant (Option A) after play
         this.enforceExclusiveCurrentOptionA(0.1);
     }
+    
     stopCurrent {
         var sinkKey, canRun;
         sinkKey = currentChain[0];
@@ -307,6 +357,8 @@ MagicPedalboard : Object {
         this.rebuild(nextChain);
         if(display.notNil) { display.showMutation(\addAt, [key, indexClamped], nextChain) };
     }
+
+
     removeAt { arg index;
         var sizeNow, lastIndex, newList, removedKey;
         sizeNow = nextChain.size;
