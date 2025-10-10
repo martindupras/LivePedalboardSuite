@@ -1,9 +1,10 @@
-/* MagicPedalboard.sc v0.5.1.6
+/* MagicPedalboard.sc v0.5.1.8
 
+v0.5.1.8 absorbed back class extensions into main class
+v0.5.1.7 renamed some variable for clarity
+v0.5.1.6 Mostly de-duping. *test still not working -- do not use. 
 v0.5.1.3 moved docs (*help, *api, *test) to MagicPedalboard_docs.sc
-
 v0.5.1.2 remove commented out code.
-
 v0.5.1.1 Try approach where chain is always ending with \chainXout, and the ouput is always \lpbOut. Switching becomes simply Ndef(\lpbOut).set(\in, Ndef(\chainAout).
 
 
@@ -69,7 +70,9 @@ MagicPedalboard : Object {
     // ───────────────────────────────────────────────────────────────
     // instance state
     // ───────────────────────────────────────────────────────────────
-    var <> currentChain; // read-only pointer to Array of Symbols
+
+    var <> activeChain; // read-only pointer to Array of Symbols
+    //var <> activeChain; // replaces activeChain as clearer.
     var <> nextChain; // read-only pointer to Array of Symbols
     var chainAList; // [\chainA, ...processors..., source]
     var chainBList; // [\chainB, ...processors..., source]
@@ -81,15 +84,16 @@ MagicPedalboard : Object {
     var < processorLib;
     var < ready; 
 
-    var <> activeChain;
+    
 
     *initClass {
         var text;
-        version = "v0.5.1.6";
+        version = "v0.5.1.8";
         text = "MagicPedalboard " ++ version;
         text.postln;
     }
 
+    //// NOT WORKING RIGHT NOW -- IGNORE
     // A lightweight class-side test for CI/dev: checks that public selectors exist
     *test { arg runRuntimeChecks = false;
         var missing = Array.new;
@@ -144,7 +148,7 @@ MagicPedalboard : Object {
         ^super.new.init(disp);
     }
     init { arg disp;
-        var sinkFunc;
+        var sinkFunc; // code for passthrough Ndef
         display = disp;
         defaultNumChannels = 2; // become 6 when hexaphonic
 
@@ -175,22 +179,24 @@ MagicPedalboard : Object {
         });
         chainAList = [\chainAout, defaultSource];
         chainBList = [\chainBout, defaultSource];
+
         bypassA = IdentityDictionary.new;
         bypassB = IdentityDictionary.new;
-        currentChain = chainAList;
+
+        activeChain = chainAList;
         nextChain = chainBList;
         Server.default.bind({
             this.rebuildUnbound(nextChain); // stays stopped
-            this.rebuildUnbound(currentChain); // plays
+            this.rebuildUnbound(activeChain); // plays
         });
-/*        this.rebuild(currentChain);
+/*        this.rebuild(activeChain);
         this.rebuild(nextChain);*/
 /* Server.default.bind({
  Ndef(\chainA).play(numChannels: defaultNumChannels);
  });*/
 
         if(display.notNil) {
-            display.showInit(this, version, currentChain, nextChain);
+            display.showInit(this, version, activeChain, nextChain);
         };
 
         // REVIEW TO SEE IF NEEDED:
@@ -219,7 +225,7 @@ MagicPedalboard : Object {
         display = disp;
         shouldShow = display.notNil;
         if(shouldShow) {
-            display.showInit(this, version, currentChain, nextChain);
+            display.showInit(this, version, activeChain, nextChain);
         };
     }
     help {
@@ -296,10 +302,10 @@ MagicPedalboard : Object {
     }
     playCurrent {
         var sinkKey, canRun;
-        sinkKey = currentChain[0];
+        sinkKey = activeChain[0];
         canRun = this.ensureServerTree;
         if(canRun.not) { ^this };
-        this.rebuild(currentChain);
+        this.rebuild(activeChain);
         Server.default.bind({
             Ndef(sinkKey).play(numChannels: defaultNumChannels);
         });
@@ -312,7 +318,7 @@ MagicPedalboard : Object {
     
     stopCurrent {
         var sinkKey, canRun;
-        sinkKey = currentChain[0];
+        sinkKey = activeChain[0];
         canRun = this.ensureServerTree;
         if(canRun.not) { ^this };
         Server.default.bind({
@@ -328,7 +334,7 @@ MagicPedalboard : Object {
         canRun = this.ensureServerTree;
         if(canRun.not) { ^this };
         actualFadeTime = fadeTime.clip(0.08, 0.2);
-        oldSinkKey = currentChain[0];
+        oldSinkKey = activeChain[0];
         newSinkKey = nextChain[0];
         Server.default.bind({
             // set fade durations
@@ -340,17 +346,17 @@ MagicPedalboard : Object {
             // stop OLD (will fade out)
             Ndef(oldSinkKey).stop;
             // swap pointers
-            temporaryList = currentChain;
-            currentChain = nextChain;
+            temporaryList = activeChain;
+            activeChain = nextChain;
             nextChain = temporaryList;
             // ensure both chains are in correct post-swap state
-            this.rebuildUnbound(currentChain);
+            this.rebuildUnbound(activeChain);
             this.rebuildUnbound(nextChain);
         });
         // enforce exclusivity post-swap (CURRENT uses actualFadeTime, NEXT silenced)
         this.enforceExclusiveCurrentOptionA(actualFadeTime);
         if(display.notNil) {
-            display.showSwitch(oldSinkKey, currentChain[0], currentChain, nextChain);
+            display.showSwitch(oldSinkKey, activeChain[0], activeChain, nextChain);
         };
     }
     // ─── next-chain mutations ─────────────────────────────────────
@@ -439,18 +445,18 @@ MagicPedalboard : Object {
     // ─── current-chain bypass ─────────────────────────────────────
     bypassCurrent { arg key, state = true;
         var dict;
-        dict = this.bypassDictForListInternal(currentChain);
+        dict = this.bypassDictForListInternal(activeChain);
         dict[key] = state;
-        this.rebuild(currentChain);
+        this.rebuild(activeChain);
         if(display.notNil) {
-            display.showBypass(\current, key, state, currentChain, this.bypassKeysForListInternal(currentChain));
+            display.showBypass(\current, key, state, activeChain, this.bypassKeysForListInternal(activeChain));
         };
     }
     bypassAtCurrent { arg index, state = true;
         var lastIndex, clampedIndex, keyAtIndex;
-        lastIndex = currentChain.size - 1;
+        lastIndex = activeChain.size - 1;
         clampedIndex = index.clip(1, lastIndex - 1);
-        keyAtIndex = currentChain[clampedIndex];
+        keyAtIndex = activeChain[clampedIndex];
         this.bypassCurrent(keyAtIndex, state);
     }
     // ─── source setters ───────────────────────────────────────────
@@ -465,13 +471,13 @@ MagicPedalboard : Object {
     }
     setSourceCurrent { arg key;
         var newList, lastIndex, isAList;
-        lastIndex = currentChain.size - 1;
-        newList = currentChain.copy;
+        lastIndex = activeChain.size - 1;
+        newList = activeChain.copy;
         newList[lastIndex] = key;
-        isAList = (currentChain === chainAList);
-        if(isAList) { chainAList = newList; currentChain = chainAList } { chainBList = newList; currentChain = chainBList };
-        this.rebuild(currentChain);
-        if(display.notNil) { display.showMutation(\setSourceCurrent, [key], currentChain) };
+        isAList = (activeChain === chainAList);
+        if(isAList) { chainAList = newList; activeChain = chainAList } { chainBList = newList; activeChain = chainBList };
+        this.rebuild(activeChain);
+        if(display.notNil) { display.showMutation(\setSourceCurrent, [key], activeChain) };
     }
     setSourcesBoth { arg key;
         var k, lastA, lastB, curWasA, nextWasA, newA, newB, sizeOk;
@@ -481,7 +487,7 @@ MagicPedalboard : Object {
         sizeOk = (chainAList.size >= 2) and: { chainBList.size >= 2 };
         if(sizeOk.not) { ^this };
         // remember which concrete list object was CURRENT/NEXT *before* we replace them
-        curWasA = (currentChain === chainAList);
+        curWasA = (activeChain === chainAList);
         nextWasA = (nextChain === chainAList);
         // compute last indices
         lastA = chainAList.size - 1;
@@ -492,10 +498,10 @@ MagicPedalboard : Object {
         // publish new lists and restore CURRENT/NEXT pointers to the matching list
         chainAList = newA;
         chainBList = newB;
-        currentChain = if(curWasA) { chainAList } { chainBList };
+        activeChain = if(curWasA) { chainAList } { chainBList };
         nextChain    = if(nextWasA) { chainAList } { chainBList };
         // rebuild both (non-destructive; uses <<> internally in rebuildUnbound)
-        this.rebuild(currentChain);
+        this.rebuild(activeChain);
         this.rebuild(nextChain);
         // (optional) inform display
         if(display.notNil and: { display.respondsTo(\showMutation) }) {
@@ -512,9 +518,9 @@ MagicPedalboard : Object {
     }
 
     // ─── diagnostics helpers ──────────────────────────────────────
-    effectiveCurrent { ^this.effectiveListForInternal(currentChain) }
+    effectiveCurrent { ^this.effectiveListForInternal(activeChain) }
     effectiveNext { ^this.effectiveListForInternal(nextChain) }
-    bypassKeysCurrent { ^this.bypassKeysForListInternal(currentChain) }
+    bypassKeysCurrent { ^this.bypassKeysForListInternal(activeChain) }
     bypassKeysNext { ^this.bypassKeysForListInternal(nextChain) }
     reset {
         var sinkAKey, sinkBKey, canRun;
@@ -524,7 +530,7 @@ MagicPedalboard : Object {
         chainBList = [sinkBKey, defaultSource];
         bypassA.clear;
         bypassB.clear;
-        currentChain = chainAList;
+        activeChain = chainAList;
         nextChain = chainBList;
         canRun = this.ensureServerTree;
         if(canRun.not) { ^this };
@@ -534,11 +540,11 @@ MagicPedalboard : Object {
             Ndef(sinkBKey).stop;
             // Rebuild NEXT first (stays stopped), then CURRENT (plays)
             this.rebuildUnbound(nextChain);
-            this.rebuildUnbound(currentChain);
+            this.rebuildUnbound(activeChain);
         });
         // enforce exclusive invariant (Option A): CURRENT audible; NEXT silent
         this.enforceExclusiveCurrentOptionA(0.1);
-        if(display.notNil) { display.showReset(currentChain, nextChain) };
+        if(display.notNil) { display.showReset(activeChain, nextChain) };
     }
 
     // ───────────────────────────────────────────────────────────────
@@ -580,7 +586,7 @@ MagicPedalboard : Object {
     // v0.4.6 change
     enforceExclusiveCurrentOptionA { arg fadeCurrent = 0.1;
         var currentSink, nextSink, chans, fadeCur;
-        currentSink = currentChain[0];
+        currentSink = activeChain[0];
         nextSink = nextChain[0];
         chans = defaultNumChannels;
         fadeCur = fadeCurrent.clip(0.05, 0.2);
@@ -607,6 +613,38 @@ MagicPedalboard : Object {
         ^this
     }
 
+/* POSSIBLY MORE RECENT VERSION -- REVIEW
+// absorbed back from MagicPedalboard_ExclusivityOptionA.sc
+    enforceExclusiveCurrentOptionA { arg fadeTime = 0.1;
+        var inferred, otherKey, otherSink, haveSetA, haveSetB;
+
+        inferred  = this.inferCurrentKey;
+        otherKey  = (inferred == \A).if({ \B }, { \A });
+        otherSink = (otherKey == \A).if({ \chainA }, { \chainB });
+
+        haveSetA = this.respondsTo(\setSourceA);
+        haveSetB = this.respondsTo(\setSourceB);
+
+        if (otherKey == \A) {
+            if (haveSetA) { this.setSourceA(\stereoSilence) };
+            chainAList = [\chainA, \stereoSilence];
+        } {
+            if (haveSetB) { this.setSourceB(\stereoSilence) };
+            chainBList = [\chainB, \stereoSilence];
+        };
+
+        // Optional: notify display adapter (safe no-op if absent)
+        this.display.tryPerform(\showStop, otherSink);
+
+        // Note: 'fadeTime' reserved for a future crossfade; no DSP fade here (keeps it simple & reversible).
+        ^this
+    }
+
+*/
+
+
+
+
     effectiveListForInternal { arg listRef;
         var dict, resultList, lastIndex, isProcessor, isBypassed;
         dict = this.bypassDictForListInternal(listRef);
@@ -626,7 +664,7 @@ MagicPedalboard : Object {
     // Public rebuild: bundles server ops; guard only
     rebuild { arg listRef;
         var whichChain, canRun;
-        whichChain = if(listRef === currentChain) { \current } { \next };
+        whichChain = if(listRef === activeChain) { \current } { \next };
         canRun = this.ensureServerTree;
         if(canRun.not) { ^this };
         Server.default.bind({
@@ -656,7 +694,7 @@ MagicPedalboard : Object {
             indexCounter = indexCounter + 1;
         });
         sinkKey = effective[0];
-        shouldPlay = (listRef === currentChain);
+        shouldPlay = (listRef === activeChain);
         isPlaying = Ndef(sinkKey).isPlaying;
         if(shouldPlay) {
             if(isPlaying.not) { Ndef(sinkKey).play(numChannels: defaultNumChannels) };
@@ -697,6 +735,12 @@ MagicPedalboard : Object {
     }
     // ---- Ready helpers (internal; no leading underscore) ----
 
+
+    stopReadyPoll {
+        // No scheduled poll in this shim; nothing to stop.
+        ^this
+    }
+
     // REVIEW: IS THIS STILL NEEDED?
     // light background poll started from init (OPTION A)
     startReadyPoll {
@@ -706,10 +750,27 @@ MagicPedalboard : Object {
         this.waitUntilReady(2.0, 0.05, { nil });
         ^this
     }
+
+
+    /* POSSIBLY MORE RECENT VERSION -- REVIEW
+    startReadyPoll { arg everySeconds = 0.25, timeoutSeconds = 8.0;
+        var msg;
+        // Minimal, conservative behaviour: declare the board ready now.
+        ready = true;
+
+        // Inform LPDisplay (harmless if no display wired yet)
+        msg = "READY";
+        this.display.tryPerform(\sendPaneText, \system, msg);
+
+        ^this
+    }
+    */
+
+
     // compute the readiness condition; no server ops here
     readyConditionOk {
         var curSink, nxtSink, serverOk, curBus, nxtBus, busesOk, currentPlaying;
-        curSink = currentChain[0];
+        curSink = activeChain[0];
         nxtSink = nextChain[0];
         serverOk = Server.default.serverRunning;
         curBus = Ndef(curSink).bus;
@@ -730,4 +791,97 @@ MagicPedalboard : Object {
      };
      ^this;
     }
+
+/*
+ rebuildCompat was origianlly just "rebuild" in MagicPedalboard_Compat-Rebuild.sc, so probably loaded AFTER the class native rebuild. Kept here in case we need to get back to it. Probably not.
+*/
+// absorbed back from MagicPedalboard_Compat-Rebuild.sc
+//   - Provide MagicPedalboard>>rebuild(arg) as a compatibility shim because setSourceA/B currently call 'rebuild'.
+// - Accepts either:
+//   * an Array like [\chainA, \stereoSilence] or [\chainB, \stereoSilence], or
+//   * a Symbol \A or \B
+// - If rebuildUnbound exists, delegate to it. Else, update internal lists only (no DSP/server ops).
+    rebuildCompat { arg whichOrList;
+        var hasUnbound, sink, src, list, which, cur0, next0, isArrayArg;
+
+        hasUnbound = this.respondsTo(\rebuildUnbound);
+        isArrayArg = whichOrList.isArray;
+
+        if (hasUnbound) {
+            ^this.rebuildUnbound(whichOrList);
+        };
+
+        // --- fallback (no rebuildUnbound available): model-only update ---
+
+        if (isArrayArg) {
+            list = whichOrList;
+            sink = (list.size > 0).if({ list[0].asSymbol }, { \chainA });
+            src  = (list.size > 1).if({ list[1].asSymbol }, { \stereoSilence });
+        }{
+            which = whichOrList.asSymbol;
+            sink = (which == \B).if({ \chainB }, { \chainA });
+            src  = (sink == \chainB).if({
+                (chainBList.isArray and: { chainBList.size > 1 }).if({ chainBList[1].asSymbol }, { \stereoSilence })
+            },{
+                (chainAList.isArray and: { chainAList.size > 1 }).if({ chainAList[1].asSymbol }, { \stereoSilence })
+            });
+            list = [sink, src];
+        };
+
+        // Update the stored lists
+        if (sink == \chainA) { chainAList = [\chainA, src] } { chainBList = [\chainB, src] };
+
+        // Keep activeChain / nextChain in sync if they point at this sink
+        cur0  = (activeChain.isArray and: { activeChain.size > 0 }).if({ activeChain[0] }, { nil });
+        next0 = (nextChain.isArray and: { nextChain.size > 0 }).if({ nextChain[0] }, { nil });
+
+        if (cur0 == sink)  { activeChain = list.copy };
+        if (next0 == sink) { nextChain   = list.copy };
+
+        // Optional: let a display adapter summarize; ignore if not present
+        this.display.tryPerform(\showRebuild, \current, list, list);
+
+        ^this
+    }
+
+
+
+       /*
+    rebuildUnboundCompat
+    - Provide a compatibility shim for MagicPedalboard>>rebuildUnbound(list)
+    - Accepts a chain list like [\chainA, \stereoSilence] or [\chainB, \stereoSilence]
+    - Updates the stored chain lists only; performs no server-bound rebuild.
+    */
+    rebuildUnboundCompat { arg list;
+        var sink, src;
+
+        sink = \chainA;
+        src  = \stereoSilence;
+
+        if (list.isArray) {
+            if (list.size >= 1) { sink = list[0].asSymbol };
+            if (list.size >= 2) { src  = list[1].asSymbol };
+        };
+
+        if (sink == \chainA) {
+            chainAList = [\chainA, src];
+        } {
+            if (sink == \chainB) {
+                chainBList = [\chainB, src];
+            };
+        };
+
+        ^this
+    }
+
+
+    // absorbed back from MagicPedalboard_ExclusivityOptionA.sc
+    // Infer which chain is current (\A or \B) from available lists.
+    inferCurrentKey {
+        var list, sink;
+        list = activeChain ? chainAList;
+        sink = (list.isArray and: { list.size > 0 }).if({ list[0] }, { \chainA });
+        ^((sink == \chainB).if({ \B }, { \A }))
+    }
+
 }
