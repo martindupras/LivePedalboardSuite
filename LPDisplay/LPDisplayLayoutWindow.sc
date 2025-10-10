@@ -1,5 +1,5 @@
 // LPDisplayLayoutWindow.sc
-// v0.9.8 removed the testing audio sources and separated OSC meter responders separately
+// v0.9.8.2 removed the testing audio sources and separated OSC meter responders separately
 // v0.9.7.4 — Grid window with A/B chains, meters via SendPeakRMS, console prints gated
 // MD 2025-10-01
 /*
@@ -27,7 +27,7 @@ Notes:
    This preserves compatibility with any previous log parsing that keyed on replyID rather than address.
 */
 LPDisplayLayoutWindow {
-	classvar classVersion = "0.9.8"; // printed at class-load time
+	classvar classVersion = "0.9.8.1"; // printed at class-load time
 
 
 
@@ -57,13 +57,18 @@ LPDisplayLayoutWindow {
 	// 'meterHudMap' holds an optional LPDisplayHudMap instance. If nil, meters use raw SendPeakRMS RMS (0..1).
 	var meterHudMap;
 
+	var statusDisplay;
+	//var commandManager; // wait - why would we neet this? its the other way around
+
 	*initClass {
 		("LPDisplayLayoutWindow v" ++ classVersion ++ " loaded (LivePedalboardDisplay)").postln;
 	}
 
-	*new { |meterHudMapInstance|
-		// 'meterHudMapInstance' is an INSTANCE of LPDisplayHudMap (or nil). It is not a name/symbol.
-		^super.new.init(meterHudMapInstance)
+	*new { //  aCommandManager
+		   | meterHudMapInstance|
+	   	//meterHudMapInstance' is an INSTANCE of LPDisplayHudMap (or nil). It is not a name/symbol.
+		^super.new.init( //aCommandManager ,
+			              meterHudMapInstance)
 	}
 
 	*open { |meterHudMapInstance|
@@ -71,8 +76,12 @@ LPDisplayLayoutWindow {
 		^this.new(meterHudMapInstance).open
 	}
 
-	init { |meterHudMapInstance|
+	init { | /// aCommandManager
+		meterHudMapInstance|
 		// Store optional HUD mapping object; nil means "use raw 0..1 RMS for meters".
+		var win;
+		// var statusDisplay;
+		// commandManager = aCommandManager ;
 		meterHudMap = meterHudMapInstance;
 		paneColor = Color(0.0, 0.35, 0.0);
 
@@ -85,10 +94,54 @@ LPDisplayLayoutWindow {
 		// NEW: default OFF
 		consoleLevelsOn = false;
 
+            this.closeExistingLPDisplayWindows; //should be done by LPDisplay init
+            win =this.open; // -> a Window
+            // 2. Create an adapter so CommandManager.display calls still work
+            statusDisplay = LPDisplayAdapter.new(this);
+            // 3. Optional HUD mapping + console quiet
+            this.setHudMap(LPDisplayHudMap.new(-6, -60, 1.0));
+            this.setConsoleLevelsOn(false);
+            // 4. Front the window and share display with CM (if any)
+            AppClock.sched(0.0, { win.front; nil });
+
+		     //what is this doing here? maybe it lives in command manager
+          //  if(commandManager.respondsTo(\display_)) { commandManager.display = statusDisplay };
+            // 5. No MagicDisplay.ensureMeterDefs anymore (taps live in Ndefs)
+             // satisfy your "-> a Window" acceptance
 		^this
 	}
 
 	// --- Public API -----------------------------------------------------------
+
+	///// CHECK MIGRATION
+
+	   // Canonical closer: match ONLY LPDisplay windows
+    closeExistingLPDisplayWindows {
+        var windowsToClose, shouldClose;
+
+        shouldClose = { arg w;
+            var nameString;
+            nameString = (w.name ? "").asString;
+            (nameString.beginsWith("LPDisplay")) and: { w.isClosed.not }
+        };
+
+        windowsToClose = Window.allWindows.select(shouldClose);
+
+        windowsToClose.do({ arg w;
+            var wref;
+            wref = w;
+            if (wref.notNil and: { wref.isClosed.not }) {
+                // avoid recursion if the window has onClose hooks
+                wref.onClose = { };
+                wref.close;
+            };
+        });
+
+        ^this
+    }
+
+
+
 
 	open {
 		Window.allWindows.do { |existingWindow|

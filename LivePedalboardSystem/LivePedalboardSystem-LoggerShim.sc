@@ -1,5 +1,5 @@
 // LivePedalboardSystem-LoggerShim.sc
-// v0.1.0
+// v0.1.1
 // MD 20251006-1848
 
 /*
@@ -10,6 +10,10 @@ Purpose
 Style
 - var-first; descriptive names; no server.sync; no non-local returns.
 */
+// wher does thsi get created?
+// should be created  by misnamed livepedalboard system
+// looks like none of these methods  should be here
+// logger should have nethods into, warn & error
 
 + LivePedalboardSystem {
 

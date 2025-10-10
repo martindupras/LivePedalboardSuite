@@ -1,5 +1,5 @@
 // CommandManager.sc
-// v1.6
+// v1.7.1
 // MD 20250921-22:40
 
 // Purpose: Central controller; uses injected display (MagicDisplayGUI), does NOT create windows.
@@ -16,19 +16,26 @@ CommandManager {
 	var <>parentCommandManager;
 	var <>saver;
 	var <>queueExportCallback;
+	var <>lpDisplay;
 
 	var launchpadHandlerRef, footHandlerRef, guitarHandlerRef, dawHandlerRef;
 
 	var <>launchpadID, <>footControllerID, <>guitarID;
 
-	*new { arg treePath;
-		^super.new.init(treePath);
+	*new { arg anLpDisplay;
+		^super.new.init(anLpDisplay);
 	}
 
 
-	init { arg treePath;
+	init { arg anLpDisplay;
 		var defaultPath, savedPath, stateDir, stateFile;
 		var explicitOk, savedOk;
+		var treePath;
+		treePath = nil;
+
+		lpDisplay = anLpDisplay;
+		// statusDisplay = LPDisplayAdapter.new(anLpDisplay);
+		//who actually needs this?
 
 		currentState = \idle;
 		// saver = CircularFileSave.new("myTree", "~/CommandTreeSavefiles", 10);

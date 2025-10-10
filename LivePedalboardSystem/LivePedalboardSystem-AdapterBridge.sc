@@ -19,19 +19,19 @@ Style
 
         commandManager   = this.commandManager;
         pedalboardRef    = this.pedalboard;
-        statusDisplayRef = this.statusDisplay;
+        statusDisplayRef = this.statusDisplay;  //n ot needed - all instance variables
 
         if(commandManager.isNil or: { pedalboardRef.isNil }) {
             "[LPS] installAdapterBridge (display-only): commandManager or pedalboard is nil; skipping.".warn;
-            ^this;
+            ^this;  /// not needed
         };
 
         // ensure the CommandTree -> MagicPedalboard adapter function exists
-        adapterAvailable = (~ct_applyOSCPathToMPB.notNil);
-        if(adapterAvailable.not) {
+        adapterAvailable = (~ct_applyOSCPathToMPB.notNil); /// WTF is this global? where define?d????
+        if(adapterAvailable.not) {                           // why needed?
             adapterPath = (Platform.userExtensionDir
                 ++ "/LivePedalboardSuite/MagicPedalboard/adapter_CommandTree_to_MagicPedalboard.scd"
-            ).standardizePath;
+            ).standardizePath;  // Idont have this file
             if(File.exists(adapterPath)) {
                 adapterPath.load;
                 adapterAvailable = (~ct_applyOSCPathToMPB.notNil);
@@ -42,8 +42,13 @@ Style
             ^this;
         };
 
-        commandManager.queueExportCallback = { |canonicalPathString|
+        commandManager.queueExportCallback =  // oh sweet baby jesus - where is this method defined?
+		                                        // why do we need a lambda?
+		                                        // why not just a method in command tree?
+
+		{ |canonicalPathString|                // who calls this lambda?
             var pathString, isSwitchPath, displayObj;
+			         // utter insanity.
 
             pathString = canonicalPathString.asString;
 
