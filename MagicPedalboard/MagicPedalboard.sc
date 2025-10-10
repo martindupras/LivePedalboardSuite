@@ -97,15 +97,15 @@ MagicPedalboard : Object {
         var instance;
         var selectors = [
             // construction & basic API
-            #new, #setDisplay, #setProcessorLib,
+            \new, \setDisplay, \setProcessorLib,
             // playback
-            #playCurrent, #stopCurrent, #switchChain,
+            \playCurrent, \stopCurrent, \switchChain,
             // mutators
-            #add, #addAt, #removeAt, #swap, #clearChain, #bypass, #bypassAt,
+            \add, \addAt, \removeAt, \swap, \clearChain, \bypass, \bypassAt,
             // current-chain helpers
-            #bypassCurrent, #bypassAtCurrent, #setSourceCurrent, #setSourcesBoth,
+            \bypassCurrent, \bypassAtCurrent, \setSourceCurrent, \setSourcesBoth,
             // diagnostics
-            #printChains, #effectiveCurrent, #effectiveNext, #isReady
+            \printChains, \effectiveCurrent, \effectiveNext, \isReady
         ];
 
         // check selectors exist on the class (instance methods)
