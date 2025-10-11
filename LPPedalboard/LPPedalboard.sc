@@ -58,8 +58,8 @@ LPPedalboard : Object {
     var < ready; // <-- ADD this line
     *initClass {
         var text;
-        version = "v0.4.9";
-        text = "MagicPedalboard " ++ version;
+        version = "v1.0";
+        text = "LPPedaloard " ++ version;
         text.postln;
     }
     *new { arg disp = nil, aProcessorLib;
