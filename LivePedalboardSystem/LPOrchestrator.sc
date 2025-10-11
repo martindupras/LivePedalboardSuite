@@ -1,5 +1,5 @@
 // LPOrchestrator.sc
-// v0
+// v1
 // MD 20251009-1315
 
 LPOrchestrator : Object {
@@ -10,13 +10,21 @@ LPOrchestrator : Object {
 	var <> lpLibrary;
 
 
+
 	*new {
 		^ super.new.init()
 	}
 
 
 	init{
-		// this.ensureServerReady;
+		this.ensureServerReady;
+		"*** Before server boot (if needed)".postln;
+		AppClock.sched(2, {this.postServerInit; nil});  // return nil to stop rescheduling
+		}
+
+
+	postServerInit {
+		"*** Afterserver boot".postln;
 		lpDisplay = LPDisplay.new();  //pass 'this' if want control buttons on lpDisplay
 		lpLibrary = LPLibrary.new();
 		logger = MDMiniLogger.new();
@@ -31,23 +39,30 @@ LPOrchestrator : Object {
 		     // commandManager.cleanUp
 		     lpDisplay.closeExistingLPDisplayWindows; // is this defined in lpdisplay?
 		     // error manager.cleanUp
-		     // maybe shut down server? (note sure order of that one)
+		     // maybe shut down server? (not sure order of that one)
+
+		    //  this  method is not used at  present,
+		    // but in the way the orchestrator is currently invoked in the stub
+		    //  it would not stick around long enough to listen oit for cleanUp messages
+		    //  since it  garbage collected immediately after init.
+		    // this is easily prevented by invoking  in stub like so: ~orch = LPOrchestrator.new;
 	}
 
-
-    ensureServerReady {
-		var myS;
-        myS = Server.default;
-        if (myS.serverRunning.not) {
-            myS.boot;
-            myS.waitForBoot; // allowed in your safe-reset pattern
-            Server.default.bind({
-                myS.initTree;
-                myS.defaultGroup.freeAll;
+	ensureServerReady{
+        ~serv = Server.local;
+        if (~serv.serverRunning.not) {
+            ~serv.boot;
+            ~serv.waitForBoot; // allowed in your safe-reset pattern
+            ~serv.bind({
+                ~serv.initTree;
+                ~serv.defaultGroup.freeAll;
             });
         };
         ^ this
     }
+
+
+
 
 
 
