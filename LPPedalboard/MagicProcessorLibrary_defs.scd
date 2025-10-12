@@ -8,8 +8,10 @@ lib = MagicProcessorLibrary.new;
 
 define = { arg key, func; lib.register(key, func) };
 
+
+// MDTODO: replace define. with lib.register throughout. "code smell"
 // Sources
-define.(\ts0, {
+lib.register(\ts0, {
     var inputSignal;
     inputSignal = Silent.ar((0..1));
     inputSignal * 1.0
