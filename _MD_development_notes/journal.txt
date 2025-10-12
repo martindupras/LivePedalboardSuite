@@ -41,3 +41,18 @@ WORKING: 003 Test_ChannelIdentity_AmplitudeProbe.scd
 This successfully shows an Ndef that demonstrably passes multi-channel (n-in, n-out).
 
 Full explanation in Test_ChannelIdentity_AmplitudeProbe_README.txt (Verbose and probably not needed but nice if I need to revisit.)
+
+
+=======================
+20251012 
+Explained my project to Guy. After much discussion, I resolved that immediate best course of action is probably slightly change the operating model to this:
+
+Orchestrator talks to everybody.
+Command Manager stays as is (because it works) but possibly rework how messages are passed. (Model: /receive/action/thing/params, parsed by Orchesttrator)
+
+Orchestrator parses messages and sends to receiver. 
+Pedalbard sets up sources and outs, sets active/target updates display, make nChains do stuff
+NChains new class that only handles one chain; assumes in and out are managed externally. Does simplest possible methods: add, remove; add picks from processor library; remove removes last. For now anyway.
+MagicProcessorLibrary stays as is, but maybe rework how processors are defined (avoid global function "define")
+(MagicProcessorLibrary gets renamed to LPProcessorLibrary.)
+(MagicProcessorLibrary_defs.scd gets renamed to LPProcessorLibrary_defs.scd.). Should it become an .sc file? 
