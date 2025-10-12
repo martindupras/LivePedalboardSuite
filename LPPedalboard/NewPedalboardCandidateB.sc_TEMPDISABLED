@@ -1,0 +1,86 @@
+// NewPedalboardCandidateB.sc
+NewPedalboardCandidateB : Object {
+    var source, chainAList, chainBList;
+
+    *new { arg source = "internal";
+        ^super.new.init(source);
+    }
+
+    init { arg sourceArg;
+        var isInternal;
+        source = sourceArg ? "internal";
+        isInternal = (source == "internal");
+
+        this.setInternalSources;
+
+        if(isInternal) {
+            this.setNdefGenerators;
+        } {
+            this.setupAudioInputSources;
+        }
+
+        this.setupNdefPedalboard;
+
+        // Initialize chain lists
+        chainAList = [\chainAOut, \chainAIn];
+        chainBList = [\chainBOut, \chainBIn];
+
+        // Connect Ndefs together
+        this.rebuildChain(chainAList, chainBList);
+
+        // Activate chainA at startup
+        this.makeChainActive(\chainA);
+        ^this
+    }
+
+    setInternalSources {
+        // TODO: define internal sources (e.g. testmelody, noise, etc.)
+        // You can copy from LPPedalboard.initChainTest if needed
+    }
+
+    setNdefGenerators {
+        // TODO: set up Ndef generators for internal sources
+        // Example: Ndef(\testmelody, { ... })
+    }
+
+    setupAudioInputSources {
+        // TODO: set up Ndefs for audio input sources
+        // Example: Ndef(\audioIn, { SoundIn.ar(...) })
+    }
+
+    setupNdefPedalboard {
+        // Set up pedalboard Ndefs
+        // chainAIn, chainBIn, chainAOut, chainBOut, activeOut
+        // Example:
+        // Ndef(\chainAIn, { ... });
+        // Ndef(\chainBIn, { ... });
+        // Ndef(\chainAOut, { ... });
+        // Ndef(\chainBOut, { ... });
+        // Ndef(\activeOut, { ... });
+    }
+
+    rebuildChain { arg chainAList, chainBList;
+        // Connect Ndefs in each chain
+        // Example: Ndef(chainAList[0]) <<> Ndef(chainAList[1]);
+        //          Ndef(chainBList[0]) <<> Ndef(chainBList[1]);
+    }
+
+    makeChainActive { arg whichChain;
+        var outKey;
+        outKey = if(whichChain == \chainA) { \chainAOut } { \chainBOut };
+        // Connect the selected chain's output to activeOut
+        Ndef(\activeOut) <<> Ndef(outKey);
+    }
+
+    switch {
+        var currentActive;
+        // Determine which chain is currently active
+        // For now, just alternate between chainA and chainB
+        // You may want to track current/next chain with a variable
+        // Example:
+        // currentActive = ...;
+        // if(currentActive == \chainA) { this.makeChainActive(\chainB) } { this.makeChainActive(\chainA) }
+        // For demo, just call makeChainActive(\chainB)
+        this.makeChainActive(\chainB);
+    }
+}

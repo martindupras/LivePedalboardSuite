@@ -1,0 +1,43 @@
+
+
+
+20251011
+Forked SH branch to MD_Oct25. The intention is to do my changes from the "stable" known state that we had.
+
+--
+
+WORKING: 001 Test_LPPedalboard_Minimal -- successfully just runs to LPPedalboard and makes sound. 
+    ==== CURRENT ====
+    src : testmelodyA
+    procs: (none)
+    sink: chainA
+    eff : chainA -> testmelodyA
+
+    ==== NEXT ====
+    src : testmelodyA
+    procs: (none)
+    sink: chainB
+    eff : chainB -> testmelodyA
+
+--
+WORKING: 002  Test_LPOrchestrator_Minimal_NoDisplay.scd -- successfully runs the orchestrator's pedalboard with the display and meter. 
+
+<AskSimon> What is the right solution here? 
+When I run the orchestrator with a pedalboard, I get a DNU error because the pedalboard is trying to call a display callback that is not set.
+I had to add this line: 
+    lpb.setDisplay(nil);             // <<< minimal fix: avoid display callback DNU
+
+Which means I need to fix something. 
+  in LPPedalboard 
+       setSourcesBoth
+    calls 
+        showRebuild (I think) 
+    which used to be in MagicDisplay but not LPDisplay.
+    </AskSimon>
+
+
+WORKING: 003 Test_ChannelIdentity_AmplitudeProbe.scd
+
+This successfully shows an Ndef that demonstrably passes multi-channel (n-in, n-out).
+
+Full explanation in Test_ChannelIdentity_AmplitudeProbe_README.txt (Verbose and probably not needed but nice if I need to revisit.)
