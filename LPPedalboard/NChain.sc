@@ -1,5 +1,6 @@
 // NChain.sc
 
+// v0.4.1 added chainList List to keep track of the Ndefs in the chain. Any time we do something we will do it first, and if successul we'll make the same (insert, delete) into the chain.
 // v0.4 design the methods to add and remove effects and print chain
 // v0.3 add a dummy insert method that makes a compound symbol for the inserts Ndef
 // v0.2 added nameSymbol argument; works great!
@@ -17,10 +18,11 @@ NChain {
     classvar defaultNumChannels;
 
     var chainName;
+    var chainList; // this will be a list of the Ndef names in the chain in order
 
     *initClass {
         var text;
-        version = "v0.3";            
+        version = "v0.4.1";            
         defaultNumChannels = 2; // Set a sensible default
 
         text = "Nchains " ++ version;
@@ -32,6 +34,10 @@ NChain {
     init { |name = "defaultChain" |
         // var chainIn, chainOut;
         chainName = name.asString; // store the name as String
+        chainList = List.new; // start with an empty list
+
+        // add single passthrough Ndef
+        chainList.add(chainName.asSymbol); // add the name of the chain to the list
         this.makePassthrough(chainName.asSymbol); // just to test the method
 
         ^this
