@@ -61,6 +61,6 @@ WORKING: 004 workingReshapingNdefPassthrough.scd
 
 Figured out that setting the Ndef to elastic and starting with maximum channel count seems to work and seems to be reliable. 
 
-Make this canonical throughout new project. Could make a class but not sure if that's necessary. 
+Make this canonical throughout new project. Use the makePassthrough method from NChains. Could make a class but not sure if that's necessary. 
 
-
+testNChain_V0.2.scd shows how to make the chain work. We create a name for the chain, and that will be used in the Ndef names. Right now the name creates an Ndef of the same name. Need to figure out a way to create derived names so that we can have \bob_delay1 in chain \bob. 
