@@ -1,7 +1,7 @@
 // NChain.sc
 
-
-// v0.4.7.1 add removeAt method - work!
+// v0.4.7.2 add insertAt method - works!
+// v0.4.7.1 add removeAt method - works!
 // v0.4.7.0 added remove method that calls removeNewest
 // v0.4.6.9 add removeNewest method - works!
 // v0.4.6.8 remove commented out and tidy
@@ -22,7 +22,7 @@ NChain {
 
 	*initClass {
 		var text;
-		version = "v0.4.7.1";
+		version = "v0.4.7.2";
 		defaultNumChannels = 2; // Set a sensible default
 
 		text = "Nchains " ++ version;
@@ -145,6 +145,53 @@ NChain {
 		("NChain insert: added " ++ newSymbol).postln;
 		^this;
 	}
+
+    insertAt { |argName, index|
+        var newName, newSymbol, size, insertIndex, alreadyPresent, newList;
+
+        // Ensure we have a list to work with
+        if (chainList.isNil) {
+            chainList = List.new;
+        };
+
+        // Index must be an Integer
+        if (index.isKindOf(Integer).not) {
+            ("NChain insertAt: index must be an Integer (got: " ++ index.class.name ++ ").").postln;
+            ^this;
+        };
+
+        // Compose per-chain unique symbol (e.g., "chaintestalpha" -> \chaintestalpha)
+        newName = chainName ++ argName.asString;
+        newSymbol = newName.asSymbol;
+
+        // Avoid duplicates
+        alreadyPresent = chainList.includes(newSymbol);
+        if (alreadyPresent) {
+            ("NChain insertAt: '" ++ newSymbol ++ "' is already in the chain; skipping").postln;
+            ^this;
+        };
+
+        // Clamp index to valid insertion range [0, size]
+        size = chainList.size;
+        insertIndex = index.clip(0, size);
+        if (insertIndex != index) {
+            ("NChain insertAt: clamped index " ++ index ++ " -> " ++ insertIndex
+                ++ " (valid range 0.." ++ size ++ ")").postln;
+        };
+
+        // Define the stage as a passthrough (elastic width)
+        this.makePassthrough(newName);
+
+        // Insert at position and commit
+        newList = chainList.copy;
+        newList.insert(insertIndex, newSymbol);
+        chainList = newList;
+
+        // Rewire and report
+        this.rewireChain;
+        ("NChain insertAt: added " ++ newSymbol ++ " at index " ++ insertIndex).postln;
+        ^this;
+    }
 
 	insertTest { |argName|
 		var newName, newSymbol, insertIndex, alreadyPresent;
