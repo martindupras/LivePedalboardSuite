@@ -1,5 +1,6 @@
 // NChain.sc
 
+// v0.4.6.1 fix List.new (but still not working)
 // v0.4.6 move to immutable chainIn and chainOut that remain connected to the outside world
 // v0.4.5 added getters for chainName, chainNameSym and numChannels
 // v0.4.4 added insert and rewrirteChain (not yet fully tested)
@@ -158,7 +159,7 @@ NChain {
 /////// checks --- REVIEW if needed and correct
     // Ensure sink exists and is at chainList[0] as invariant
     if (chainList.isNil or: { chainList.isEmpty }) {
-        chainList = List[chainNameSym];
+        chainList = List.new;
     } {
         // If somehow sink isn't present, ensure it is (as first)
         if (chainList.includes(chainNameSym).not) {
