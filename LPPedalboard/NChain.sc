@@ -1,6 +1,7 @@
 // NChain.sc
 
-// v0.4.6.9 add removeNewest method
+// v0.4.7.0 added remove method that calls removeNewest
+// v0.4.6.9 add removeNewest method - works!
 // v0.4.6.8 remove commented out and tidy
 // v0.4.6.7 add insertTest method that adds a -6dB passthrough stage for testing
 // v0.4.6.6 now works (still not doing much.) init and rewireChain are doing what they should.
@@ -197,11 +198,8 @@ NChain {
 	}
 
 	remove {
-		// this would disconnect the last Ndef in the chain and (possibly) free (clear?) it.
-
-		// (1) connect penultimate to chainname
-		// (2) free last Ndef
-		^this
+        this.removeNewest;
+        ^this
 	}
 
     removeNewest {
