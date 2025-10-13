@@ -1,5 +1,6 @@
 // NChain.sc
 
+// v0.4.6.7 add insertTest method that adds a -6dB passthrough stage for testing
 // v0.4.6.6 now works (still not doing much.) init and rewireChain are doing what they should. 
 // v0.4.6.5 For clarity, now storing storing symbols (not string) into chainList and fullchainList
 // v0.4.6.4 rewireChain going back to original strategy of copy chainList into fullchainList, add in and out, connect all together in turns.
@@ -36,7 +37,7 @@ NChain {
 
 	*initClass {
 		var text;
-		version = "v0.4.6.6";
+		version = "v0.4.6.7";
 		defaultNumChannels = 2; // Set a sensible default
 
 		text = "Nchains " ++ version;
@@ -168,7 +169,37 @@ insert { | argName |
     ^this;
 }
 
+insertTest { |argName|
+    var newName, newSymbol, insertIndex, alreadyPresent;
 
+    newName = chainName ++ argName.asString;
+    newSymbol = newName.asSymbol;
+
+    if (chainList.isNil or: { chainList.isEmpty }) {
+        chainList = List.new;
+    };
+
+    alreadyPresent = chainList.includes(newSymbol);
+    if (alreadyPresent) {
+        ("NChain insertTest: '" ++ newSymbol ++ "' is already in the chain; skipping").postln;
+        ^this;
+    };
+
+    // Define the stage as a passthrough that halves amplitude (≈ -6 dB)
+    Ndef(newSymbol).reshaping_(\elastic).source = {
+        var sig;
+        sig = \in.ar(0 ! numChannels);
+        sig * 0.5
+    };
+
+    insertIndex = 0; // insert at the head of the internal chain
+    chainList = chainList.copy.insert(insertIndex, newSymbol);
+
+    this.rewireChain;
+
+    ("NChain insertTest: added " ++ newSymbol ++ " with -6 dB passthrough").postln;
+    ^this;
+}
 
 
 // REMOVED FOR NOW
