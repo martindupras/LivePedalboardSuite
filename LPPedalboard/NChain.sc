@@ -1,5 +1,6 @@
 // NChain.sc
 
+// v0.4.2 adding init stuff to make sink and add to the chainList
 // v0.4.1 added chainList List to keep track of the Ndefs in the chain. Any time we do something we will do it first, and if successul we'll make the same (insert, delete) into the chain.
 // v0.4 design the methods to add and remove effects and print chain
 // v0.3 add a dummy insert method that makes a compound symbol for the inserts Ndef
@@ -14,89 +15,104 @@ V0.1 Seems to be working. Test with testNChain.scd v0.1
 
 */
 NChain {
-    classvar version;
-    classvar defaultNumChannels;
+	classvar version;
+	classvar defaultNumChannels;
 
-    var chainName;
-    var chainList; // this will be a list of the Ndef names in the chain in order
+	var chainName;
+	var chainNameSym;
+	var numChannels;
+	var chainList; // this will be a list of the Ndef names in the chain in order
 
-    *initClass {
-        var text;
-        version = "v0.4.1";            
-        defaultNumChannels = 2; // Set a sensible default
+	*initClass {
+		var text;
+		version = "v0.4.2";
+		defaultNumChannels = 2; // Set a sensible default
 
-        text = "Nchains " ++ version;
-        text.postln;
-    }
+		text = "Nchains " ++ version;
+		text.postln;
+	}
 
-    *new  { |name| ^super.new.init(name) }
+	*new  { |name| ^super.new.init(name) }
 
-    init { |name = "defaultChain" |
-        // var chainIn, chainOut;
-        chainName = name.asString; // store the name as String
-        chainList = List.new; // start with an empty list
+	init { |name = "defaultChain" |
+		// var chainIn, chainOut;
+		chainName = name.asString; // store the name as String
+		chainNameSym = chainName.asSymbol; // and as Symbol... possibly not needed. Belt and braces.
+		numChannels = defaultNumChannels; // could add as argument later
+		chainList = List.new; // start with an empty list
 
-        // add single passthrough Ndef
-        chainList.add(chainName.asSymbol); // add the name of the chain to the list
-        this.makePassthrough(chainName.asSymbol); // just to test the method
+		// add single passthrough Ndef
+		//        this.makePassthrough(chainName.asSymbol); // just to test the method
 
-        ^this
-    }
+		Ndef(chainNameSym).reshaping_(\elastic).source = {
+			\in.ar(0 ! numChannels)   // instance width, not a hard-coded 6
+		};
+		// and add it to the chainList
+		chainList.add(chainNameSym); // add the name of the chain to the list
 
-    makePassthrough { |name = "defaultChain"|
-       Ndef(name.asSymbol).reshaping_(\elastic).source = {
-        // Read the audio input named \in with an explicit width.
-        // Pick a width that covers your expected max (e.g., 6 for hex).
-        \in.ar(0 ! 6)   // returns silent zeros on channels with no signal
-       };
-       ^this
-    }
-
-    insert  { |argName|
-  
-        // This will create a new Ndef and add it in the right place. We will need to keep track of what is conencted so that anything that was connected to chainName goes into the new thing and the new thing gets connected to the chain.
-    
-        var newName = chainName ++ argName.asString; // keep everything as string for now
-        var newSymbol = newName.asSymbol;
-
-        // we may have an instance variable that is keeping the name of the last Ndef; nil if there isn't one
-
-        // if no effect (just insert passthrough):
-            // this.makePassthrough(newName);
-            // (1) connect existing to this one -- HOW DO WE FIND OUT?
-            
-            // (2) connect this one to chainName
-             // Ndef(\chainName).source = { Ndef(newName.asSymbol).ar }; // something like this
-             //
+        // console report:
+        ("NChain init: name=" ++ chainName
+        ++ " sink=" ++ chainNameSym
+        ++ " channels=" ++ numChannels).postln;
 
 
+		^this
+	}
+
+	makePassthrough { |name = "defaultChain"|
+		Ndef(name.asSymbol).reshaping_(\elastic).source = {
+			// Read the audio input named \in with an explicit width.
+			// Pick a width that covers your expected max (e.g., 6 for hex).
+			\in.ar(0 ! 6)   // returns silent zeros on channels with no signal
+		};
+		^this
+	}
+
+	insert  { |argName|
+
+		// This will create a new Ndef and add it in the right place. We will need to keep track of what is conencted so that anything that was connected to chainName goes into the new thing and the new thing gets connected to the chain.
+
+		var newName = chainName ++ argName.asString; // keep everything as string for now
+		var newSymbol = newName.asSymbol;
+
+		// we may have an instance variable that is keeping the name of the last Ndef; nil if there isn't one
+
+		// if no effect (just insert passthrough):
+		// this.makePassthrough(newName);
+		// (1) connect existing to this one -- HOW DO WE FIND OUT?
+
+		// (2) connect this one to chainName
+		// Ndef(\chainName).source = { Ndef(newName.asSymbol).ar }; // something like this
+		//
 
 
-       /* DEBUGGING -- working now. 
+
+
+       /* DEBUGGING -- working now.
         ("inside add method of NChain " ++ chainName).postln;
         postln("string: " + newName);
         postln("symbol" + newSymbol);
         */
 
-        ^this
-    }
+		^this
+	}
 
-    remove {
-        // this would disconnect the last Ndef in the chain and (possibly) free (clear?) it.
+	remove {
+		// this would disconnect the last Ndef in the chain and (possibly) free (clear?) it.
 
-        // (1) connect penultimate to chainname
-        // (2) free last Ndef
-        ^this
-    }
+		// (1) connect penultimate to chainname
+		// (2) free last Ndef
+		^this
+	}
 
-    printChain{
-        // this method would print out what Ndefs make up the chain printed to the console
-        ^this
-    }
+	printChain{
+		// this method would print out what Ndefs make up the chain printed to the console
+		^this
+	}
 
-    getChainList{
-        // this method would return a list of the Ndef symbol names in order
-        ^this
-    }
+	getChainList{
+		// this method would return a list of the Ndef symbol names in order
+		^this
+	}
 
 }
