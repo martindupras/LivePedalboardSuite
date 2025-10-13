@@ -1,7 +1,9 @@
 // NChain.sc
 
+// v0.4.6.9 add removeNewest method
+// v0.4.6.8 remove commented out and tidy
 // v0.4.6.7 add insertTest method that adds a -6dB passthrough stage for testing
-// v0.4.6.6 now works (still not doing much.) init and rewireChain are doing what they should. 
+// v0.4.6.6 now works (still not doing much.) init and rewireChain are doing what they should.
 // v0.4.6.5 For clarity, now storing storing symbols (not string) into chainList and fullchainList
 // v0.4.6.4 rewireChain going back to original strategy of copy chainList into fullchainList, add in and out, connect all together in turns.
 // v0.4.6.3 fixed some things (not fully) in rewireChain
@@ -24,20 +26,21 @@
 V0.2 Works great. Tets with testNChain.scd v0.2
 V0.1 Seems to be working. Test with testNChain.scd v0.1
 */
+
 NChain {
 	classvar version;
 	classvar defaultNumChannels;
 
 	var < chainName;
 	var < chainNameSym;
-    var chainInSym;
-    var chainOutSym;
+	var chainInSym;
+	var chainOutSym;
 	var < numChannels;
 	var < chainList; // this will be a list of the Ndef symbols in the chain in order
 
 	*initClass {
 		var text;
-		version = "v0.4.6.7";
+		version = "v0.4.6.9";
 		defaultNumChannels = 2; // Set a sensible default
 
 		text = "Nchains " ++ version;
@@ -53,63 +56,55 @@ NChain {
 
 		numChannels = defaultNumChannels; // could add as argument later
 		chainList = List.new; // start with an empty list
-      
 
-        // Entry point: receives external signal
-        postln("DEBUG--- chainNameSym is: " ++ chainNameSym);
+		// Entry point: receives external signal
+		postln("DEBUG--- chainNameSym is: " ++ chainNameSym);
 
-        chainInSym = (chainName ++ "In").asSymbol;
-        postln("DEBUG--- Ndef name should be " ++ chainInSym);
+		chainInSym = (chainName ++ "In").asSymbol;
+		postln("DEBUG--- Ndef name should be " ++ chainInSym);
 
-        Ndef(chainInSym.asSymbol).reshaping_(\elastic).source = {
-                \in.ar(0 ! numChannels)   // instance width, not a hard-coded 6
-            };
-        // Chain output: goes to external world
-        postln("DEBUG--- chainNameSym is: " ++ chainNameSym);
+		Ndef(chainInSym.asSymbol).reshaping_(\elastic).source = {
+			\in.ar(0 ! numChannels)   // instance width, not a hard-coded 6
+		};
+		// Chain output: goes to external world
+		postln("DEBUG--- chainNameSym is: " ++ chainNameSym);
 
-        chainOutSym = (chainName ++ "Out").asSymbol;
-        postln("DEBUG--- Ndef name should be " ++ chainOutSym);
+		chainOutSym = (chainName ++ "Out").asSymbol;
+		postln("DEBUG--- Ndef name should be " ++ chainOutSym);
 
-        Ndef(chainOutSym.asSymbol).reshaping_(\elastic).source = {
+		Ndef(chainOutSym.asSymbol).reshaping_(\elastic).source = {
 			\in.ar(0 ! numChannels)   // instance width, not a hard-coded 6
 		};
 
+		// console report:
+		("NChain init: name=" ++ chainName
+			++ " sink=" ++ chainNameSym
+			++ " channels=" ++ numChannels).postln;
 
-		// Ndef(chainNameSym).reshaping_(\elastic).source = {
-		// 	\in.ar(0 ! numChannels)   // instance width, not a hard-coded 6
-		// };
-		// and add it to the chainList
-		// chainList.add(chainNameSym); // add the name of the chain to the list
-
-        // console report:
-        ("NChain init: name=" ++ chainName
-        ++ " sink=" ++ chainNameSym
-        ++ " channels=" ++ numChannels).postln;
-
-        // CONNECT THEM FOR FIRST
-        this.rewireChain;
+		// CONNECT THEM FOR FIRST
+		this.rewireChain;
 		^this
 	}
 
-    // getters:
+	// getters:
 
-    getChainName     { ^chainName }
-    getChainNameSym  { ^chainNameSym }
-    getNumChannels   { ^numChannels }
+	getChainName     { ^chainName }
 
+	getChainNameSym  { ^chainNameSym }
 
-    // We need this because since we're rewiring the chain in full, we need to keep what was coming into the chain connected.
-    connectSource { |sourceSym|
-    var firstIntoChain;
-    if (chainList.notNil and: { chainList.notEmpty }) {
-        firstIntoChain = chainList[0];
-        Ndef(firstIntoChain) <<> Ndef(sourceSym);
-        ("NChain connectSource: " ++ sourceSym ++ " -> " ++ firstIntoChain).postln;
-    };
-    ^this
-    }
+	getNumChannels   { ^numChannels }
 
 
+	// We need this because since we're rewiring the chain in full, we need to keep what was coming into the chain connected.
+	connectSource { |sourceSym|
+		var firstIntoChain;
+		if (chainList.notNil and: { chainList.notEmpty }) {
+			firstIntoChain = chainList[0];
+			Ndef(firstIntoChain) <<> Ndef(sourceSym);
+			("NChain connectSource: " ++ sourceSym ++ " -> " ++ firstIntoChain).postln;
+		};
+		^this
+	}
 
 	makePassthrough { |name = "defaultChain"|
 		Ndef(name.asSymbol).reshaping_(\elastic).source = {
@@ -120,163 +115,86 @@ NChain {
 		^this
 	}
 
-    rewireChain {
-// CLARITY: It probably makes the most sense to copy the list into a new one, insert the out and in at the beginning and end, and connect everyone 
-        var fullchainList = List.new; 
+	rewireChain {
+		// CLARITY: It probably makes the most sense to copy the list into a new one, insert the out and in at the beginning and end, and connect everyone
+		var fullchainList = List.new;
 
-        postln("rewireChain: chainList = " ++ chainList.asString);
+		postln("rewireChain: chainList = " ++ chainList.asString);
 
-        fullchainList = [chainName ++ "Out"] ++ chainList ++ [chainName ++ "In"];
-        postln("rewireChain: fullchainList = " ++ fullchainList.asString);
+		fullchainList = [chainName ++ "Out"] ++ chainList ++ [chainName ++ "In"];
+		postln("rewireChain: fullchainList = " ++ fullchainList.asString);
 
-    // connect the middle bits:
-        //postln("DEBUG---: chainList = " ++ chainList.asString);
-        fullchainList.doAdjacentPairs { |left, right|
-            postln("DEBUG---: left = " ++ left ++ " right = " ++ right);
-            Ndef(left.asSymbol) <<> Ndef(right.asSymbol);
-        };
+		// connect the middle bits:
+		//postln("DEBUG---: chainList = " ++ chainList.asString);
+		fullchainList.doAdjacentPairs { |left, right|
+			postln("DEBUG---: left = " ++ left ++ " right = " ++ right);
+			Ndef(left.asSymbol) <<> Ndef(right.asSymbol);
+		};
 
-//postln("DEBUG---: rewireChain complete.");
-//postln("DEBUG---: this.printChain: ");
-        this.printChain;
-        ^this;
-    }
+		//postln("DEBUG---: rewireChain complete.");
+		//postln("DEBUG---: this.printChain: ");
+		this.printChain;
+		^this;
+	}
 
-insert { | argName |
-    var newName, newSymbol, insertIndex, alreadyPresent;
+	insert { | argName |
+		var newName, newSymbol, insertIndex, alreadyPresent;
 
-    newName = chainName ++ argName.asString;
-    newSymbol = newName.asSymbol;
+		newName = chainName ++ argName.asString;
+		newSymbol = newName.asSymbol;
 
-    if (chainList.isNil or: { chainList.isEmpty }) {
-        chainList = List.new;
-    };
+		if (chainList.isNil or: { chainList.isEmpty }) {
+			chainList = List.new;
+		};
 
-    alreadyPresent = chainList.includes(newSymbol);
-    if (alreadyPresent) {
-        ("NChain insert: '" ++ newSymbol ++ "' is already in the chain; skipping").postln;
-        ^this;
-    };
+		alreadyPresent = chainList.includes(newSymbol);
+		if (alreadyPresent) {
+			("NChain insert: '" ++ newSymbol ++ "' is already in the chain; skipping").postln;
+			^this;
+		};
 
-    this.makePassthrough(newName);
+		this.makePassthrough(newName);
 
-    insertIndex = 0;
-    chainList = chainList.copy.insert(insertIndex, newSymbol);
+		insertIndex = 0;
+		chainList = chainList.copy.insert(insertIndex, newSymbol);
 
-    this.rewireChain;
+		this.rewireChain;
 
-    ("NChain insert: added " ++ newSymbol).postln;
-    ^this;
-}
+		("NChain insert: added " ++ newSymbol).postln;
+		^this;
+	}
 
-insertTest { |argName|
-    var newName, newSymbol, insertIndex, alreadyPresent;
+	insertTest { |argName|
+		var newName, newSymbol, insertIndex, alreadyPresent;
 
-    newName = chainName ++ argName.asString;
-    newSymbol = newName.asSymbol;
+		newName = chainName ++ argName.asString;
+		newSymbol = newName.asSymbol;
 
-    if (chainList.isNil or: { chainList.isEmpty }) {
-        chainList = List.new;
-    };
+		if (chainList.isNil or: { chainList.isEmpty }) {
+			chainList = List.new;
+		};
 
-    alreadyPresent = chainList.includes(newSymbol);
-    if (alreadyPresent) {
-        ("NChain insertTest: '" ++ newSymbol ++ "' is already in the chain; skipping").postln;
-        ^this;
-    };
+		alreadyPresent = chainList.includes(newSymbol);
+		if (alreadyPresent) {
+			("NChain insertTest: '" ++ newSymbol ++ "' is already in the chain; skipping").postln;
+			^this;
+		};
 
-    // Define the stage as a passthrough that halves amplitude (≈ -6 dB)
-    Ndef(newSymbol).reshaping_(\elastic).source = {
-        var sig;
-        sig = \in.ar(0 ! numChannels);
-        sig * 0.5
-    };
+		// Define the stage as a passthrough that halves amplitude (≈ -6 dB)
+		Ndef(newSymbol).reshaping_(\elastic).source = {
+			var sig;
+			sig = \in.ar(0 ! numChannels);
+			sig * 0.5
+		};
 
-    insertIndex = 0; // insert at the head of the internal chain
-    chainList = chainList.copy.insert(insertIndex, newSymbol);
+		insertIndex = 0; // insert at the head of the internal chain
+		chainList = chainList.copy.insert(insertIndex, newSymbol);
 
-    this.rewireChain;
+		this.rewireChain;
 
-    ("NChain insertTest: added " ++ newSymbol ++ " with -6 dB passthrough").postln;
-    ^this;
-}
-
-
-// REMOVED FOR NOW
-// 	insert  { |argName|
-//         var newName,newSymbol, sinkIndex, insertIndex, alreadyPresent;
-// 		// This will create a new Ndef and add it in the right place. We will need to keep track of what is conencted so that anything that was connected to chainName goes into the new thing and the new thing gets connected to the chain.
-
-// 		newName = chainName ++ argName.asString; // keep everything as string for now
-// 		newSymbol = newName.asSymbol;
-//         sinkIndex; // should always be 0, first in list (Ndef direction)
-//         insertIndex; // should be 1, second in list (Ndef direction) (we can eventually do insertAt with index argument)
-//         alreadyPresent; // flag to avoid duplicates
-
-// 		// we may have an instance variable that is keeping the name of the last Ndef; nil if there isn't one
-
-// 		// if no effect (just insert passthrough):
-// 		// this.makePassthrough(newName);
-// 		// (1) connect existing to this one -- HOW DO WE FIND OUT?
-
-// 		// (2) connect this one to chainName
-// 		// Ndef(\chainName).source = { Ndef(newName.asSymbol).ar }; // something like this
-// 		//
-
-
-// /////// checks --- REVIEW if needed and correct
-//     // Ensure sink exists and is at chainList[0] as invariant
-//     // if (chainList.isNil or: { chainList.isEmpty }) {
-//     //     chainList = List.new;
-//     // } {
-//     //     // If somehow sink isn't present, ensure it is (as first)
-//     //     if (chainList.includes(chainNameSym).not) {
-//     //         chainList.addFirst(chainNameSym);
-//     //     } {
-//     //         // If sink is not first, move it to first to preserve invariant
-//     //         sinkIndex = chainList.indexOf(chainNameSym);
-//     //         if (sinkIndex != 0) {
-//     //             chainList.removeAt(sinkIndex);
-//     //             chainList.addFirst(chainNameSym);
-//     //         };
-//     //     };
-//     // };
-
-    
-// if (chainList.isNil or: { chainList.isEmpty }) {
-//     chainList = List.new;
-// };
-// ///////
-//         // check if already present. For now skip; EVENTUALLY add 1,2,3 to the name (e.g. we may want two delays)
-//         alreadyPresent = chainList.includes(newSymbol);
-//         if (alreadyPresent) {
-//             ("NChain insert: '" ++ newSymbol ++ "' is already in the chain; skipping").postln;
-//             ^this
-//         };
-
-//        /* DEBUGGING -- working now.
-//         ("inside add method of NChain " ++ chainName).postln;
-//         postln("string: " + newName);
-//         postln("symbol" + newSymbol);
-//         */
-       
-       
-//         // this.rewireChain;
-//         // ("NChain insert: added " ++ newSymbol ++ " before sink " ++ chainNameSym).postln;
-
-
-//         // Insert immediately upstream of the sink (index 1)
-//         insertIndex = 1;
-//         chainList = chainList.copy.insert(insertIndex, newSymbol); // insert into the list at index 1, right after sink
-
-//         // Now rewire the full chain
-//         this.rewireChain;
-
-//         // Report
-//         ("NChain insert: added " ++ newSymbol ++ " before sink " ++ chainNameSym).postln;
-
-// 		^this
-// 	}
+		("NChain insertTest: added " ++ newSymbol ++ " with -6 dB passthrough").postln;
+		^this;
+	}
 
 	remove {
 		// this would disconnect the last Ndef in the chain and (possibly) free (clear?) it.
@@ -286,111 +204,52 @@ insertTest { |argName|
 		^this
 	}
 
-	printChain{
-		// this method would print out what Ndefs make up the chain printed to the console
-        var names, line;
+    removeNewest {
+        var removedSym, newList;
 
-        // make sure we have a list; print empty cleanly
         if (chainList.isNil or: { chainList.isEmpty }) {
-            ("NChain '" ++ chainName ++ "' chain = <empty>").postln;
-            ^this
+            ("NChain removeNewest: chain '" ++ chainName ++ "' has no stages; nothing to remove.").postln;
+            ^this;
         };
 
-        names = chainList.collect(_.asString); // collact the names as strings
-        line = "NChain '" ++ chainName ++ "' chain = " ++ names.join("  <<>  "); // join with '<<>'
-        line.postln;
+        removedSym = chainList[0];
+        newList = chainList.copy.removeAt(0);
+        chainList = newList;
 
+        this.rewireChain;
+        Ndef(removedSym).clear;
+
+        ("NChain removeNewest: removed " ++ removedSym ++ " (most recent).").postln;
+        ^this;
+    }
+
+	printChain{
+		// this method would print out what Ndefs make up the chain printed to the console
+		var names, line;
+
+		// make sure we have a list; print empty cleanly
+		if (chainList.isNil or: { chainList.isEmpty }) {
+			("NChain '" ++ chainName ++ "' chain = <empty>").postln;
+			^this
+		};
+
+		names = chainList.collect(_.asString); // collact the names as strings
+		line = "NChain '" ++ chainName ++ "' chain = " ++ names.join("  <<>  "); // join with '<<>'
+		line.postln;
 
 		^this
 	}
 
-    
+
 	getChainList {
-        // returns a list
+		// returns a list
 		^(chainList.isNil.if({ List.new }, { chainList.copy }))
 	}
 
-    getChainAsArrayOfSymbols {
-        // return as an Array of Symbols
-        ^(chainList.isNil.if({ #[] }, { chainList.asArray }))
-    }
+	getChainAsArrayOfSymbols {
+		// return as an Array of Symbols
+		^(chainList.isNil.if({ #[] }, { chainList.asArray }))
+	}
 
-    /*
 
-    // Rewire the entire chain according to chainList (sink … source)
-rewireChain {
-    var names, i, leftName, rightName;
-
-    if (chainList.isNil or: { chainList.size < 2 }) { ^this };
-
-    names = chainList.asArray;
-
-    i = 0;
-    while { i < (names.size - 1) } {
-        leftName  = names[i];       // downstream (consumer) on the left
-        rightName = names[i + 1];   // upstream (producer) on the right
-        Ndef(leftName) <<> Ndef(rightName);
-        i = i + 1;
-    };
-
-    this.printChain;    // optional: show the current chain after rewiring
-    ^this
-}
-
-// Define/replace a passthrough Ndef with this instance's channel count
-makePassthroughFor { |nameSym|
-    var sym;
-    sym = nameSym.asSymbol;
-    Ndef(sym).reshaping_(\elastic).source = {
-        \in.ar(0 ! numChannels)  // instance width, explicit and elastic
-    };
-    ^this
-}
-
-// Insert a node immediately upstream of the sink (at index 1), then rewire
-insert { |argName|
-    var newSymbol, sinkIndex, insertIndex, alreadyPresent;
-
-    // Compose a unique per-chain symbol (e.g., "myChainalpha" -> \myChainalpha)
-    newSymbol = (chainName ++ argName.asString).asSymbol;
-
-    // Ensure sink exists and is at chainList[0] as invariant
-    if (chainList.isNil or: { chainList.isEmpty }) {
-        chainList = List[chainNameSym];
-    } {
-        // If somehow sink isn't present, ensure it is (as first)
-        if (chainList.includes(chainNameSym).not) {
-            chainList.addFirst(chainNameSym);
-        } {
-            // If sink is not first, move it to first to preserve invariant
-            sinkIndex = chainList.indexOf(chainNameSym);
-            if (sinkIndex != 0) {
-                chainList.removeAt(sinkIndex);
-                chainList.addFirst(chainNameSym);
-            };
-        };
-    };
-
-    // Avoid duplicates
-    alreadyPresent = chainList.includes(newSymbol);
-    if (alreadyPresent) {
-        ("NChain insert: '" ++ newSymbol ++ "' is already in the chain; skipping").postln;
-        ^this
-    };
-
-    // Create the node as a passthrough by default (safe identity stage)
-    this.makePassthroughFor(newSymbol);
-
-    // Insert immediately upstream of the sink (index 1)
-    insertIndex = 1;
-    chainList = chainList.copy.insert(insertIndex, newSymbol);
-
-    // Rewire the full chain and report
-    this.rewireChain;
-    ("NChain insert: added " ++ newSymbol ++ " before sink " ++ chainNameSym).postln;
-
-    ^this
-}
-
-    */
 }
