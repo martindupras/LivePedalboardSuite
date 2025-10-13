@@ -1,5 +1,6 @@
 // NChain.sc
-// v0.1
+// v0.2 added nameSymbol argument
+// v0.1 working
 // MD 20251012
 
 
@@ -8,45 +9,27 @@ Seems to be working. Test with testNChain.scd v0.1
 
 */
 NChain {
-classvar version;
-classvar defaultNumChannels;
+    classvar version;
+    classvar defaultNumChannels;
 
- *initClass {
+    *initClass {
         var text;
-        version = "v0.0.2";            
+        version = "v0.2";            
         defaultNumChannels = 2; // Set a sensible default
 
         text = "Nchains " ++ version;
         text.postln;
     }
 
-    *new  { ^super.new.init }
+    *new  { |nameSymb| ^super.new.init(nameSymb) }
 
-    init {
+    init { |nameSymb = \defaultChain|
         // var chainIn, chainOut;
 
-        this.makePassthrough(\testChain); // just to test the method
-       
-        // Ndef(\chainIn).reshaping = \elastic; // let's try this for now; Ndef adopts channel count of source
-        // Ndef(\chainOut).reshaping = \elastic;
-        // Ndef(\chainIn, {In.ar(0!defaultNumChannels)});
-        // Ndef(\chainOut, {In.ar(0!defaultNumChannels)});
+        this.makePassthrough(nameSymb); // just to test the method
 
-        // this.ensureStereoInternal(\chainIn);
-        // this.ensureStereoInternal(\chainOut); 
 
         ^nil // no need to return anything, Ndefs should exist now
-    }
-
-    // possibly not needed with elastic reshaping
-    ensureStereoInternal { arg key;
-        var proxyBus, needsInit;
-        proxyBus = Ndef(key).bus;
-        needsInit = proxyBus.isNil or: { proxyBus.rate != \audio } or: { proxyBus.numChannels != defaultNumChannels };
-        if(needsInit) {
-            Ndef(key).ar(defaultNumChannels);
-        };
-        ^nil 
     }
 
     makePassthrough { |nameSymbol = \defaultPassthrough|
