@@ -53,6 +53,14 @@ Command Manager stays as is (because it works) but possibly rework how messages 
 Orchestrator parses messages and sends to receiver. 
 Pedalbard sets up sources and outs, sets active/target updates display, make nChains do stuff
 NChains new class that only handles one chain; assumes in and out are managed externally. Does simplest possible methods: add, remove; add picks from processor library; remove removes last. For now anyway.
-MagicProcessorLibrary stays as is, but maybe rework how processors are defined (avoid global function "define")
-(MagicProcessorLibrary gets renamed to LPProcessorLibrary.)
-(MagicProcessorLibrary_defs.scd gets renamed to LPProcessorLibrary_defs.scd.). Should it become an .sc file? 
+LPProcessorLibrary stays as is (refactore by SH 20251010 - awesome).
+
+=======================
+20251013
+WORKING: 004 workingReshapingNdefPassthrough.scd
+
+Figured out that setting the Ndef to elastic and starting with maximum channel count seems to work and seems to be reliable. 
+
+Make this canonical throughout new project. Could make a class but not sure if that's necessary. 
+
+
