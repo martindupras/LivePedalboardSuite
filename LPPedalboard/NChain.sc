@@ -193,6 +193,57 @@ NChain {
         ^this;
     }
 
+    insertTestAt { |argName, index|
+        var newName, newSymbol, size, insertIndex, alreadyPresent, newList;
+
+        // Ensure we have a list
+        if (chainList.isNil) {
+            chainList = List.new;
+        };
+
+        // Index must be an Integer
+        if (index.isKindOf(Integer).not) {
+            ("NChain insertTestAt: index must be an Integer (got: " ++ index.class.name ++ ").").postln;
+            ^this;
+        };
+
+        // Compose per-chain unique symbol (e.g., "chaintestalpha" -> \chaintestalpha)
+        newName = chainName ++ argName.asString;
+        newSymbol = newName.asSymbol;
+
+        // Avoid duplicates
+        alreadyPresent = chainList.includes(newSymbol);
+        if (alreadyPresent) {
+            ("NChain insertTestAt: '" ++ newSymbol ++ "' is already in the chain; skipping").postln;
+            ^this;
+        };
+
+        // Clamp index to valid insertion range [0, size]
+        size = chainList.size;
+        insertIndex = index.clip(0, size);
+        if (insertIndex != index) {
+            ("NChain insertTestAt: clamped index " ++ index ++ " -> " ++ insertIndex
+                ++ " (valid range 0.." ++ size ++ ")").postln;
+        };
+
+        // Define the stage as a passthrough that halves amplitude (≈ -6 dB)
+        Ndef(newSymbol).reshaping_(\elastic).source = {
+            var sig;
+            sig = \in.ar(0 ! numChannels);
+            sig * 0.5
+        };
+
+        // Insert at position and commit
+        newList = chainList.copy;
+        newList.insert(insertIndex, newSymbol);
+        chainList = newList;
+
+        // Rewire and report
+        this.rewireChain;
+        ("NChain insertTestAt: added " ++ newSymbol ++ " at index " ++ insertIndex ++ " with -6 dB passthrough").postln;
+        ^this;
+    }
+
 	insertTest { |argName|
 		var newName, newSymbol, insertIndex, alreadyPresent;
 
