@@ -31,7 +31,7 @@ NChain {
 
 	*initClass {
 		var text;
-		version = "v0.4.6";
+		version = "v0.4.6.1";
 		defaultNumChannels = 2; // Set a sensible default
 
 		text = "Nchains " ++ version;
