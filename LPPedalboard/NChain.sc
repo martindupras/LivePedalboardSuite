@@ -1,7 +1,12 @@
 // NChain.sc
-// v0.0.2
+// v0.1
 // MD 20251012
 
+
+/*
+Seems to be working. Test with testNChain.scd v0.1
+
+*/
 NChain {
 classvar version;
 classvar defaultNumChannels;
