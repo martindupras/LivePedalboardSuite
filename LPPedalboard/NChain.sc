@@ -207,21 +207,45 @@ NChain {
     removeNewest {
         var removedSym, newList;
 
+        // 1) Nothing to remove?
         if (chainList.isNil or: { chainList.isEmpty }) {
             ("NChain removeNewest: chain '" ++ chainName ++ "' has no stages; nothing to remove.").postln;
             ^this;
         };
 
+        // 2) We insert at head (index 0), so the newest is at index 0.
         removedSym = chainList[0];
-        newList = chainList.copy.removeAt(0);
-        chainList = newList;
 
+        // 3) Make a real copy, mutate the copy, then reassign.
+        newList = chainList.copy;
+        newList.removeAt(0);    // remove from head; returns the removed element (ignored)
+        chainList = newList;    // keep chainList a List
+
+        // 4) Rewire, then clear the removed Ndef.
         this.rewireChain;
         Ndef(removedSym).clear;
 
         ("NChain removeNewest: removed " ++ removedSym ++ " (most recent).").postln;
         ^this;
     }
+    // removeNewest {
+    //     var removedSym, newList;
+
+    //     if (chainList.isNil or: { chainList.isEmpty }) {
+    //         ("NChain removeNewest: chain '" ++ chainName ++ "' has no stages; nothing to remove.").postln;
+    //         ^this;
+    //     };
+
+    //     removedSym = chainList[0];
+    //     newList = chainList.copy.removeAt(0);
+    //     chainList = newList;
+
+    //     this.rewireChain;
+    //     Ndef(removedSym).clear;
+
+    //     ("NChain removeNewest: removed " ++ removedSym ++ " (most recent).").postln;
+    //     ^this;
+    // }
 
 	printChain{
 		// this method would print out what Ndefs make up the chain printed to the console
