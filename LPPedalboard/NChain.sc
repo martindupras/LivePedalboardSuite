@@ -1,24 +1,24 @@
 // NChain.sc
-// v0.4.6..2 modified rewireChain to act on chainList
+
+// v0.4.6.3 fixed some things (not fully) in rewireChain
+// v0.4.6.2 modified rewireChain to act on chainList
 // v0.4.6.1 fix List.new (but still not working)
 // v0.4.6 move to immutable chainIn and chainOut that remain connected to the outside world
 // v0.4.5 added getters for chainName, chainNameSym and numChannels
 // v0.4.4 added insert and rewrirteChain (not yet fully tested)
 // v0.4.3 added printChain, getChainList and getChainAsArrayOfSymbols methods
-
 // v0.4.2 adding init stuff to make sink and add to the chainList
 // v0.4.1 added chainList List to keep track of the Ndefs in the chain. Any time we do something we will do it first, and if successul we'll make the same (insert, delete) into the chain.
 // v0.4 design the methods to add and remove effects and print chain
 // v0.3 add a dummy insert method that makes a compound symbol for the inserts Ndef
 // v0.2 added nameSymbol argument; works great!
 // v0.1 working
+
 // MD 20251012
 
 /*
-
 V0.2 Works great. Tets with testNChain.scd v0.2
 V0.1 Seems to be working. Test with testNChain.scd v0.1
-
 */
 NChain {
 	classvar version;
@@ -106,35 +106,32 @@ NChain {
 	}
 
     rewireChain {
-        var fullChain;
+// CLARITY: It probably makes the most send 
+// to connect the chainList together, then 
+// connect the input to the chain, then the 
+// output to the chain.&&(function, adverb)
+
 
         // fullChain = [chainNameSym ++ "Out"] ++ chainList ++ [chainNameSym ++ "In"];
+// connect the middle bits:
+        postln("DEBUG---: chainList = " ++ chainList.asString);
         chainList.doAdjacentPairs { |left, right|
+            postln("DEBUG---: left = " ++ left ++ " right = " ++ right);
             Ndef(left.asSymbol) <<> Ndef(right.asSymbol);
         };
 
+// connect the input to the start of the chain:
+Ndef(chainNameSym ++ "In") <<> Ndef((chainList[0]).asSymbol);
+//postln("DEBUG---: connecting " ++ (chainNameSym ++ "In") ++ " to " ++ chainList[0]);
+// connect the output to the end of the chain:
+Ndef((chainList[chainList.size - 1].asSymbol)) <<> Ndef(chainNameSym ++ "Out");
+//postln("DEBUG---: connecting " ++ chainList[chainList.size - 1] ++ " to " ++ (chainNameSym ++ "Out"));
+
+//postln("DEBUG---: rewireChain complete.");
+//postln("DEBUG---: this.printChain: ");
         this.printChain;
         ^this;
     }
-
-
-    // OLDER VERSION BEFORE IMMUTABLE IN/OUT
-    // rewireChain {
-    // var names;
-    // if (chainList.isNil or: { chainList.size < 2 }) { ^this }; // nothing to do
-
-    // names = chainList.asArray;
-
-    // (0..(names.size - 2)).do { |i|
-    //     var leftName, rightName;
-    //     leftName = names[i];
-    //     rightName = names[i + 1];
-    //     Ndef(leftName) <<> Ndef(rightName);
-    // };
-
-    //     this.printChain;
-    //     ^this
-    // }
 
 insert { | argName |
     var newName, newSymbol, insertIndex, alreadyPresent;
@@ -267,7 +264,6 @@ insert { | argName |
 
 		^this
 	}
-
 
     
 	getChainList {
