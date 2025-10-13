@@ -1,5 +1,7 @@
 // NChain.sc
 
+// v0.4.6.5 For clarity, now storing storing symbols (not string) into chainList and fullchainList
+// v0.4.6.4 rewireChain going back to original strategy of copy chainList into fullchainList, add in and out, connect all together in turns.
 // v0.4.6.3 fixed some things (not fully) in rewireChain
 // v0.4.6.2 modified rewireChain to act on chainList
 // v0.4.6.1 fix List.new (but still not working)
@@ -26,12 +28,14 @@ NChain {
 
 	var < chainName;
 	var < chainNameSym;
+    var chainInSym;
+    var chainOutSym;
 	var < numChannels;
-	var < chainList; // this will be a list of the Ndef names in the chain in order
+	var < chainList; // this will be a list of the Ndef symbols in the chain in order
 
 	*initClass {
 		var text;
-		version = "v0.4.6.2";
+		version = "v0.4.6.4";
 		defaultNumChannels = 2; // Set a sensible default
 
 		text = "Nchains " ++ version;
@@ -44,18 +48,27 @@ NChain {
 		// var chainIn, chainOut;
 		chainName = name.asString; // store the name as String
 		chainNameSym = chainName.asSymbol; // and as Symbol... possibly not needed. Belt and braces.
+
 		numChannels = defaultNumChannels; // could add as argument later
 		chainList = List.new; // start with an empty list
-
-		
       
 
-// Entry point: receives external signal
-        Ndef(chainNameSym ++ "In").reshaping_(\elastic).source = {
-			\in.ar(0 ! numChannels)   // instance width, not a hard-coded 6
-		};
-// Chain output: goes to external world
-        Ndef(chainNameSym ++ "Out").reshaping_(\elastic).source = {
+        // Entry point: receives external signal
+        postln("DEBUG--- chainNameSym is: " ++ chainNameSym);
+
+        chainInSym = (chainName ++ "In").asSymbol;
+        postln("DEBUG--- Ndef name should be " ++ chainInSym);
+
+        Ndef(chainInSym.asSymbol).reshaping_(\elastic).source = {
+                \in.ar(0 ! numChannels)   // instance width, not a hard-coded 6
+            };
+        // Chain output: goes to external world
+        postln("DEBUG--- chainNameSym is: " ++ chainNameSym);
+
+        chainOutSym = (chainName ++ "Out").asSymbol;
+        postln("DEBUG--- Ndef name should be " ++ chainOutSym);
+
+        Ndef(chainOutSym.asSymbol).reshaping_(\elastic).source = {
 			\in.ar(0 ! numChannels)   // instance width, not a hard-coded 6
 		};
 
@@ -71,7 +84,7 @@ NChain {
         ++ " sink=" ++ chainNameSym
         ++ " channels=" ++ numChannels).postln;
 
-// CONNECT THEM FOR FIRST
+        // CONNECT THEM FOR FIRST
         this.rewireChain;
 		^this
 	}
@@ -92,7 +105,7 @@ NChain {
         ("NChain connectSource: " ++ sourceSym ++ " -> " ++ firstIntoChain).postln;
     };
     ^this
-}
+    }
 
 
 
@@ -106,26 +119,20 @@ NChain {
 	}
 
     rewireChain {
-// CLARITY: It probably makes the most send 
-// to connect the chainList together, then 
-// connect the input to the chain, then the 
-// output to the chain.&&(function, adverb)
+// CLARITY: It probably makes the most sense to copy the list into a new one, insert the out and in at the beginning and end, and connect everyone 
+        var fullchainList = List.new; 
 
+        postln("rewireChain: chainList = " ++ chainList.asString);
 
-        // fullChain = [chainNameSym ++ "Out"] ++ chainList ++ [chainNameSym ++ "In"];
-// connect the middle bits:
-        postln("DEBUG---: chainList = " ++ chainList.asString);
+        fullchainList = [chainName ++ "Out"] ++ chainList ++ [chainName ++ "In"];
+        postln("rewireChain: fullchainList = " ++ chainList.asString);
+
+    // connect the middle bits:
+        //postln("DEBUG---: chainList = " ++ chainList.asString);
         chainList.doAdjacentPairs { |left, right|
             postln("DEBUG---: left = " ++ left ++ " right = " ++ right);
             Ndef(left.asSymbol) <<> Ndef(right.asSymbol);
         };
-
-// connect the input to the start of the chain:
-Ndef(chainNameSym ++ "In") <<> Ndef((chainList[0]).asSymbol);
-//postln("DEBUG---: connecting " ++ (chainNameSym ++ "In") ++ " to " ++ chainList[0]);
-// connect the output to the end of the chain:
-Ndef((chainList[chainList.size - 1].asSymbol)) <<> Ndef(chainNameSym ++ "Out");
-//postln("DEBUG---: connecting " ++ chainList[chainList.size - 1] ++ " to " ++ (chainNameSym ++ "Out"));
 
 //postln("DEBUG---: rewireChain complete.");
 //postln("DEBUG---: this.printChain: ");
