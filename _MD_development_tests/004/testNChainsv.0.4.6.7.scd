@@ -19,7 +19,9 @@ Ndef(\pink).stop; // works, sound stops.
 Ndef(\chaintestOut).play; // works now
 Ndef(\chaintestOut).stop; // works now
 
-
+Ndef(\chaintestOut).play; // works now
 ~testchain.insertTest("alice");
 ~testchain.insertTest("bob");
 ~testchain.insertTest("clara");
+
+~testchain.printChain;
