@@ -1,5 +1,5 @@
 // NChain.sc
-
+// v0.4.6..2 modified rewireChain to act on chainList
 // v0.4.6.1 fix List.new (but still not working)
 // v0.4.6 move to immutable chainIn and chainOut that remain connected to the outside world
 // v0.4.5 added getters for chainName, chainNameSym and numChannels
@@ -31,7 +31,7 @@ NChain {
 
 	*initClass {
 		var text;
-		version = "v0.4.6.1";
+		version = "v0.4.6.2";
 		defaultNumChannels = 2; // Set a sensible default
 
 		text = "Nchains " ++ version;
@@ -71,7 +71,8 @@ NChain {
         ++ " sink=" ++ chainNameSym
         ++ " channels=" ++ numChannels).postln;
 
-
+// CONNECT THEM FOR FIRST
+        this.rewireChain;
 		^this
 	}
 
@@ -107,8 +108,8 @@ NChain {
     rewireChain {
         var fullChain;
 
-        fullChain = [chainNameSym ++ "Out"] ++ chainList ++ [chainNameSym ++ "In"];
-        fullChain.doAdjacentPairs { |left, right|
+        // fullChain = [chainNameSym ++ "Out"] ++ chainList ++ [chainNameSym ++ "In"];
+        chainList.doAdjacentPairs { |left, right|
             Ndef(left.asSymbol) <<> Ndef(right.asSymbol);
         };
 
