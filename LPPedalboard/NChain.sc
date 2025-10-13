@@ -1,5 +1,7 @@
 // NChain.sc
 
+// v0.4.3 added printChain, getChainList and getChainAsArrayOfSymbols methods
+
 // v0.4.2 adding init stuff to make sink and add to the chainList
 // v0.4.1 added chainList List to keep track of the Ndefs in the chain. Any time we do something we will do it first, and if successul we'll make the same (insert, delete) into the chain.
 // v0.4 design the methods to add and remove effects and print chain
@@ -107,12 +109,75 @@ NChain {
 
 	printChain{
 		// this method would print out what Ndefs make up the chain printed to the console
+        var names, line;
+
+        // make sure we have a list; print empty cleanly
+        if (chainList.isNil or: { chainList.isEmpty }) {
+            ("NChain '" ++ chainName ++ "' chain = <empty>").postln;
+            ^this
+        };
+
+        names = chainList.collect(_.asString); // collact the names as strings
+        line = "NChain '" ++ chainName ++ "' chain = " ++ names.join("  <<>  "); // join with '<<>'
+        line.postln;
+
+
 		^this
 	}
 
-	getChainList{
-		// this method would return a list of the Ndef symbol names in order
-		^this
+
+    /* ---------------
+generated:
+    printChain { |detailed = false|
+        var names, pieces, line;
+
+        // make sure we have a list; print empty cleanly
+        if (chainList.isNil or: { chainList.isEmpty }) {
+            ("NChain '" ++ chainName ++ "' chain = <empty>").postln;
+            ^this
+        };
+
+        if (detailed.not) {
+            // brief: \dest  <<>  \beta  <<>  \alpha  <<>  \source
+            names = chainList.collect(_.asString);
+            line = "NChain '" ++ chainName ++ "' chain = " ++ names.join("  <<>  ");
+            line.postln;
+            ^this
+        } {
+            // detailed: \dest[2|elastic]  <<>  \beta[2|elastic] ...
+            pieces = chainList.collect { |sym|
+                var nd, width, reshape, label;
+                nd = Ndef(sym);
+                width = nd.numChannels ? 0;           // 0 if not yet built
+                reshape = nd.reshaping ? 'none';      // e.g. \elastic or 'none'
+                label = sym.asString
+                    ++ "[" ++ width.asString
+                    ++ "|" ++ reshape.asString ++ "]";
+                label
+            };
+            line = "NChain '" ++ chainName ++ "' chain = " ++ pieces.join("  <<>  ");
+            line.postln;
+            ^this
+        };
+    }
+
+    getChainList {
+        // return a defensive copy of the internal List (still a List)
+        ^(chainList.isNil.if({ List.new }, { chainList.copy }))
+    }
+
+    getChainAsArrayOfSymbols {
+        // optional: return as an Array of Symbols
+        ^(chainList.isNil.if({ #[] }, { chainList.asArray }))
+    }
+    --------------- */
+	getChainList {
+        // returns a list
+		^(chainList.isNil.if({ List.new }, { chainList.copy }))
 	}
 
+    getChainAsArrayOfSymbols {
+        // return as an Array of Symbols
+        ^(chainList.isNil.if({ #[] }, { chainList.asArray }))
+    }
 }
