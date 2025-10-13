@@ -64,3 +64,16 @@ Figured out that setting the Ndef to elastic and starting with maximum channel c
 Make this canonical throughout new project. Use the makePassthrough method from NChains. Could make a class but not sure if that's necessary. 
 
 testNChain_V0.2.scd shows how to make the chain work. We create a name for the chain, and that will be used in the Ndef names. Right now the name creates an Ndef of the same name. Need to figure out a way to create derived names so that we can have \bob_delay1 in chain \bob. 
+
+
+=======================
+20251013-1822
+
+Hurrah. We now have a working NChain class, v0.4.6.7
+testNChainsv.0.4.6.7.scd shows working insertion with insertTest inserting a -6dB passthrough every time. That works perfectly.
+
+Next step:
+  implement remove
+  implement insertAt (dummy for now would do)
+
+  change insertion with argument name of processor in processor library.
