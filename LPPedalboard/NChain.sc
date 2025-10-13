@@ -1,5 +1,6 @@
 // NChain.sc
 
+// v0.4.7.3 added planning notes before init method.
 // v0.4.7.2 add insertAt method - works!
 // v0.4.7.1 add removeAt method - works!
 // v0.4.7.0 added remove method that calls removeNewest
@@ -22,7 +23,7 @@ NChain {
 
 	*initClass {
 		var text;
-		version = "v0.4.7.2";
+		version = "v0.4.7.3";
 		defaultNumChannels = 2; // Set a sensible default
 
 		text = "Nchains " ++ version;
@@ -31,7 +32,14 @@ NChain {
 
 	*new  { |name| ^super.new.init(name) }
 
-	init { |name = "defaultChain" |
+    // REVIEW: work out what we need in init to make display and procLib work 
+    // here. display could default to nil because we could conceivably have a chain
+    // that doesn't need to display (e.g. we could have a chain within a chain);
+    // procLib could in the absence of an argument default to LPProcessorLibrary
+    // and load it up here with no argument reference. Consider my options.
+
+	init { |name = "defaultChain" , display = nil, procLib |
+
 		// var chainIn, chainOut;
 		chainName = name.asString; // store the name as String
 		chainNameSym = chainName.asSymbol; // and as Symbol... possibly not needed. Belt and braces.
