@@ -1,4 +1,8 @@
-/* LPPedalboard.sc v1.0
+// LPPedalboard.sc 
+
+//v1.0.1 added some comments describing new strategy using NChain class
+
+/*
  A/B pedalboard chain manager built on Ndefs.
  - Chains are Arrays of Symbols ordered [sink, …, source].
  - Uses JITLib embedding: Ndef(left) <<> Ndef(right).
@@ -58,13 +62,50 @@ LPPedalboard : Object {
     var < ready; // <-- ADD this line
     *initClass {
         var text;
-        version = "v1.0";
+        version = "v1.0.1";
         text = "LPPedaloard " ++ version;
         text.postln;
     }
     *new { arg disp = nil, aProcessorLib;
         ^super.new.init(disp, );
     }
+
+/*
+20251013-1924:new plan
+
+Let's think carefully what revisions are needed below to implement new approach. 
+
+LPpedalboard needs to set up the STATIC Ndefs:
+  pedalboardIn: 
+        this one should default to eternal audio (hex) 
+        but we want a test flat which sets the input to a synthesised 
+        source so that we can verify that things work without needed 
+        a guitar and gobbins.
+
+    connected to...
+  instance of NChain 
+        (chainA for now; we may or may not need chainB at this
+        stage). The chain will start empty
+        
+    connected to...
+  pedalboardOut:
+        this one needs to have metering which is being sent to 
+        /sendpeakrmsA (or whatever it's called)
+  
+    connected to...
+  NOW we have a choice; we could connect to activeOut which would 
+  always be playing with the .play method. Simple. Or we just .play
+  the pedalboardOut directly but we will have to think how we manage
+  active, bypass, etc. From a stage-performance point of view, there is 
+  some value in being able to tap the signal in different places (e.g.
+  monitor-out); let's keep thinking.
+
+  LPPedalboard has knowledge of the LPLibrary. Need an elegant way of 
+  being able to fetch algorithms from the library when inserting into
+  Nchain.
+
+  pedalboardOut: this one should default 
+*/
     init { arg disp, aProcessorLib;
         var sinkFunc;
         display = disp;
