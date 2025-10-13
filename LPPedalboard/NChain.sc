@@ -1,32 +1,13 @@
 // NChain.sc
 
+
+// v0.4.7.1 add removeAt method - work!
 // v0.4.7.0 added remove method that calls removeNewest
 // v0.4.6.9 add removeNewest method - works!
 // v0.4.6.8 remove commented out and tidy
-// v0.4.6.7 add insertTest method that adds a -6dB passthrough stage for testing
-// v0.4.6.6 now works (still not doing much.) init and rewireChain are doing what they should.
-// v0.4.6.5 For clarity, now storing storing symbols (not string) into chainList and fullchainList
-// v0.4.6.4 rewireChain going back to original strategy of copy chainList into fullchainList, add in and out, connect all together in turns.
-// v0.4.6.3 fixed some things (not fully) in rewireChain
-// v0.4.6.2 modified rewireChain to act on chainList
-// v0.4.6.1 fix List.new (but still not working)
-// v0.4.6 move to immutable chainIn and chainOut that remain connected to the outside world
-// v0.4.5 added getters for chainName, chainNameSym and numChannels
-// v0.4.4 added insert and rewrirteChain (not yet fully tested)
-// v0.4.3 added printChain, getChainList and getChainAsArrayOfSymbols methods
-// v0.4.2 adding init stuff to make sink and add to the chainList
-// v0.4.1 added chainList List to keep track of the Ndefs in the chain. Any time we do something we will do it first, and if successul we'll make the same (insert, delete) into the chain.
-// v0.4 design the methods to add and remove effects and print chain
-// v0.3 add a dummy insert method that makes a compound symbol for the inserts Ndef
-// v0.2 added nameSymbol argument; works great!
-// v0.1 working
+// ...
 
-// MD 20251012
-
-/*
-V0.2 Works great. Tets with testNChain.scd v0.2
-V0.1 Seems to be working. Test with testNChain.scd v0.1
-*/
+// MD 20251013 (Older header comments deleted - version history on GH)
 
 NChain {
 	classvar version;
@@ -41,7 +22,7 @@ NChain {
 
 	*initClass {
 		var text;
-		version = "v0.4.6.9";
+		version = "v0.4.7.1";
 		defaultNumChannels = 2; // Set a sensible default
 
 		text = "Nchains " ++ version;
@@ -201,6 +182,43 @@ NChain {
         this.removeNewest;
         ^this
 	}
+
+
+    removeAt { |index|
+        var size, removedSym, newList;
+
+        // Guard: empty or undefined list
+        if (chainList.isNil or: { chainList.isEmpty }) {
+            ("NChain removeAt: chain '" ++ chainName ++ "' has no stages; nothing to remove.").postln;
+            ^this;
+        };
+
+        // Guard: index must be an Integer within range
+        if (index.isKindOf(Integer).not) {
+            ("NChain removeAt: index must be an Integer (got: " ++ index.class.name ++ ").").postln;
+            ^this;
+        };
+
+        size = chainList.size;
+        if ((index < 0) or: { index >= size }) {
+            ("NChain removeAt: index " ++ index ++ " out of range 0.." ++ (size - 1)).postln;
+            ^this;
+        };
+
+        // Remove the selected stage from a copy, then commit
+        newList = chainList.copy;
+        removedSym = newList.removeAt(index);   // returns the removed element
+        chainList = newList;
+
+        // Rewire the chain without that stage, then clear the Ndef for the removed stage
+        this.rewireChain;
+        if (removedSym.isKindOf(Symbol)) {
+            Ndef(removedSym).clear;
+        };
+
+        ("NChain removeAt: removed " ++ removedSym ++ " at index " ++ index).postln;
+        ^this;
+    }
 
     removeNewest {
         var removedSym, newList;
