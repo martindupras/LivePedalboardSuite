@@ -135,75 +135,111 @@ NChain {
     //     ^this
     // }
 
-	insert  { |argName|
-        var newName,newSymbol, sinkIndex, insertIndex, alreadyPresent;
-		// This will create a new Ndef and add it in the right place. We will need to keep track of what is conencted so that anything that was connected to chainName goes into the new thing and the new thing gets connected to the chain.
+insert { | argName |
+    var newName, newSymbol, insertIndex, alreadyPresent;
 
-		newName = chainName ++ argName.asString; // keep everything as string for now
-		newSymbol = newName.asSymbol;
-        sinkIndex; // should always be 0, first in list (Ndef direction)
-        insertIndex; // should be 1, second in list (Ndef direction) (we can eventually do insertAt with index argument)
-        alreadyPresent; // flag to avoid duplicates
+    newName = chainName ++ argName.asString;
+    newSymbol = newName.asSymbol;
 
-		// we may have an instance variable that is keeping the name of the last Ndef; nil if there isn't one
-
-		// if no effect (just insert passthrough):
-		// this.makePassthrough(newName);
-		// (1) connect existing to this one -- HOW DO WE FIND OUT?
-
-		// (2) connect this one to chainName
-		// Ndef(\chainName).source = { Ndef(newName.asSymbol).ar }; // something like this
-		//
-
-
-/////// checks --- REVIEW if needed and correct
-    // Ensure sink exists and is at chainList[0] as invariant
     if (chainList.isNil or: { chainList.isEmpty }) {
         chainList = List.new;
-    } {
-        // If somehow sink isn't present, ensure it is (as first)
-        if (chainList.includes(chainNameSym).not) {
-            chainList.addFirst(chainNameSym);
-        } {
-            // If sink is not first, move it to first to preserve invariant
-            sinkIndex = chainList.indexOf(chainNameSym);
-            if (sinkIndex != 0) {
-                chainList.removeAt(sinkIndex);
-                chainList.addFirst(chainNameSym);
-            };
-        };
     };
-///////
-        // check if already present. For now skip; EVENTUALLY add 1,2,3 to the name (e.g. we may want two delays)
-        alreadyPresent = chainList.includes(newSymbol);
-        if (alreadyPresent) {
-            ("NChain insert: '" ++ newSymbol ++ "' is already in the chain; skipping").postln;
-            ^this
-        };
 
-       /* DEBUGGING -- working now.
-        ("inside add method of NChain " ++ chainName).postln;
-        postln("string: " + newName);
-        postln("symbol" + newSymbol);
-        */
+    alreadyPresent = chainList.includes(newSymbol);
+    if (alreadyPresent) {
+        ("NChain insert: '" ++ newSymbol ++ "' is already in the chain; skipping").postln;
+        ^this;
+    };
+
+    this.makePassthrough(newName);
+
+    insertIndex = 0;
+    chainList = chainList.copy.insert(insertIndex, newSymbol);
+
+    this.rewireChain;
+
+    ("NChain insert: added " ++ newSymbol).postln;
+    ^this;
+}
+
+
+
+
+// REMOVED FOR NOW
+// 	insert  { |argName|
+//         var newName,newSymbol, sinkIndex, insertIndex, alreadyPresent;
+// 		// This will create a new Ndef and add it in the right place. We will need to keep track of what is conencted so that anything that was connected to chainName goes into the new thing and the new thing gets connected to the chain.
+
+// 		newName = chainName ++ argName.asString; // keep everything as string for now
+// 		newSymbol = newName.asSymbol;
+//         sinkIndex; // should always be 0, first in list (Ndef direction)
+//         insertIndex; // should be 1, second in list (Ndef direction) (we can eventually do insertAt with index argument)
+//         alreadyPresent; // flag to avoid duplicates
+
+// 		// we may have an instance variable that is keeping the name of the last Ndef; nil if there isn't one
+
+// 		// if no effect (just insert passthrough):
+// 		// this.makePassthrough(newName);
+// 		// (1) connect existing to this one -- HOW DO WE FIND OUT?
+
+// 		// (2) connect this one to chainName
+// 		// Ndef(\chainName).source = { Ndef(newName.asSymbol).ar }; // something like this
+// 		//
+
+
+// /////// checks --- REVIEW if needed and correct
+//     // Ensure sink exists and is at chainList[0] as invariant
+//     // if (chainList.isNil or: { chainList.isEmpty }) {
+//     //     chainList = List.new;
+//     // } {
+//     //     // If somehow sink isn't present, ensure it is (as first)
+//     //     if (chainList.includes(chainNameSym).not) {
+//     //         chainList.addFirst(chainNameSym);
+//     //     } {
+//     //         // If sink is not first, move it to first to preserve invariant
+//     //         sinkIndex = chainList.indexOf(chainNameSym);
+//     //         if (sinkIndex != 0) {
+//     //             chainList.removeAt(sinkIndex);
+//     //             chainList.addFirst(chainNameSym);
+//     //         };
+//     //     };
+//     // };
+
+    
+// if (chainList.isNil or: { chainList.isEmpty }) {
+//     chainList = List.new;
+// };
+// ///////
+//         // check if already present. For now skip; EVENTUALLY add 1,2,3 to the name (e.g. we may want two delays)
+//         alreadyPresent = chainList.includes(newSymbol);
+//         if (alreadyPresent) {
+//             ("NChain insert: '" ++ newSymbol ++ "' is already in the chain; skipping").postln;
+//             ^this
+//         };
+
+//        /* DEBUGGING -- working now.
+//         ("inside add method of NChain " ++ chainName).postln;
+//         postln("string: " + newName);
+//         postln("symbol" + newSymbol);
+//         */
        
        
-        // this.rewireChain;
-        // ("NChain insert: added " ++ newSymbol ++ " before sink " ++ chainNameSym).postln;
+//         // this.rewireChain;
+//         // ("NChain insert: added " ++ newSymbol ++ " before sink " ++ chainNameSym).postln;
 
 
-        // Insert immediately upstream of the sink (index 1)
-        insertIndex = 1;
-        chainList = chainList.copy.insert(insertIndex, newSymbol); // insert into the list at index 1, right after sink
+//         // Insert immediately upstream of the sink (index 1)
+//         insertIndex = 1;
+//         chainList = chainList.copy.insert(insertIndex, newSymbol); // insert into the list at index 1, right after sink
 
-        // Now rewire the full chain
-        this.rewireChain;
+//         // Now rewire the full chain
+//         this.rewireChain;
 
-        // Report
-        ("NChain insert: added " ++ newSymbol ++ " before sink " ++ chainNameSym).postln;
+//         // Report
+//         ("NChain insert: added " ++ newSymbol ++ " before sink " ++ chainNameSym).postln;
 
-		^this
-	}
+// 		^this
+// 	}
 
 	remove {
 		// this would disconnect the last Ndef in the chain and (possibly) free (clear?) it.
