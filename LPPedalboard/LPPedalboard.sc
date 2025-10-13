@@ -1,6 +1,7 @@
 // LPPedalboard.sc 
 
-//v1.0.1 added some comments describing new strategy using NChain class
+// v1.0.2 added setupStaticNdefs method to create pedalboardIn, pedalboardOut, and theNChain
+// v1.0.1 added some comments describing new strategy using NChain class
 
 /*
  A/B pedalboard chain manager built on Ndefs.
@@ -60,6 +61,13 @@ LPPedalboard : Object {
     var < display; // optional display adaptor
     var < processorLib;
     var < ready; // <-- ADD this line
+
+
+    // new for v1.0.2
+    var < theNChain
+    var pedalboardInSym = \pedalboardIn;
+	var pedalboardOutSym = \pedalboardOut;
+
     *initClass {
         var text;
         version = "v1.0.1";
@@ -107,6 +115,8 @@ LPpedalboard needs to set up the STATIC Ndefs:
   pedalboardOut: this one should default 
 */
     init { arg disp, aProcessorLib;
+
+
         var sinkFunc;
         display = disp;
 		processorLib = aProcessorLib;
@@ -163,7 +173,31 @@ LPpedalboard needs to set up the STATIC Ndefs:
         ^this
     }
 
-initChainTest {
+    setupStaticNdefs {
+        // here create the pedalboardIn and pedalboardOut Ndefs and instantiate theNChain
+        
+		Ndef(pedalboardInSym.asSymbol).reshaping_(\elastic).source = {
+			\in.ar(0 ! numChannels)   // instance width, not a hard-coded 6
+		};
+
+		Ndef(cpedalboardOutSym.asSymbol).reshaping_(\elastic).source = {
+			\in.ar(0 ! numChannels)   // instance width, not a hard-coded 6
+        };
+        
+        // REVIEW: first argument is the name of the chain itself; adapt 
+        //NChain class to also accept arguments argDisplay (for LPDisplay)
+        // and argProcLib (for LPProcessorLibrary)
+
+        //theNChain = NChain.new(\pedalboardChainA, display, processorLib);
+        theNChain = NChain.new(\pedalboardChainA);
+
+        // connect them all 
+        Ndef(pedalboardInSym.asSymbol) <<> theNChain <<> Ndef(pedalboardOutSym.asSymbol);
+
+        ^this
+    }
+
+    initChainTest {
 
 		// Unconditional test sources
 		Ndef(\testmelodyA, {
