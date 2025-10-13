@@ -1,5 +1,6 @@
 // NChain.sc
 
+// v0.4.6.6 now works (still not doing much.) init and rewireChain are doing what they should. 
 // v0.4.6.5 For clarity, now storing storing symbols (not string) into chainList and fullchainList
 // v0.4.6.4 rewireChain going back to original strategy of copy chainList into fullchainList, add in and out, connect all together in turns.
 // v0.4.6.3 fixed some things (not fully) in rewireChain
@@ -35,7 +36,7 @@ NChain {
 
 	*initClass {
 		var text;
-		version = "v0.4.6.4";
+		version = "v0.4.6.6";
 		defaultNumChannels = 2; // Set a sensible default
 
 		text = "Nchains " ++ version;
@@ -125,11 +126,11 @@ NChain {
         postln("rewireChain: chainList = " ++ chainList.asString);
 
         fullchainList = [chainName ++ "Out"] ++ chainList ++ [chainName ++ "In"];
-        postln("rewireChain: fullchainList = " ++ chainList.asString);
+        postln("rewireChain: fullchainList = " ++ fullchainList.asString);
 
     // connect the middle bits:
         //postln("DEBUG---: chainList = " ++ chainList.asString);
-        chainList.doAdjacentPairs { |left, right|
+        fullchainList.doAdjacentPairs { |left, right|
             postln("DEBUG---: left = " ++ left ++ " right = " ++ right);
             Ndef(left.asSymbol) <<> Ndef(right.asSymbol);
         };
