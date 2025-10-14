@@ -1,5 +1,6 @@
 // LPPedalboard.
 
+// v1.0.10 renamed theNChain to theChain (because I kept messing that up)
 // v1.0.9 added display and processorlib args to NChain.new in setupStaticNdefs
 // v1.0.8 removed old commented out code; probably not needed; can be recovered from previous commits.
 // v1.0.7 got init working with setupStaticNdefs finally.
@@ -72,7 +73,9 @@ LPPedalboard : Object {
     var < ready; 
 
     // new for v1.0.2
-    var < theNChain;
+    //var < theNChain;
+    var < theChain;
+
     var pedalboardInSym = \pedalboardIn;
 	var pedalboardOutSym = \pedalboardOut;
 
@@ -93,7 +96,7 @@ LPPedalboard : Object {
 
         var testSourceNdefSym; // FOR SANITY CHECKS
 
-        var sinkFunc; // OBSOLETE
+        var sinkFuncOBSOLETE; // OBSOLETE
 
         logger = MDMiniLogger.new();
         display = argDisp;  // KEEP
@@ -111,7 +114,7 @@ LPPedalboard : Object {
 //// </sanity checks>
 
         // OBSOLETE: if needed use makepassthrough from NChains.sc
-        sinkFunc = {
+        sinkFuncOBSOLETE = {
             var inputSignal;
             inputSignal = \in.ar(defaultNumChannels);
             inputSignal
@@ -149,7 +152,7 @@ LPPedalboard : Object {
         // and argProcLib (for LPProcessorLibrary)
 
         //theNChain = NChain.new(\pedalboardChainA);
-        theNChain = NChain.new(\pedalboardChainA, display, processorLib);
+        theChain = NChain.new(\pedalboardChainA, display, processorLib);
     
 
         logger.info("Created theNChain NChain instance with display and processorlib args");
@@ -917,6 +920,13 @@ Design highlights
         mpb.printChains;
         mpb
     }
+
+    check {
+        logger.info("This is pedalboard; check.");
+    }
+
+
+
 }
 
 

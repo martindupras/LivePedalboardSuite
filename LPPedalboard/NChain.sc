@@ -1,5 +1,6 @@
 // NChain.sc
 
+// v0.4.7.5 add logger var and check method
 // v0.4.7.4 added comments and little formatting tidy
 // v0.4.7.3 added planning notes before init method.
 // v0.4.7.2 add insertAt method - works!
@@ -15,6 +16,9 @@ NChain {
 	classvar version;
 	classvar defaultNumChannels;
 
+	// added for v0.4.7.5
+	var logger; 
+
 	var < chainName;
 	var < chainNameSym;
 	var chainInSym;
@@ -24,7 +28,7 @@ NChain {
 
 	*initClass {
 		var text;
-		version = "v0.4.7.4";
+		version = "v0.4.7.5";
 		defaultNumChannels = 2; // Set a sensible default
 
 		text = "Nchains " ++ version;
@@ -42,6 +46,9 @@ NChain {
 	init { |name = "defaultChain" , display = nil, procLib |
 
 		// var chainIn, chainOut;
+
+		logger = MDMiniLogger.new();
+
 		chainName = name.asString; // store the name as String
 		chainNameSym = chainName.asSymbol; // and as Symbol... possibly not needed. Belt and braces.
 
@@ -387,5 +394,9 @@ NChain {
 		// return as an Array of Symbols
 		^(chainList.isNil.if({ #[] }, { chainList.asArray }))
 	}
+
+	 check {
+        logger.info("This is NChain; check.");
+    }
 
 }
