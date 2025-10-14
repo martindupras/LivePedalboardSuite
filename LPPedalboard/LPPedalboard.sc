@@ -65,7 +65,8 @@ LPPedalboard : Object {
     var bypassB; // IdentityDictionary: key(Symbol) -> Bool
 
     // KEEP THESE:
-    var < defaultNumChannels; // eventually 6
+    var < defaultNumChannels; // QUESTION: do I need a default here?
+    var < numChannels; 
     var < defaultSource;
     var < display; // LPDisplay
     var < processorLib; // LPProcessorLibrary
@@ -73,7 +74,7 @@ LPPedalboard : Object {
 
 
     // new for v1.0.2
-    var < theNChain
+    var < theNChain;
     var pedalboardInSym = \pedalboardIn;
 	var pedalboardOutSym = \pedalboardOut;
 
@@ -129,7 +130,7 @@ LPpedalboard needs to set up the STATIC Ndefs:
         var sinkFunc; // OBSOLETE
         display = argDisp;  // KEEP
 		processorLib = argProcessorLib; // KEEP
-        defaultNumChannels = 2; // eventually hex
+        numChannels = 2; // eventually hex // possibly inherit from defaultNumChannels?
 
         //TODO: Decide what we do here... we need a test source. Do we have a makeTestSource method or some such
         defaultSource = \ts0; // silence as source
@@ -192,7 +193,7 @@ LPpedalboard needs to set up the STATIC Ndefs:
 			\in.ar(0 ! numChannels)   // instance width, not a hard-coded 6
 		};
 
-		Ndef(cpedalboardOutSym.asSymbol).reshaping_(\elastic).source = {
+		Ndef(pedalboardOutSym.asSymbol).reshaping_(\elastic).source = {
 			\in.ar(0 ! numChannels)   // instance width, not a hard-coded 6
         };
         

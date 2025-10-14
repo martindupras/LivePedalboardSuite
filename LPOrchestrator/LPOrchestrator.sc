@@ -1,15 +1,25 @@
 // LPOrchestrator.sc
+
+// v1.0.1 removed dubious duplicate
 // v1
-// MD 20251009-1315
+
 
 LPOrchestrator : Object {
+
+	classvar version;
+
     var <> pedalboard;
     var <> commandManager;
     var <> lpDisplay;
     var <> logger;
 	var <> lpLibrary;
 
-
+	*initClass {
+		var text;
+		version = "v1.0.1";
+		text = "LPOrechestrator " ++ version;
+		text.postln;
+	}
 
 	*new {
 		^ super.new.init()
@@ -26,7 +36,6 @@ LPOrchestrator : Object {
 	postServerInit {
 		"*** Afterserver boot".postln;
 		lpDisplay = LPDisplay.new();  //pass 'this' if want control buttons on lpDisplay
-		lpLibrary = LPLibrary.new();
 		logger = MDMiniLogger.new();
 		commandManager = CommandManager.new(lpDisplay);
 		pedalboard = LPPedalboard.new(lpDisplay, lpLibrary);
