@@ -1,5 +1,6 @@
 // LPPedalboard.sc 
 
+// v1.0.8 removed old commented out code; probably not needed; can be recovered from previous commits.
 // v1.0.7 got init working with setupStaticNdefs finally.
 // v1.0.6 added ensureServerReady method and call it at top of setupStaticNdefs -- but not solving the issue.
 // v1.0.5 add setupStaticNdefs to init; add logger var
@@ -8,45 +9,38 @@
 // v1.0.2 added setupStaticNdefs method to create pedalboardIn, pedalboardOut, and theNChain
 // v1.0.1 added some comments describing new strategy using NChain class
 
-/*
-NEEDS REVISION -> 
- A/B pedalboard chain manager built on Ndefs.
- - Chains are Arrays of Symbols ordered [sink, …, source].
- - Uses JITLib embedding: Ndef(left) <<> Ndef(right).
- - Creates two sinks: \chainA and \chainB, and plays the current chain on init.
- - Most mutators act on the next chain; explicit current-chain bypass helpers are provided.
- - Optional display adaptor (MagicDisplay / MagicDisplayGUI) receives notifications, including detailed chain views.
- - Non-destructive rebuilds (no server resets during rebuild). Only .reset performs a safe server-tree reset.
-// MD 2025-10-02 13:58
-*/
+/* This class manages the pedalboard operations:
+- sets up  input (pedalboardIn) and output (pedalboardOut) Ndefs (immmutable)
+- connect an Nchain between them so that we should have:
+   pedalboardOut <<> theNChainOut||theNChainIn  <<> pedalboardIn
 
-/*
-NEEDS REVISION -> 
-Supplementary header — What this class does & key dependencies
-----------------------------------------------------------------
-Overview
-- Manages two signal chains (CURRENT and NEXT) as symbol arrays [sink, processors..., source],
-  built with JITLib NodeProxies (Ndef) and connected using the embedding operator:
-  Ndef(left) <<> Ndef(right). Switches are crossfaded; rebuilds are non-destructive.
+   pedalboardOut pass through AND do the amplitude measurements for metering (\SendPeakRMSA)
+   
+   The orchestrator (LPOchestrator should be receiving the commands from the commandManager). 
+   Those commands should be queuedd up and sent to a method that makes them happen when we 
+   receive a "activate" (or "execute" or whatever -- used to be "switch" because originally 
+   we would switch between chainA and chainB.) [Note: we have an opportunity to schedule those
+   chains actions at specific time in the future,e.g. on next beat or next bar; implement those
+   when we have some tempo/beats mechanism.)]
 
-Core responsibilities
-- Materialize and keep \chainA / \chainB sinks alive at audio rate.
-- Maintain CURRENT vs NEXT chains, with mutators that operate primarily on NEXT (e.g., add/remove/swap/bypass).
-- Provide safe, exclusive playback semantics (NEXT hard-silenced; CURRENT audible) and optional crossfade switch.
+   QUESTION FOR SH: NChain sends to display, or to here first? 
+This class should also handle the passing of display information about the WHOLE pedalboard and 
+the state of things (e.g. command queued, or effect is bypassed, etc.) NChain PROBABLY should not
+be displaying things directly to the LPDisplay. 
 
-Relies on (classes / facilities expected on the classpath)
-- JITLib / NodeProxy system: Ndef, embedding via <<>.
-- SuperCollider server primitives: Server, Ndef buses, AppClock for light scheduling.
-- Optional display adaptor (MagicDisplay / MagicDisplayGUI) for chain prints, status, and meter UX.
-- Optional processor library (processorLib) that can .ensureFromChain(list, numChannels).
+TODO:
+// test existing; right now init works and we have sound audible
 
-External interactions
-- This class does not reset the server during rebuild; only .reset implements a guarded tree reset.
-- Exposes a simple dispatcher .handleCommand(path) that defers to ~ct_applyOSCPathToMPB if present.
+- display something from pedalboard to display
+- do insertion and removal to theChain from pedalboard
+- .play and .stop on pedalboardOut; make a help method, display state in LPDisplay
+- figure out insertion of processorLib definition into a slot in the NChain
+- add .help and .api methods (not sure when best while this is changing, but handy)
+- make console messages a little easier to read -- too many right now. Use local 
+    incr/decr of verbosity class? or put in conditional with flags?
+- really really basic command arrival from commandManager to pedalboard; 
+doesn't have to be from tree right now
 
-Notes
-- This update only adds class-side utilities (*help, *api, *test) and a supplementary header.
-- No behavior changes to public or internal instance methods (including the existing instance help).
 */
 
 LPPedalboard : Object {
@@ -91,42 +85,8 @@ LPPedalboard : Object {
         ^super.new.init(disp, );
     }
 
-/*
-20251013-1924:new plan
-
-Let's think carefully what revisions are needed below to implement new approach. 
-
-[STARTED]: setupStaticNdefs {}
-
-LPpedalboard needs to set up the STATIC Ndefs:
-  pedalboardIn: 
-        this one should default to eternal audio (hex) 
-        but we want a test ndef which sets the input to a synthesised 
-        source so that we can verify that things work without needed 
-        a guitar and gobbins.
-
-    connected to...
-  instance of NChain 
-        (theChain for now; we may or may not need chainAchainB at this
-        stage). The chain will start empty
-        
-    connected to...
-  pedalboardOut:
-        this one needs to have metering which is being sent to 
-        /sendpeakrmsA (or whatever it's called)
-  
-    connected to...
-  NOW we have a choice; we could connect to activeOut which would 
-  always be playing with the .play method. Simple. Or we just .play
-  the pedalboardOut directly but we will have to think how we manage
-  active, bypass, etc. From a stage-performance point of view, there is 
-  some value in being able to tap the signal in different places (e.g.
-  monitor-out); let's keep thinking.
-
-  LPPedalboard has knowledge of the LPLibrary. Need an elegant way of 
-  being able to fetch algorithms from the library when inserting into
-  Nchain.
-
+/* 
+--- 20251013-1924:new plan description: ---> moved to bottom of this file for tidiness <---
 */
     init { arg argDisp, argProcessorLib;
 
@@ -1022,3 +982,42 @@ Design highlights
         mpb
     }
 }
+
+
+/*
+20251013-1924:new plan
+
+New approach
+
+[DONE]: setupStaticNdefs {}
+
+LPpedalboard needs to set up the STATIC Ndefs:
+  [DONE]pedalboardIn: 
+        this one should default to eternal audio (hex) 
+        but we want a test ndef which sets the input to a synthesised 
+        source so that we can verify that things work without needed 
+        a guitar and gobbins.
+
+    connected to...
+  [DONE] instance of NChain 
+        (theChain for now; we may or may not need chainAchainB at this
+        stage). The chain will start empty
+        
+    connected to...
+  [DONE] pedalboardOut:
+        this one needs to have metering which is being sent to 
+        /sendpeakrmsA (or whatever it's called)
+  
+    connected to...
+  NOW we have a choice; we could connect to activeOut which would 
+  always be playing with the .play method. Simple. Or we just .play
+  the pedalboardOut directly but we will have to think how we manage
+  active, bypass, etc. From a stage-performance point of view, there is 
+  some value in being able to tap the signal in different places (e.g.
+  monitor-out); let's keep thinking.
+
+  LPPedalboard has knowledge of the LPLibrary. Need an elegant way of 
+  being able to fetch algorithms from the library when inserting into
+  Nchain.
+
+*/
