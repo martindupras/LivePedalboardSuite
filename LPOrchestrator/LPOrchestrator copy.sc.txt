@@ -1,15 +1,26 @@
 // LPOrchestrator.sc
+
+// v1.0.2 added waitForBoot in init; seems to be working fine
+// v1.0.1 removed dubious duplicate
 // v1
-// MD 20251009-1315
+
 
 LPOrchestrator : Object {
+
+	classvar version;
+
     var <> pedalboard;
     var <> commandManager;
     var <> lpDisplay;
     var <> logger;
 	var <> lpLibrary;
 
-
+	*initClass {
+		var text;
+		version = "v1.0.1";
+		text = "LPOrechestrator " ++ version;
+		text.postln;
+	}
 
 	*new {
 		^ super.new.init()
@@ -19,14 +30,18 @@ LPOrchestrator : Object {
 	init{
 		this.ensureServerReady;
 		"*** Before server boot (if needed)".postln;
-		AppClock.sched(2, {this.postServerInit; nil});  // return nil to stop rescheduling
-		}
+		//AppClock.sched(2, {this.postServerInit; nil});  // return nil to stop rescheduling
+
+		// Seems a betterway to do this AFTER server is up -- working
+		 ~serv.waitForBoot( {this.postServerInit;})	
+	
+	
+	}
 
 
 	postServerInit {
 		"*** Afterserver boot".postln;
 		lpDisplay = LPDisplay.new();  //pass 'this' if want control buttons on lpDisplay
-		lpLibrary = LPLibrary.new();
 		logger = MDMiniLogger.new();
 		commandManager = CommandManager.new(lpDisplay);
 		pedalboard = LPPedalboard.new(lpDisplay, lpLibrary);
@@ -61,11 +76,18 @@ LPOrchestrator : Object {
         ^ this
     }
 
+ 	check {
+        logger.info("This is orchestrator; check.");
+    }
 
-
-
-
-
-
+	printDiagMessages { | message|
+		postln("................");
+		postln("Orchestrator printDiagMessages: " ++ message.asString);
+		postln("................");
+		//
+		lpDisplay.sendPaneText(\diag, 'Hello this is a diag'); // wny not printing
+        postln("... did it show?");
+		postln("................");
+    }
 
 }

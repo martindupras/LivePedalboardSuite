@@ -78,11 +78,18 @@ LPOrchestrator : Object {
 
  	check {
         logger.info("This is orchestrator; check.");
+		^this
     }
 
 	printDiagMessages { | message|
-		lpDisplay.sendPaneText(\diag, 'Hello this is a diag');
-        //lpDisplay.sendPaneText(\diag, message.aString);
+		postln("................");
+		postln("Orchestrator printDiagMessages: " ++ message.asString);
+		postln("................");
+		//
+		lpDisplay.sendPaneText(\diag, 'Hello this is a diag'); // wny not printing
+        postln("... did it show?");
+		postln("................");
+		^this
     }
 
 }
