@@ -103,13 +103,13 @@ Let's think carefully what revisions are needed below to implement new approach.
 LPpedalboard needs to set up the STATIC Ndefs:
   pedalboardIn: 
         this one should default to eternal audio (hex) 
-        but we want a test flat which sets the input to a synthesised 
+        but we want a test ndef which sets the input to a synthesised 
         source so that we can verify that things work without needed 
         a guitar and gobbins.
 
     connected to...
   instance of NChain 
-        (chainA for now; we may or may not need chainB at this
+        (theChain for now; we may or may not need chainAchainB at this
         stage). The chain will start empty
         
     connected to...
