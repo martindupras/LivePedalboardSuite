@@ -1,5 +1,6 @@
-// LPPedalboard.sc 
+// LPPedalboard.
 
+// v1.0.9 added display and processorlib args to NChain.new in setupStaticNdefs
 // v1.0.8 removed old commented out code; probably not needed; can be recovered from previous commits.
 // v1.0.7 got init working with setupStaticNdefs finally.
 // v1.0.6 added ensureServerReady method and call it at top of setupStaticNdefs -- but not solving the issue.
@@ -77,7 +78,7 @@ LPPedalboard : Object {
 
     *initClass {
         var text;
-        version = "v1.0.7";
+        version = "v1.0.9";
         text = "LPPedalboard " ++ version;
         text.postln;
     }
@@ -109,7 +110,6 @@ LPPedalboard : Object {
 
 //// </sanity checks>
 
-
         // OBSOLETE: if needed use makepassthrough from NChains.sc
         sinkFunc = {
             var inputSignal;
@@ -117,37 +117,7 @@ LPPedalboard : Object {
             inputSignal
         };
 
-
-                // Ndef(\lpbOut, sinkFunc);  //new
-                // Ndef(\chainAout, sinkFunc);
-                // Ndef(\chainBout, sinkFunc);
-
-                // Ndef(\chainA, sinkFunc);  //to be replaced
-                // Ndef(\chainB, sinkFunc);
-                // // Guarantee sink buses are audio-rate early (prevents kr-meter races)
-                // Server.default.bind({
-                //     Ndef(\chainA).ar(defaultNumChannels); // typically 2
-                //     Ndef(\chainB).ar(defaultNumChannels);
-                // });
-                // chainAList = [\chainA, defaultSource];
-                // chainBList = [\chainB, defaultSource];
-                // bypassA = IdentityDictionary.new;
-                // bypassB = IdentityDictionary.new;
-                // currentChain = chainAList;
-                // nextChain = chainBList;
-                // Server.default.bind({
-                //     this.rebuildUnbound(nextChain); // stays stopped
-                //     this.rebuildUnbound(currentChain); // plays
-                // });
-/*        this.rebuild(currentChain);
-        this.rebuild(nextChain);*/
-/* Server.default.bind({
- Ndef(\chainA).play(numChannels: defaultNumChannels);
- });*/
-
- // NEXT SEND SOMETHING TO SHOW WHAT'S HAPPENING
-
-
+        // set up initial chains
         this.setupStaticNdefs;
 
         // Now plug test source into the pedalboard:
@@ -158,18 +128,6 @@ LPPedalboard : Object {
 			display.sendPaneText(\right,nextChain.asString);
         };
 
-
-        // enforce exclusive invariant (Option A) at first bring-up
-        // this.enforceExclusiveCurrentOptionA(0.1);
-
-        // set initial state; the poll will flip it once conditions are true
-        // ready = false;
-        // OPTION A: enable background poll (comment out if you prefer Option B)
-        // this.startReadyPoll;
-
-		// this.initChainTest();
-
-
         ^this
     }
 
@@ -177,55 +135,33 @@ LPPedalboard : Object {
 
          logger.info("setupStaticNdefs called");
         // here create the pedalboardIn and pedalboardOut Ndefs and instantiate theNChain
-        
 
         this.ensureServerReady;
-
-
         logger.info("*** ensureServerReady called ***");
 
-		Ndef(pedalboardInSym.asSymbol).reshaping_(\elastic).source = {
-			\in.ar(0 ! numChannels)   // instance width, not a hard-coded 6
-		};
-
-		Ndef(pedalboardOutSym.asSymbol).reshaping_(\elastic).source = {
-			\in.ar(0 ! numChannels)   // instance width, not a hard-coded 6
-        };
+		Ndef(pedalboardInSym.asSymbol).reshaping_(\elastic).source = {\in.ar(0 ! numChannels)   };
+		Ndef(pedalboardOutSym.asSymbol).reshaping_(\elastic).source = { \in.ar(0 ! numChannels)  };
         
         logger.info("Created pedalboardIn and pedalboardOut Ndefs");
-
 
         // REVIEW: first argument is the name of the chain itself; adapt 
         //NChain class to also accept arguments argDisplay (for LPDisplay)
         // and argProcLib (for LPProcessorLibrary)
 
-        //theNChain = NChain.new(\pedalboardChainA, display, processorLib);
-        
-        
+        //theNChain = NChain.new(\pedalboardChainA);
+        theNChain = NChain.new(\pedalboardChainA, display, processorLib);
+    
 
-        theNChain = NChain.new(\pedalboardChainA);
-        logger.info("Created theNChain NChain instance");
+        logger.info("Created theNChain NChain instance with display and processorlib args");
 
         // connect them all 
-
-        // TEST2025101401111 this is probably the right approach but names may need checking
         Ndef(pedalboardOutSym.asSymbol) <<> Ndef(\pedalboardChainAOut);
         Ndef(\pedalboardChainAIn) <<> Ndef(pedalboardInSym.asSymbol);
-
 
         // Now make end of pedalboard audible
         Ndef(pedalboardOutSym.asSymbol).play;
         logger.info("Pedalboard should be audible... is it? line 254).");
 
-
-/*TEMPCHECK
-
-// WRONG::::::::::::::
-        Ndef(pedalboardInSym.asSymbol) <<> theNChain <<> Ndef(pedalboardOutSym.asSymbol);
-
-        logger.info("Connected pedalboardIn, theNChain, and pedalboardOut");
-
-TEMPCHECK */
         ^this
     }
 
