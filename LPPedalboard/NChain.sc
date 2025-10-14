@@ -1,5 +1,6 @@
 // NChain.sc
 
+// v0.4.7.4 added comments and little formatting tidy
 // v0.4.7.3 added planning notes before init method.
 // v0.4.7.2 add insertAt method - works!
 // v0.4.7.1 add removeAt method - works!
@@ -23,7 +24,7 @@ NChain {
 
 	*initClass {
 		var text;
-		version = "v0.4.7.3";
+		version = "v0.4.7.4";
 		defaultNumChannels = 2; // Set a sensible default
 
 		text = "Nchains " ++ version;
@@ -71,7 +72,7 @@ NChain {
 			++ " sink=" ++ chainNameSym
 			++ " channels=" ++ numChannels).postln;
 
-		// CONNECT THEM FOR FIRST
+		// Connect on init
 		this.rewireChain;
 		^this
 	}
@@ -85,7 +86,7 @@ NChain {
 	getNumChannels   { ^numChannels }
 
 
-	// We need this because since we're rewiring the chain in full, we need to keep what was coming into the chain connected.
+// v0.4.7.3 I don't think we need this method any longer
 	connectSource { |sourceSym|
 		var firstIntoChain;
 		if (chainList.notNil and: { chainList.notEmpty }) {
@@ -96,6 +97,7 @@ NChain {
 		^this
 	}
 
+    // used to make a passthrough Ndef
 	makePassthrough { |name = "defaultChain"|
 		Ndef(name.asSymbol).reshaping_(\elastic).source = {
 			// Read the audio input named \in with an explicit width.
@@ -107,18 +109,24 @@ NChain {
 
 	rewireChain {
 		// CLARITY: It probably makes the most sense to copy the list into a new one, insert the out and in at the beginning and end, and connect everyone
-		var fullchainList = List.new;
+		
+        // create the list we'll use (starts empty)
+        var fullchainList = List.new;
 
+        //DEBUG
 		postln("rewireChain: chainList = " ++ chainList.asString);
 
+        // new list chainNameOut, chainList[0], chainList[1], ..., chainList[n], chainNameIn
 		fullchainList = [chainName ++ "Out"] ++ chainList ++ [chainName ++ "In"];
-		postln("rewireChain: fullchainList = " ++ fullchainList.asString);
+		
+        //DEBUG
+        postln("rewireChain: fullchainList = " ++ fullchainList.asString);
 
-		// connect the middle bits:
+		// Connect Ndefs as per list (n <<> n+1))
 		//postln("DEBUG---: chainList = " ++ chainList.asString);
 		fullchainList.doAdjacentPairs { |left, right|
 			postln("DEBUG---: left = " ++ left ++ " right = " ++ right);
-			Ndef(left.asSymbol) <<> Ndef(right.asSymbol);
+			Ndef(left.asSymbol) <<> Ndef(right.asSymbol); // could be rewritten .set(\in, right) -- might be clearer to someone unfamiliar with the (unsearchable) <<> operator
 		};
 
 		//postln("DEBUG---: rewireChain complete.");
@@ -137,6 +145,8 @@ NChain {
 			chainList = List.new;
 		};
 
+        // EVENTUALLY: if already present, make a new one but append a number to make it unique
+        // do the same for insertAt and insertTestAt
 		alreadyPresent = chainList.includes(newSymbol);
 		if (alreadyPresent) {
 			("NChain insert: '" ++ newSymbol ++ "' is already in the chain; skipping").postln;
@@ -350,27 +360,9 @@ NChain {
         ("NChain removeNewest: removed " ++ removedSym ++ " (most recent).").postln;
         ^this;
     }
-    // removeNewest {
-    //     var removedSym, newList;
-
-    //     if (chainList.isNil or: { chainList.isEmpty }) {
-    //         ("NChain removeNewest: chain '" ++ chainName ++ "' has no stages; nothing to remove.").postln;
-    //         ^this;
-    //     };
-
-    //     removedSym = chainList[0];
-    //     newList = chainList.copy.removeAt(0);
-    //     chainList = newList;
-
-    //     this.rewireChain;
-    //     Ndef(removedSym).clear;
-
-    //     ("NChain removeNewest: removed " ++ removedSym ++ " (most recent).").postln;
-    //     ^this;
-    // }
 
 	printChain{
-		// this method would print out what Ndefs make up the chain printed to the console
+		// this method should print out what Ndefs make up the chain printed to the console
 		var names, line;
 
 		// make sure we have a list; print empty cleanly
@@ -386,7 +378,6 @@ NChain {
 		^this
 	}
 
-
 	getChainList {
 		// returns a list
 		^(chainList.isNil.if({ List.new }, { chainList.copy }))
@@ -396,6 +387,5 @@ NChain {
 		// return as an Array of Symbols
 		^(chainList.isNil.if({ #[] }, { chainList.asArray }))
 	}
-
 
 }
