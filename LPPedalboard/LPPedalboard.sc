@@ -1,5 +1,6 @@
 // LPPedalboard.sc 
 
+// v1.0.4 First attempt at creating pedalboardIn & pedalboardOut NDefs, connecting them to NChain, and putting metering in pedalboardOut.
 // v1.0.3 review code, add comments
 // v1.0.2 added setupStaticNdefs method to create pedalboardIn, pedalboardOut, and theNChain
 // v1.0.1 added some comments describing new strategy using NChain class
@@ -47,13 +48,19 @@ Notes
 
 LPPedalboard : Object {
 
-    classvar <version;
+    classvar < version; // so that we can print to console on init
 
     // REVIEW THESE:
-    var < currentChain; // read-only pointer to Array of Symbols
-    var < nextChain; // read-only pointer to Array of Symbols
-    var chainAList; // [\chainA, ...processors..., source]
-    var chainBList; // [\chainB, ...processors..., source]
+    var < currentChain; // POSSIBLY OBSOLETE
+    var < nextChain; // POSSIBLY OBSOLETE
+    // QUESTION: is there an advantage to keeping the list here? We can always get it from NChain.
+    var chainAList; 
+
+    var chainBList; // POSSIBLY OBSOLETE
+
+    // REVIEW: is there any point in keeping the bypass states in here? 
+    // They will be held in processors eventually (give some thought)
+
     var bypassA; // IdentityDictionary: key(Symbol) -> Bool
     var bypassB; // IdentityDictionary: key(Symbol) -> Bool
 
@@ -85,6 +92,8 @@ LPPedalboard : Object {
 
 Let's think carefully what revisions are needed below to implement new approach. 
 
+[STARTED]: setupStaticNdefs {}
+
 LPpedalboard needs to set up the STATIC Ndefs:
   pedalboardIn: 
         this one should default to eternal audio (hex) 
@@ -114,23 +123,24 @@ LPpedalboard needs to set up the STATIC Ndefs:
   being able to fetch algorithms from the library when inserting into
   Nchain.
 
-  pedalboardOut: this one should default 
 */
-    init { arg disp, aProcessorLib;
+    init { arg argDisp, argProcessorLib;
 
+        var sinkFunc; // OBSOLETE
+        display = argDisp;  // KEEP
+		processorLib = argProcessorLib; // KEEP
+        defaultNumChannels = 2; // eventually hex
 
-        var sinkFunc;
-        display = disp;
-		processorLib = aProcessorLib;
-        defaultNumChannels = 2;
+        //TODO: Decide what we do here... we need a test source. Do we have a makeTestSource method or some such
         defaultSource = \ts0; // silence as source
-        // less good than the version below
-        // sinkFunc = { arg inSignal; inSignal };
+
+        // OBSOLETE: if needed use makepassthrough from NChains.sc
         sinkFunc = {
             var inputSignal;
             inputSignal = \in.ar(defaultNumChannels);
             inputSignal
         };
+
 
 		Ndef(\lpbOut, sinkFunc);  //new
         Ndef(\chainAout, sinkFunc);
@@ -253,6 +263,16 @@ LPpedalboard needs to set up the STATIC Ndefs:
 
 	}
 
+
+    // used to make a passthrough Ndef
+	makePassthrough { |name = "defaultChain"|
+		Ndef(name.asSymbol).reshaping_(\elastic).source = {
+			// Read the audio input named \in with an explicit width.
+			// Pick a width that covers your expected max (e.g., 6 for hex).
+			\in.ar(0 ! numChannels)   // returns silent zeros on channels with no signal
+		};
+		^this
+	}
 
     // ───────────────────────────────────────────────────────────────
     // public API
