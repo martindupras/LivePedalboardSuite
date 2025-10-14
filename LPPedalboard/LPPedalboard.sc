@@ -1,9 +1,11 @@
 // LPPedalboard.sc 
 
+// v1.0.3 review code, add comments
 // v1.0.2 added setupStaticNdefs method to create pedalboardIn, pedalboardOut, and theNChain
 // v1.0.1 added some comments describing new strategy using NChain class
 
 /*
+NEEDS REVISION -> 
  A/B pedalboard chain manager built on Ndefs.
  - Chains are Arrays of Symbols ordered [sink, …, source].
  - Uses JITLib embedding: Ndef(left) <<> Ndef(right).
@@ -15,6 +17,7 @@
 */
 
 /*
+NEEDS REVISION -> 
 Supplementary header — What this class does & key dependencies
 ----------------------------------------------------------------
 Overview
@@ -43,24 +46,23 @@ Notes
 */
 
 LPPedalboard : Object {
-    // ───────────────────────────────────────────────────────────────
-    // class metadata
-    // ───────────────────────────────────────────────────────────────
+
     classvar <version;
-    // ───────────────────────────────────────────────────────────────
-    // instance state
-    // ───────────────────────────────────────────────────────────────
+
+    // REVIEW THESE:
     var < currentChain; // read-only pointer to Array of Symbols
-    var <nextChain; // read-only pointer to Array of Symbols
+    var < nextChain; // read-only pointer to Array of Symbols
     var chainAList; // [\chainA, ...processors..., source]
     var chainBList; // [\chainB, ...processors..., source]
     var bypassA; // IdentityDictionary: key(Symbol) -> Bool
     var bypassB; // IdentityDictionary: key(Symbol) -> Bool
-    var < defaultNumChannels;
+
+    // KEEP THESE:
+    var < defaultNumChannels; // eventually 6
     var < defaultSource;
-    var < display; // optional display adaptor
-    var < processorLib;
-    var < ready; // <-- ADD this line
+    var < display; // LPDisplay
+    var < processorLib; // LPProcessorLibrary
+    var < ready; 
 
 
     // new for v1.0.2
@@ -70,8 +72,8 @@ LPPedalboard : Object {
 
     *initClass {
         var text;
-        version = "v1.0.1";
-        text = "LPPedaloard " ++ version;
+        version = "v1.0.3";
+        text = "LPPedalboard " ++ version;
         text.postln;
     }
     *new { arg disp = nil, aProcessorLib;
@@ -267,6 +269,8 @@ LPpedalboard needs to set up the STATIC Ndefs:
             display.showInit(this, version, currentChain, nextChain);
         };
     }
+
+    // NEEDS REVISION ->
     help {
         var text;
         text = String.new;
@@ -289,7 +293,12 @@ LPpedalboard needs to set up the STATIC Ndefs:
         ++ " setSource(key) [next], setSourceCurrent(key) [current]\n";
         text.postln;
     }
-    // Detailed printing routed through display if available
+
+    // NEEDS REVISION:
+    // should get a list from NChains.getChainAsList (or whatever) and copy in new list 
+    // out, [contents of NChain], in 
+    // because that's what we want to display in LPDisplayer
+
     printChains {
         var bypassAKeys, bypassBKeys, effectiveA, effectiveB, hasDisplay;
         var headerFunc, formatOne;
@@ -339,6 +348,8 @@ LPpedalboard needs to set up the STATIC Ndefs:
             formatOne.("NEXT", chainBList, bypassBKeys, effectiveB);
         };
     }
+
+    // NEEDS REVISION: what does that mean in the new approach?
     playCurrent {
         var sinkKey, canRun;
         sinkKey = currentChain[0];
@@ -354,6 +365,8 @@ LPpedalboard needs to set up the STATIC Ndefs:
         // enforce exclusive invariant (Option A) after play
         this.enforceExclusiveCurrentOptionA(0.1);
     }
+
+    // NEEDS REVISION: what does that mean in the new approach?
     stopCurrent {
         var sinkKey, canRun;
         sinkKey = currentChain[0];
@@ -366,7 +379,12 @@ LPpedalboard needs to set up the STATIC Ndefs:
             display.showStop(sinkKey);
         };
     }
-    // Crossfading chain switch (default 0.1 s, clamped to ~80–200 ms)
+    // NEEDS REVISION: what does that mean in the new approach?
+    // We probably want something conceptually like "execute!" or "engage!" 
+    // which makes effective what the chain is now; possibly instead
+    // of switching to a different chain, we in effect make NChain invoke 
+    // rewireChain on the "next" chain that we have played/constructed.
+
     switchChain { arg fadeTime = 0.1;
         var temporaryList, oldSinkKey, newSinkKey, actualFadeTime, canRun;
         canRun = this.ensureServerTree;
@@ -398,12 +416,16 @@ LPpedalboard needs to set up the STATIC Ndefs:
         };
     }
     // ─── next-chain mutations ─────────────────────────────────────
+    
+    // REVIEW: call the NChain one
     add { arg key;
         var insertIndex;
         insertIndex = nextChain.size - 1;
         this.addAt(key, insertIndex);
         if(display.notNil) { display.showMutation(\add, [key], nextChain) };
     }
+
+    // REVIEW: call the NChain one
     addAt { arg key, index;
         var indexClamped, newList;
         indexClamped = index.clip(1, nextChain.size - 1);
@@ -412,6 +434,8 @@ LPpedalboard needs to set up the STATIC Ndefs:
         this.rebuild(nextChain);
         if(display.notNil) { display.showMutation(\addAt, [key, indexClamped], nextChain) };
     }
+
+    // REVIEW: call the NChain one
     removeAt { arg index;
         var sizeNow, lastIndex, newList, removedKey;
         sizeNow = nextChain.size;
@@ -434,6 +458,7 @@ LPpedalboard needs to set up the STATIC Ndefs:
             };
         };
     }
+    // REVIEW: if that exists, it probably should be a method in NChain
     swap { arg indexAParam, indexBParam;
         var lastIndex, indexA, indexB, newList, tempKey;
         lastIndex = nextChain.size - 1;
@@ -451,6 +476,8 @@ LPpedalboard needs to set up the STATIC Ndefs:
             if(display.notNil) { display.showMutation(\swap, [indexA, indexB], nextChain) };
         };
     }
+
+     // REVIEW: if that exists, it probably should be a method in NChain
     clearChain {
         var sinkKey, sourceKey, newList;
         if(nextChain.size < 2) { ^this };
@@ -462,6 +489,13 @@ LPpedalboard needs to set up the STATIC Ndefs:
         this.rebuild(nextChain);
         if(display.notNil) { display.showMutation(\clearChain, [], nextChain) };
     }
+    // REVIEW DESIGN:
+    // The most logical and guitarist-friendly approach is have a bypass parameter in 
+    // ANY processor, and if we hit bypass anywhere we would access 
+    // Ndef(theChain.getSlot(index)).set(\bypass, 1). Let's think this through 
+    //because there should also be a method bypassSwitch, which sets 
+    //state = !state. (pseudcode)
+
     bypass { arg key, state = true;
         var dict;
         dict = this.bypassDictForListInternal(nextChain);
@@ -496,6 +530,7 @@ LPpedalboard needs to set up the STATIC Ndefs:
         this.bypassCurrent(keyAtIndex, state);
     }
     // ─── source setters ───────────────────────────────────────────
+    // KEEP
     setSource { arg key;
         var newList, lastIndex;
         lastIndex = nextChain.size - 1;
@@ -505,6 +540,8 @@ LPpedalboard needs to set up the STATIC Ndefs:
         this.rebuild(nextChain);
         if(display.notNil) { display.showMutation(\setSource, [key], nextChain) };
     }
+
+    // REVIEW: what does this mean in the new approach?
     setSourceCurrent { arg key;
         var newList, lastIndex, isAList;
         lastIndex = currentChain.size - 1;
@@ -515,6 +552,7 @@ LPpedalboard needs to set up the STATIC Ndefs:
         this.rebuild(currentChain);
         if(display.notNil) { display.showMutation(\setSourceCurrent, [key], currentChain) };
     }
+    // REVIEW: what does this mean in the new approach?
     setSourcesBoth { arg key;
         var k, lastA, lastB, curWasA, nextWasA, newA, newB, sizeOk;
         // pick a sensible key (today we want \testmelody)
@@ -545,6 +583,7 @@ LPpedalboard needs to set up the STATIC Ndefs:
         };
         ^this
     }
+    //KEEP
     setDefaultSource { arg key;
         var k;
         // update the instance default; does not modify existing chains immediately
@@ -553,6 +592,7 @@ LPpedalboard needs to set up the STATIC Ndefs:
         ^this
     }
     // ─── diagnostics helpers ──────────────────────────────────────
+    //REVIEW ALL THESE:
     effectiveCurrent { ^this.effectiveListForInternal(currentChain) }
     effectiveNext { ^this.effectiveListForInternal(nextChain) }
     bypassKeysCurrent { ^this.bypassKeysForListInternal(currentChain) }
@@ -581,40 +621,23 @@ LPpedalboard needs to set up the STATIC Ndefs:
         this.enforceExclusiveCurrentOptionA(0.1);
         if(display.notNil) { display.showReset(currentChain, nextChain) };
     }
-/* OLDreset {
- var sinkAKey, sinkBKey;
- sinkAKey = \chainA;
- sinkBKey = \chainB;
- chainAList = [sinkAKey, defaultSource];
- chainBList = [sinkBKey, defaultSource];
- bypassA.clear;
- bypassB.clear;
- currentChain = chainAList;
- nextChain = chainBList;
- // SAFE server reset ONLY here, using Server.default.* (not 's')
- Server.default.waitForBoot({
- Server.default.bind({
- Server.default.initTree;
- Server.default.defaultGroup.freeAll;
- this.rebuildUnbound(nextChain);
- this.rebuildUnbound(currentChain);
- Ndef(sinkBKey).stop;
- Ndef(sinkAKey).play(numChannels: defaultNumChannels);
- });
- });
- if(display.notNil) { display.showReset(currentChain, nextChain) };
- } */
+
     // ───────────────────────────────────────────────────────────────
     // internal helpers (lowercase, no leading underscore)
     // ───────────────────────────────────────────────────────────────
+
+    // POSSIBLY OBSOLETE:
     setNextListInternal { arg newList;
         var isAList;
         isAList = nextChain === chainAList;
         if(isAList) { chainAList = newList; nextChain = chainAList } { chainBList = newList; nextChain = chainBList };
     }
+
+    // POSSIBLY OBSOLETE:
     bypassDictForListInternal { arg listRef;
         ^if(listRef === chainAList) { bypassA } { bypassB }
     }
+    // POSSIBLY OBSOLETE:
     bypassKeysForListInternal { arg listRef;
         var dict, keysBypassed;
         dict = this.bypassDictForListInternal(listRef);
@@ -624,6 +647,8 @@ LPpedalboard needs to set up the STATIC Ndefs:
         });
         ^keysBypassed
     }
+
+    // KEEP AROUND BUT BETTER USE makepasstrhough method in NChain
     ensureStereoInternal { arg key;
         var proxyBus, needsInit;
         proxyBus = Ndef(key).bus;
@@ -632,13 +657,14 @@ LPpedalboard needs to set up the STATIC Ndefs:
             Ndef(key).ar(defaultNumChannels);
         };
     }
+    // KEEP
     // Non-destructive: guard only; do not reset here
     ensureServerTree {
         var serverIsRunning;
         serverIsRunning = Server.default.serverRunning;
         ^serverIsRunning
     }
-    //
+    // REVIEW: possibly obsolete
     // v0.4.6 change
     enforceExclusiveCurrentOptionA { arg fadeCurrent = 0.1;
         var currentSink, nextSink, chans, fadeCur;
@@ -668,28 +694,8 @@ LPpedalboard needs to set up the STATIC Ndefs:
         });
         ^this
     }
-/*    enforceExclusiveCurrentOptionA { arg fadeCurrent = 0.1;
-        var currentSink, nextSink, chans, fadeCur;
-        currentSink = currentChain[0];
-        nextSink = nextChain[0];
-        chans = defaultNumChannels;
-        fadeCur = fadeCurrent.clip(0.05, 0.2);
-        Server.default.bind({
-            // CURRENT: robust sink that consumes embedded input; ensure playing
-            Ndef(currentSink, { \in.ar(chans) });
-            Ndef(currentSink).ar(chans);
-            Ndef(currentSink).fadeTime_(fadeCur);
-            if (Ndef(currentSink).isPlaying.not) {
-                Ndef(currentSink).play(numChannels: chans)
-            };
-            // NEXT: hard silence at the sink source; stop its monitor quickly
-            Ndef(nextSink, { Silent.ar(chans) });
-            Ndef(nextSink).ar(chans);
-            Ndef(nextSink).fadeTime_(0.01);
-            Ndef(nextSink).stop;
-        });
-        ^this
-    }*/
+
+    // POSSIBLY OBSOLETE:
     effectiveListForInternal { arg listRef;
         var dict, resultList, lastIndex, isProcessor, isBypassed;
         dict = this.bypassDictForListInternal(listRef);
@@ -706,7 +712,8 @@ LPpedalboard needs to set up the STATIC Ndefs:
         });
         ^resultList
     }
-    // Public rebuild: bundles server ops; guard only
+
+    // PROBABLY OBSOLETE; if we call rebuild here, it should actually call the one in NChain
     rebuild { arg listRef;
         var whichChain, canRun;
         whichChain = if(listRef === currentChain) { \current } { \next };
@@ -719,6 +726,7 @@ LPpedalboard needs to set up the STATIC Ndefs:
             display.showRebuild(whichChain, listRef, this.effectiveListForInternal(listRef));
         };
     }
+    // PROBABLY OBSOLETE: the chains gets rewired inside NChain
     // Internal rebuild that assumes we are already inside a server bind (no resets)
     rebuildUnbound { arg listRef;
         var effective, indexCounter, leftKey, rightKey, sinkKey, hasMinimum, shouldPlay, isPlaying;
@@ -746,90 +754,33 @@ LPpedalboard needs to set up the STATIC Ndefs:
         }{
             if(isPlaying) { Ndef(sinkKey).stop };
         };
+
+        hasMinimum = listRef.size >= 2;
+        if(hasMinimum.not) { ^this };
+        effective = this.effectiveListForInternal(listRef);
+        effective.do({ arg keySymbol; this.ensureStereoInternal(keySymbol) });
+        indexCounter = 0;
+        while({ indexCounter < (effective.size - 1) }, {
+            leftKey = effective[indexCounter];
+            rightKey = effective[indexCounter + 1];
+            Ndef(leftKey) <<> Ndef(rightKey);
+            indexCounter = indexCounter + 1;
+        });
+        sinkKey = effective[0];
+        shouldPlay = (listRef === currentChain);
+        isPlaying = Ndef(sinkKey).isPlaying;
+        if(shouldPlay) {
+            if(isPlaying.not) { Ndef(sinkKey).play(numChannels: defaultNumChannels) };
+        }{
+            if(isPlaying) { Ndef(sinkKey).stop };
+        };
     }
-/*    rebuildUnbound { arg listRef;
-        var effective, indexCounter, leftKey, rightKey, sinkKey, hasMinimum, shouldPlay, isPlaying;
-        hasMinimum = listRef.size >= 2;
-        if(hasMinimum.not) { ^this };
-        effective = this.effectiveListForInternal(listRef);
-        effective.do({ arg keySymbol; this.ensureStereoInternal(keySymbol) });
-        indexCounter = 0;
-        while({ indexCounter < (effective.size - 1) }, {
-            leftKey = effective[indexCounter];
-            rightKey = effective[indexCounter + 1];
-            Ndef(leftKey) <<> Ndef(rightKey);
-            indexCounter = indexCounter + 1;
-        });
-        sinkKey = effective[0];
-        shouldPlay = (listRef === currentChain);
-        isPlaying = Ndef(sinkKey).isPlaying;
-        if(shouldPlay) {
-            if(isPlaying.not) { Ndef(sinkKey).play(numChannels: defaultNumChannels) };
-        }{
-            if(isPlaying) { Ndef(sinkKey).stop };
-        };
-    }*/
-/*    // At end of rebuildUnbound
-    rebuildUnbound { arg listRef;
-        var effective, indexCounter, leftKey, rightKey, sinkKey, hasMinimum, shouldPlay, isPlaying;
-/*        if(processorLib.notNil) {
-            // Ask the lib to make sure each symbol in this chain has an Ndef with a function.
-            // It will quietly do nothing for unknown keys.
-            processorLib.ensureFromChain(listRef, defaultNumChannels);
-        };*/
-        hasMinimum = listRef.size >= 2;
-        if(hasMinimum.not) { ^this };
-        effective = this.effectiveListForInternal(listRef);
-        effective.do({ arg keySymbol; this.ensureStereoInternal(keySymbol) });
-        indexCounter = 0;
-        while({ indexCounter < (effective.size - 1) }, {
-            leftKey = effective[indexCounter];
-            rightKey = effective[indexCounter + 1];
-            Ndef(leftKey) <<> Ndef(rightKey);
-            indexCounter = indexCounter + 1;
-        });
-        sinkKey = effective[0];
-        shouldPlay = (listRef === currentChain);
-        isPlaying = Ndef(sinkKey).isPlaying;
-        if(shouldPlay) {
-            if(isPlaying.not) { Ndef(sinkKey).play(numChannels: defaultNumChannels) };
-        }{
-            if(isPlaying) { Ndef(sinkKey).stop };
-        };
-    }*/
-/* OLD rebuildUnbound { arg listRef;
- var effective, indexCounter, leftKey, rightKey, sinkKey, hasMinimum;
- hasMinimum = listRef.size >= 2;
- if(hasMinimum.not) { ^this };
- effective = this.effectiveListForInternal(listRef);
- effective.do({ arg keySymbol;
- this.ensureStereoInternal(keySymbol);
- });
- indexCounter = 0;
- while({ indexCounter < (effective.size - 1) }, {
- leftKey = effective[indexCounter];
- rightKey = effective[indexCounter + 1];
- Ndef(leftKey) <<> Ndef(rightKey);
- });
-        // sinkKey = effective[0];
-        // if(listRef === currentChain) {
-        //     Ndef(sinkKey).play(numChannels: defaultNumChannels);
-        // }{
-        //     Ndef(sinkKey).stop;
-        // };
-        // At the end of rebuildUnbound:
-        sinkKey = effective[0];
-        if(listRef === currentChain) {
-            if(Ndef(sinkKey).isPlaying.not) { Ndef(sinkKey).play(numChannels: defaultNumChannels) };
-        } {
-            if(Ndef(sinkKey).isPlaying) { Ndef(sinkKey).stop };
-        };
- } */
-    // ---- Ready helpers (public API) ----
-    // boolean snapshot (no server ops)
+
+    // KEEP
     isReady {
         ^ready
     }
+
     // AppClock polling; onReadyFunc is optional
     waitUntilReady { arg timeoutSec = 2.0, pollSec = 0.05, onReadyFunc = nil;
         var startTime, tick;
@@ -855,6 +806,8 @@ LPpedalboard needs to set up the STATIC Ndefs:
         ^this
     }
     // ---- Ready helpers (internal; no leading underscore) ----
+
+    // PROBABLY OBSOLETE:
     // light background poll started from init (OPTION A)
     startReadyPoll {
         var alreadyTrue;
@@ -863,6 +816,8 @@ LPpedalboard needs to set up the STATIC Ndefs:
         this.waitUntilReady(2.0, 0.05, { nil });
         ^this
     }
+
+    // PROBABLY OBSOLETE:
     // compute the readiness condition; no server ops here
     readyConditionOk {
         var curSink, nxtSink, serverOk, curBus, nxtBus, busesOk, currentPlaying;
@@ -876,20 +831,11 @@ LPpedalboard needs to set up the STATIC Ndefs:
         currentPlaying = Ndef(curSink).isPlaying;
         ^(serverOk and: { busesOk } and: { currentPlaying })
     }
-    // handleCommand { |oscPath|
-    //     var path;
-    //     path = oscPath.asString;
-    //
-    //     // Route to your existing mutation logic
-    //     // Update this if you use a different handler name
-    //     if(this.respondsTo(\applyOSCPath)) {
-    //         this.applyOSCPath(path);
-    //     } {
-    //         ("[MPB] handleCommand: " ++ path ++ " → no handler found").warn;
-    //     };
-    //
-    //     ^this;
-    // }
+
+    //------------------------------------------------------------------------
+    // REVIEW CAREFULLY: this will be important; 
+    //but work out the Ndef handling and NChain integration first 
+    //------------------------------------------------------------------------
     handleCommand { |oscPath|
      var path;
      path = oscPath.asString;
@@ -903,6 +849,7 @@ LPpedalboard needs to set up the STATIC Ndefs:
 
     // --- Added in v0.4.9: class-side helpers ---------------------------------
 
+    // NEEDS REVISION TO MATCH CURRENT STATE OF CLASS
     *help {
         var text;
         text = "
@@ -936,6 +883,7 @@ Design highlights
         text
     }
 
+    // NEEDS REVISION TO MATCH CURRENT STATE OF CLASS
     *api {
         var api;
         api = IdentityDictionary[
@@ -966,6 +914,7 @@ Design highlights
         api
     }
 
+    // PROBABLY OBSOLETE. A new one might be handy but probably not strictly necessary.
     *test {
         var mpb;
         mpb = MagicPedalboard.new(nil);
