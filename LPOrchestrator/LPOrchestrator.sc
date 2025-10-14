@@ -82,6 +82,7 @@ LPOrchestrator : Object {
     }
 
 	printDiagMessages { | message |
+		// 16:01 25 Oct 2024: trying to get this working again
 		postln("..........");
 		postln("Orch printDiagMessages: " ++ message.asString);
 		postln("..........");
