@@ -1,5 +1,6 @@
 // LPPedalboard.sc 
 
+// v1.0.7 got init working with setupStaticNdefs finally.
 // v1.0.6 added ensureServerReady method and call it at top of setupStaticNdefs -- but not solving the issue.
 // v1.0.5 add setupStaticNdefs to init; add logger var
 // v1.0.4 First attempt at creating pedalboardIn & pedalboardOut NDefs, connecting them to NChain, and putting metering in pedalboardOut.
@@ -60,12 +61,10 @@ LPPedalboard : Object {
     var < nextChain; // POSSIBLY OBSOLETE
     // QUESTION: is there an advantage to keeping the list here? We can always get it from NChain.
     var chainAList; 
-
     var chainBList; // POSSIBLY OBSOLETE
 
     // REVIEW: is there any point in keeping the bypass states in here? 
     // They will be held in processors eventually (give some thought)
-
     var bypassA; // IdentityDictionary: key(Symbol) -> Bool
     var bypassB; // IdentityDictionary: key(Symbol) -> Bool
 
@@ -77,7 +76,6 @@ LPPedalboard : Object {
     var < processorLib; // LPProcessorLibrary
     var < ready; 
 
-
     // new for v1.0.2
     var < theNChain;
     var pedalboardInSym = \pedalboardIn;
@@ -85,7 +83,7 @@ LPPedalboard : Object {
 
     *initClass {
         var text;
-        version = "v1.0.3";
+        version = "v1.0.7";
         text = "LPPedalboard " ++ version;
         text.postln;
     }
@@ -252,16 +250,12 @@ LPpedalboard needs to set up the STATIC Ndefs:
 
         // TEST2025101401111 this is probably the right approach but names may need checking
         Ndef(pedalboardOutSym.asSymbol) <<> Ndef(\pedalboardChainAOut);
-        Ndef(\pedalboardChainAIn) <<> Ndef(pedalboardOutSym.asSymbol);
-
+        Ndef(\pedalboardChainAIn) <<> Ndef(pedalboardInSym.asSymbol);
 
 
         // Now make end of pedalboard audible
         Ndef(pedalboardOutSym.asSymbol).play;
         logger.info("Pedalboard should be audible... is it? line 254).");
-
-        //DEBUG:
-        ().play;
 
 
 /*TEMPCHECK
