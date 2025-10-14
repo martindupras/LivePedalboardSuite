@@ -1,5 +1,6 @@
 // LPPedalboard.sc 
 
+// v1.0.5 add setupStaticNdefs to init; add logger var
 // v1.0.4 First attempt at creating pedalboardIn & pedalboardOut NDefs, connecting them to NChain, and putting metering in pedalboardOut.
 // v1.0.3 review code, add comments
 // v1.0.2 added setupStaticNdefs method to create pedalboardIn, pedalboardOut, and theNChain
@@ -49,6 +50,8 @@ Notes
 LPPedalboard : Object {
 
     classvar < version; // so that we can print to console on init
+
+    // added for v1.0.5
 
     // REVIEW THESE:
     var < currentChain; // POSSIBLY OBSOLETE
@@ -127,6 +130,8 @@ LPpedalboard needs to set up the STATIC Ndefs:
 */
     init { arg argDisp, argProcessorLib;
 
+        var testSourceNdefSym; // FOR SANITY CHECKS
+
         var sinkFunc; // OBSOLETE
         display = argDisp;  // KEEP
 		processorLib = argProcessorLib; // KEEP
@@ -134,6 +139,14 @@ LPpedalboard needs to set up the STATIC Ndefs:
 
         //TODO: Decide what we do here... we need a test source. Do we have a makeTestSource method or some such
         defaultSource = \ts0; // silence as source
+
+//// <sanity checks>
+        //make a source Ndef
+        testSourceNdefSym = \pulseNoise01; // don't use, just remind me
+        Ndef(\pulseNoise01, {SinOsc.ar(freq:3, mul: { PinkNoise.ar(0.1!2)})}); 
+
+//// </sanity checks>
+
 
         // OBSOLETE: if needed use makepassthrough from NChains.sc
         sinkFunc = {
@@ -143,44 +156,52 @@ LPpedalboard needs to set up the STATIC Ndefs:
         };
 
 
-		Ndef(\lpbOut, sinkFunc);  //new
-        Ndef(\chainAout, sinkFunc);
-        Ndef(\chainBout, sinkFunc);
+                // Ndef(\lpbOut, sinkFunc);  //new
+                // Ndef(\chainAout, sinkFunc);
+                // Ndef(\chainBout, sinkFunc);
 
-        Ndef(\chainA, sinkFunc);  //to be replaced
-        Ndef(\chainB, sinkFunc);
-        // Guarantee sink buses are audio-rate early (prevents kr-meter races)
-        Server.default.bind({
-            Ndef(\chainA).ar(defaultNumChannels); // typically 2
-            Ndef(\chainB).ar(defaultNumChannels);
-        });
-        chainAList = [\chainA, defaultSource];
-        chainBList = [\chainB, defaultSource];
-        bypassA = IdentityDictionary.new;
-        bypassB = IdentityDictionary.new;
-        currentChain = chainAList;
-        nextChain = chainBList;
-        Server.default.bind({
-            this.rebuildUnbound(nextChain); // stays stopped
-            this.rebuildUnbound(currentChain); // plays
-        });
+                // Ndef(\chainA, sinkFunc);  //to be replaced
+                // Ndef(\chainB, sinkFunc);
+                // // Guarantee sink buses are audio-rate early (prevents kr-meter races)
+                // Server.default.bind({
+                //     Ndef(\chainA).ar(defaultNumChannels); // typically 2
+                //     Ndef(\chainB).ar(defaultNumChannels);
+                // });
+                // chainAList = [\chainA, defaultSource];
+                // chainBList = [\chainB, defaultSource];
+                // bypassA = IdentityDictionary.new;
+                // bypassB = IdentityDictionary.new;
+                // currentChain = chainAList;
+                // nextChain = chainBList;
+                // Server.default.bind({
+                //     this.rebuildUnbound(nextChain); // stays stopped
+                //     this.rebuildUnbound(currentChain); // plays
+                // });
 /*        this.rebuild(currentChain);
         this.rebuild(nextChain);*/
 /* Server.default.bind({
  Ndef(\chainA).play(numChannels: defaultNumChannels);
  });*/
+
+ // NEXT SEND SOMETHING TO SHOW WHAT'S HAPPENING
+
+        this.setupStaticNdefs;
+
         if(display.notNil) {
             display.sendPaneText(\left, currentChain.asString);
 			display.sendPaneText(\right,nextChain.asString);
         };
-        // enforce exclusive invariant (Option A) at first bring-up
-        this.enforceExclusiveCurrentOptionA(0.1);
-        // set initial state; the poll will flip it once conditions are true
-        ready = false;
-        // OPTION A: enable background poll (comment out if you prefer Option B)
-        this.startReadyPoll;
 
-		this.initChainTest();
+
+        // enforce exclusive invariant (Option A) at first bring-up
+        // this.enforceExclusiveCurrentOptionA(0.1);
+
+        // set initial state; the poll will flip it once conditions are true
+        // ready = false;
+        // OPTION A: enable background poll (comment out if you prefer Option B)
+        // this.startReadyPoll;
+
+		// this.initChainTest();
 
 
         ^this
@@ -189,6 +210,8 @@ LPpedalboard needs to set up the STATIC Ndefs:
     setupStaticNdefs {
         // here create the pedalboardIn and pedalboardOut Ndefs and instantiate theNChain
         
+        logger.info("setupStaticNdefs called");
+
 		Ndef(pedalboardInSym.asSymbol).reshaping_(\elastic).source = {
 			\in.ar(0 ! numChannels)   // instance width, not a hard-coded 6
 		};
@@ -197,15 +220,20 @@ LPpedalboard needs to set up the STATIC Ndefs:
 			\in.ar(0 ! numChannels)   // instance width, not a hard-coded 6
         };
         
+        logger.info("Created pedalboardIn and pedalboardOut Ndefs");
+
+
         // REVIEW: first argument is the name of the chain itself; adapt 
         //NChain class to also accept arguments argDisplay (for LPDisplay)
         // and argProcLib (for LPProcessorLibrary)
 
         //theNChain = NChain.new(\pedalboardChainA, display, processorLib);
         theNChain = NChain.new(\pedalboardChainA);
+        logger.info("Created theNChain NChain instance");
 
         // connect them all 
         Ndef(pedalboardInSym.asSymbol) <<> theNChain <<> Ndef(pedalboardOutSym.asSymbol);
+        logger.info("Connected pedalboardIn, theNChain, and pedalboardOut");
 
         ^this
     }
