@@ -1,5 +1,6 @@
 // LPPedalboard.sc 
 
+// v1.0.6 added ensureServerReady method and call it at top of setupStaticNdefs -- but not solving the issue.
 // v1.0.5 add setupStaticNdefs to init; add logger var
 // v1.0.4 First attempt at creating pedalboardIn & pedalboardOut NDefs, connecting them to NChain, and putting metering in pedalboardOut.
 // v1.0.3 review code, add comments
@@ -52,6 +53,7 @@ LPPedalboard : Object {
     classvar < version; // so that we can print to console on init
 
     // added for v1.0.5
+    var logger; 
 
     // REVIEW THESE:
     var < currentChain; // POSSIBLY OBSOLETE
@@ -133,6 +135,8 @@ LPpedalboard needs to set up the STATIC Ndefs:
         var testSourceNdefSym; // FOR SANITY CHECKS
 
         var sinkFunc; // OBSOLETE
+
+        logger = MDMiniLogger.new();
         display = argDisp;  // KEEP
 		processorLib = argProcessorLib; // KEEP
         numChannels = 2; // eventually hex // possibly inherit from defaultNumChannels?
@@ -185,7 +189,11 @@ LPpedalboard needs to set up the STATIC Ndefs:
 
  // NEXT SEND SOMETHING TO SHOW WHAT'S HAPPENING
 
+
         this.setupStaticNdefs;
+
+        // Now plug test source into the pedalboard:
+        Ndef(pedalboardInSym.asSymbol) <<> Ndef(testSourceNdefSym);
 
         if(display.notNil) {
             display.sendPaneText(\left, currentChain.asString);
@@ -208,9 +216,15 @@ LPpedalboard needs to set up the STATIC Ndefs:
     }
 
     setupStaticNdefs {
+
+         logger.info("setupStaticNdefs called");
         // here create the pedalboardIn and pedalboardOut Ndefs and instantiate theNChain
         
-        logger.info("setupStaticNdefs called");
+
+        this.ensureServerReady;
+
+
+        logger.info("*** ensureServerReady called ***");
 
 		Ndef(pedalboardInSym.asSymbol).reshaping_(\elastic).source = {
 			\in.ar(0 ! numChannels)   // instance width, not a hard-coded 6
@@ -228,13 +242,36 @@ LPpedalboard needs to set up the STATIC Ndefs:
         // and argProcLib (for LPProcessorLibrary)
 
         //theNChain = NChain.new(\pedalboardChainA, display, processorLib);
+        
+        
+
         theNChain = NChain.new(\pedalboardChainA);
         logger.info("Created theNChain NChain instance");
 
         // connect them all 
+
+        // TEST2025101401111 this is probably the right approach but names may need checking
+        Ndef(pedalboardOutSym.asSymbol) <<> Ndef(\pedalboardChainAOut);
+        Ndef(\pedalboardChainAIn) <<> Ndef(pedalboardOutSym.asSymbol);
+
+
+
+        // Now make end of pedalboard audible
+        Ndef(pedalboardOutSym.asSymbol).play;
+        logger.info("Pedalboard should be audible... is it? line 254).");
+
+        //DEBUG:
+        ().play;
+
+
+/*TEMPCHECK
+
+// WRONG::::::::::::::
         Ndef(pedalboardInSym.asSymbol) <<> theNChain <<> Ndef(pedalboardOutSym.asSymbol);
+
         logger.info("Connected pedalboardIn, theNChain, and pedalboardOut");
 
+TEMPCHECK */
         ^this
     }
 
@@ -707,6 +744,22 @@ LPpedalboard needs to set up the STATIC Ndefs:
         };
     }
     // KEEP
+
+// new for v1.0.5
+// added to invoke at beginning of setupStaticNdefs 
+	ensureServerReady{
+        ~serv = Server.local;
+        if (~serv.serverRunning.not) {
+            ~serv.boot;
+            ~serv.waitForBoot; // allowed in your safe-reset pattern
+            ~serv.bind({
+                ~serv.initTree;
+                ~serv.defaultGroup.freeAll;
+            });
+        };
+        ^ this
+    }
+
     // Non-destructive: guard only; do not reset here
     ensureServerTree {
         var serverIsRunning;
