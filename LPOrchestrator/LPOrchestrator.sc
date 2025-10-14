@@ -1,5 +1,6 @@
 // LPOrchestrator.sc
 
+// v1.0.2 added waitForBoot in init; seems to be working fine
 // v1.0.1 removed dubious duplicate
 // v1
 
@@ -29,8 +30,13 @@ LPOrchestrator : Object {
 	init{
 		this.ensureServerReady;
 		"*** Before server boot (if needed)".postln;
-		AppClock.sched(2, {this.postServerInit; nil});  // return nil to stop rescheduling
-		}
+		//AppClock.sched(2, {this.postServerInit; nil});  // return nil to stop rescheduling
+
+		// Seems a betterway to do this AFTER server is up -- working
+		 ~serv.waitForBoot( {this.postServerInit;})	
+	
+	
+	}
 
 
 	postServerInit {
@@ -68,6 +74,15 @@ LPOrchestrator : Object {
             });
         };
         ^ this
+    }
+
+ 	check {
+        logger.info("This is orchestrator; check.");
+    }
+
+	printDiagMessages { | message|
+		lpDisplay.sendPaneText(\diag, 'Hello this is a diag');
+        //lpDisplay.sendPaneText(\diag, message.aString);
     }
 
 }
