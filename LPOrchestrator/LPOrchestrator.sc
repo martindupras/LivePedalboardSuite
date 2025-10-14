@@ -81,14 +81,15 @@ LPOrchestrator : Object {
 		^this
     }
 
-	printDiagMessages { | message|
-		postln("................");
-		postln("Orchestrator printDiagMessages: " ++ message.asString);
-		postln("................");
+	printDiagMessages { | message |
+		postln("..........");
+		postln("Orch printDiagMessages: " ++ message.asString);
+		postln("..........");
 		//
-		lpDisplay.sendPaneText(\diag, 'Hello this is a diag'); // wny not printing
+		//this.lpDisplay.sendPaneText(\diag, 'Hello this is a diag'); // wny not printing
+		this.lpDisplay.sendPaneText(\diag, message); // wny not printing
         postln("... did it show?");
-		postln("................");
+		postln("..........");
 		^this
     }
 
