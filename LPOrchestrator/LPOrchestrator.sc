@@ -44,7 +44,9 @@ LPOrchestrator : Object {
 	postServerInit {
 		"*** Afterserver boot".postln;
 		lpDisplay = LPDisplay.new();  //pass 'this' if want control buttons on lpDisplay
-		//lpLibrary = LPProcessorLibrary.new();
+		//<DEBUG>
+		lpDisplay.display.sendPaneText(\left, "REACHED from LPorchestrator.postServerInit");
+		//</DEBUG>
 		lpLibrary = LPLibrary.new(); // I THINK THAT'S CORRECT
 		logger = MDMiniLogger.new();
 		commandManager = CommandManager.new(lpDisplay);
