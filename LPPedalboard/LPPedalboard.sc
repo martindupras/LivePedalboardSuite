@@ -141,14 +141,18 @@ LPPedalboard : Object {
 
         //<DEBUG>
             postln("============");
-            this.display.sendPaneText(\left, "REACHED LEFT PANE");
-			this.display.sendPaneText(\right, "REACHED RIGHT PANE");
+            //this.display.sendPaneText(\left, "REACHED LEFT PANE");
+			//this.display.sendPaneText(\right, "REACHED RIGHT PANE");
             postln("============");
         //</DEBUG>
 
         if(display.notNil) {
-            display.sendPaneText(\left, currentChain.asString);
-			display.sendPaneText(\right,nextChain.asString);
+            //<DEBUG>
+            //next two commented out for debugging:
+            //display.sendPaneText(\left, currentChain.asString);
+			//display.sendPaneText(\right,nextChain.asString);
+            //</DEBUG>
+            
         };
 
         ^this

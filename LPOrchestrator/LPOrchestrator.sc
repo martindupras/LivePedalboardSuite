@@ -1,5 +1,6 @@
 // LPOrchestrator.sc
 
+// v1.0.4.2 figured out how to get orchestrator to send to display
 // v1.0.4.1 trying to correct what gets passed to pedalboard
 // v1.0.3 fixed printDiagMessages to actually display in LPDisplay and in console
 // v1.0.2 added waitForBoot in init; seems to be working fine
@@ -19,7 +20,7 @@ LPOrchestrator : Object {
 
 	*initClass {
 		var text;
-		version = "v1.0.4.1";
+		version = "v1.0.4.2";
 		text = "LPOrchestrator " ++ version;
 		text.postln;
 	}
@@ -45,7 +46,8 @@ LPOrchestrator : Object {
 		"*** Afterserver boot".postln;
 		lpDisplay = LPDisplay.new();  //pass 'this' if want control buttons on lpDisplay
 		//<DEBUG>
-		lpDisplay.display.sendPaneText(\left, "REACHED from LPorchestrator.postServerInit");
+		// checked: working in v1.0.4.2
+		//lpDisplay.sendPaneText(\left, "REACHED from LPorchestrator.postServerInit");
 		//</DEBUG>
 		lpLibrary = LPLibrary.new(); // I THINK THAT'S CORRECT
 		logger = MDMiniLogger.new();
