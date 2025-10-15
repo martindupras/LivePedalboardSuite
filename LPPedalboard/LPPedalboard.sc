@@ -127,6 +127,11 @@ LPPedalboard : Object {
         // Now plug test source into the pedalboard:
         Ndef(pedalboardInSym.asSymbol) <<> Ndef(testSourceNdefSym);
 
+        //<DEBUG>
+            display.sendPaneText(\left, "REACHED LEFT PANE");
+			display.sendPaneText(\right, "REACHED RIGHT PANE");
+        //</DEBUG>
+
         if(display.notNil) {
             display.sendPaneText(\left, currentChain.asString);
 			display.sendPaneText(\right,nextChain.asString);
@@ -145,7 +150,6 @@ LPPedalboard : Object {
 
         // INPUT: just a passthrough; add other things in due time (DIout for monitoring, enable test signal maybe?)
 		Ndef(pedalboardInSym.asSymbol).reshaping_(\elastic).source = {\in.ar(0 ! numChannels)   };
-
 
         // v0.1.11 add sendPeakRMS for metering;
 		Ndef(pedalboardOutSym.asSymbol).reshaping_(\elastic).source = { 

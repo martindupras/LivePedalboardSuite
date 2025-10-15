@@ -1,22 +1,13 @@
 // starter_MD_Oct25.scd
-// v0.5.3
+// v0.5.4
 
 // Start an LPOrchestrator
 //   it starts server, then creates lpDisplay, logger, commandManager and pedalboard internals:
 ~orchestrator = LPOrchestrator.new();
 // window should open
 
-
-/*
-// Now put a test source into input of pedalboard
-Ndef(\pulseNoise, {SinOsc.ar(freq:3, mul: { PinkNoise.ar(0.1!2)})});
-
-//check that it works:
-Ndef(\pulseNoise).play;
-
-// it does. Turn it off.
-Ndef(\pulseNoise).stop;
-*/
+//DEBUG
+//~orchestrator.lpDisplay.postln;
 
 
 
@@ -31,12 +22,34 @@ Ndef(\pulseNoise).stop;
 ~orchestrator.printDiagMessages("be-bop a lula"); // works now
 
 
+
+
+//THIS WORKS
+~orchestrator.pedalboard.display.sendPaneText(\left, "REACHED LEFT PANE");
+
+
+// SANITY CHECKS
 // these work though...
+/*
 ~testDisplay = LPDisplay.new();
 ~testDisplay.sendPaneText(\diag, '12343254645'); // works
 ~testDisplay.sendPaneText(\diag, "ertwertyu");   // works
+*/
 
-~orchestrator.lpDisplay.postln;
 
 
-SendPeakRMS
+
+
+
+
+
+/*
+// Now put a test source into input of pedalboard
+Ndef(\pulseNoise, {SinOsc.ar(freq:3, mul: { PinkNoise.ar(0.1!2)})});
+
+//check that it works:
+Ndef(\pulseNoise).play;
+
+// it does. Turn it off.
+Ndef(\pulseNoise).stop;
+*/

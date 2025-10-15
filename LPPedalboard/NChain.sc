@@ -27,6 +27,9 @@ NChain {
 	var < numChannels;
 	var < chainList; // this will be a list of the Ndef symbols in the chain in order
 
+	var <> display;
+	var <  procLib;
+
 	*initClass {
 		var text;
 		version = "v0.4.7.6";
@@ -44,14 +47,21 @@ NChain {
     // procLib could in the absence of an argument default to LPProcessorLibrary
     // and load it up here with no argument reference. Consider my options.
 
-	init { |name = "defaultChain" , display = nil, procLib |
-
-		// var chainIn, chainOut;
+	init { |name = "defaultChain" , argDisplay = nil, argProcLib |
 
 		logger = MDMiniLogger.new();
 
+		//<DEBUG>
+		postln("***** NChain.init *****");
+		postln(">>> NChain init: argDisplay = " ++ argDisplay.asString);
+		postln(">>> NChain init: argProcLib = " ++ argProcLib.asString);
+		//</DEBUG>
+
 		chainName = name.asString; // store the name as String
 		chainNameSym = chainName.asSymbol; // and as Symbol... possibly not needed. Belt and braces.
+
+		display = argDisplay; 
+		procLib = argProcLib;
 
 		numChannels = defaultNumChannels; // could add as argument later
 		chainList = List.new; // start with an empty list
@@ -141,7 +151,7 @@ NChain {
 		//postln("DEBUG---: this.printChain: ");
 
 		// added v0.4.7.6 test message to LPDisplay
-		lpDisplay.sendPaneText(\eft,"TEST 20251015-1006");
+		//display.sendPaneText(\left,"TEST 20251015-1006");
 
 		this.printChain;
 		^this;
