@@ -1,5 +1,6 @@
 // NChain.sc
 
+// v0.4.7.7 print chainList to LPDisplay from NChain.init -- working
 // v0.4.7.6 make rewireChain post test message to LPDisplay
 // v0.4.7.5 add logger var and check method
 // v0.4.7.4 added comments and little formatting tidy
@@ -61,6 +62,11 @@ NChain {
 		chainNameSym = chainName.asSymbol; // and as Symbol... possibly not needed. Belt and braces.
 
 		display = argDisplay; 
+		//<DEBUG>
+		// working in v0.4.7.7
+		//display.sendPaneText(\left, "REACHED from NChain.init");
+		//</DEBUG>
+
 		procLib = argProcLib;
 
 		numChannels = defaultNumChannels; // could add as argument later
@@ -134,6 +140,8 @@ NChain {
         //DEBUG
 		postln("rewireChain: chainList = " ++ chainList.asString);
 
+
+
         // new list chainNameOut, chainList[0], chainList[1], ..., chainList[n], chainNameIn
 		fullchainList = [chainName ++ "Out"] ++ chainList ++ [chainName ++ "In"];
 		
@@ -150,8 +158,10 @@ NChain {
 		//postln("DEBUG---: rewireChain complete.");
 		//postln("DEBUG---: this.printChain: ");
 
-		// added v0.4.7.6 test message to LPDisplay
-		//display.sendPaneText(\left,"TEST 20251015-1006");
+		// working from v0.4.7.6
+		// REVIEW: for now only print the mutable chainList, not the fullchainList
+		display.sendPaneText(\left,chainList.asString);
+
 
 		this.printChain;
 		^this;

@@ -28,15 +28,12 @@
    chains actions at specific time in the future,e.g. on next beat or next bar; implement those
    when we have some tempo/beats mechanism.)]
 
-   QUESTION FOR SH: NChain sends to display, or to here first? 
-This class should also handle the passing of display information about the WHOLE pedalboard and 
-the state of things (e.g. command queued, or effect is bypassed, etc.) NChain PROBABLY should not
-be displaying things directly to the LPDisplay. 
+
 
 TODO:
 // test existing; right now init works and we have sound audible
 
-- display something from pedalboard to display
+[DONE] display something from pedalboard to display
 - do insertion and removal to theChain from pedalboard
 - .play and .stop on pedalboardOut; make a help method, display state in LPDisplay
 - figure out insertion of processorLib definition into a slot in the NChain
@@ -106,8 +103,8 @@ LPPedalboard : Object {
 
         display = argDisp;
 		//<DEBUG>
-		// TESTING
-		display.sendPaneText(\left, "REACHED from LPPedalboard.init");
+		// Working in v1.1.11.2
+		//display.sendPaneText(\left, "REACHED from LPPedalboard.init");
 		//</DEBUG>
 
 
