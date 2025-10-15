@@ -1,5 +1,6 @@
 // LPPedalboard.
 
+// v1.1.11.2 Got displpay messages working from here
 // v1.1.11.1 troubleshooting why I can't sent to display from here.
 // v1.0.11 added metering to pedalboardOut Ndef
 // v1.0.10 renamed theNChain to theChain (because I kept messing that up)
@@ -104,6 +105,12 @@ LPPedalboard : Object {
         var sinkFuncOBSOLETE; // OBSOLETE
 
         display = argDisp;
+		//<DEBUG>
+		// TESTING
+		display.sendPaneText(\left, "REACHED from LPPedalboard.init");
+		//</DEBUG>
+
+
         processorLib = argProcessorLib;
 
         logger = MDMiniLogger.new();

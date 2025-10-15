@@ -14,9 +14,9 @@ LPOrchestrator : Object {
 
     var <> pedalboard;
     var <> commandManager;
-    var <> lpDisplay;
+    var <> display;
     var <> logger;
-	var <> lpLibrary;
+	var <> library;  // LPLibrary
 
 	*initClass {
 		var text;
@@ -44,15 +44,15 @@ LPOrchestrator : Object {
 
 	postServerInit {
 		"*** Afterserver boot".postln;
-		lpDisplay = LPDisplay.new();  //pass 'this' if want control buttons on lpDisplay
+		display = LPDisplay.new();  //pass 'this' if want control buttons on display
 		//<DEBUG>
 		// checked: working in v1.0.4.2
-		//lpDisplay.sendPaneText(\left, "REACHED from LPorchestrator.postServerInit");
+		//display.sendPaneText(\left, "REACHED from LPorchestrator.postServerInit");
 		//</DEBUG>
-		lpLibrary = LPLibrary.new(); // I THINK THAT'S CORRECT
+		library = LPLibrary.new(); // I THINK THAT'S CORRECT
 		logger = MDMiniLogger.new();
-		commandManager = CommandManager.new(lpDisplay);
-		pedalboard = LPPedalboard.new(lpDisplay, lpLibrary);
+		commandManager = CommandManager.new(display);
+		pedalboard = LPPedalboard.new(display, library);
 	}
 
 
@@ -60,7 +60,7 @@ LPOrchestrator : Object {
  	cleanUp {   //SH_suggestion
 		     // pedalboard.cleanUp
 		     // commandManager.cleanUp
-		     lpDisplay.closeExistingLPDisplayWindows; // is this defined in lpdisplay?
+		     display.closeExistingLPDisplayWindows; // is this defined in lpdisplay?
 		     // error manager.cleanUp
 		     // maybe shut down server? (not sure order of that one)
 
@@ -94,8 +94,8 @@ LPOrchestrator : Object {
 		// UNCOMMENT FOR DEBUG:
 		//postln("Orch printDiagMessages: " ++ message.asString);
 
-		//this.lpDisplay.sendPaneText(\diag, 'Hello this is a diag'); // wny not printing
-		this.lpDisplay.sendPaneText(\diag, message); // wny not printing
+		//this.display.sendPaneText(\diag, 'Hello this is a diag'); // wny not printing
+		this.display.sendPaneText(\diag, message); // wny not printing
   
 		^this
     }
