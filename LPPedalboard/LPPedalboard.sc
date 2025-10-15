@@ -1,5 +1,6 @@
 // LPPedalboard.
 
+// v1.1.11.1 troubleshooting why I can't sent to display from here.
 // v1.0.11 added metering to pedalboardOut Ndef
 // v1.0.10 renamed theNChain to theChain (because I kept messing that up)
 // v1.0.9 added display and processorlib args to NChain.new in setupStaticNdefs
@@ -69,7 +70,7 @@ LPPedalboard : Object {
     var < defaultNumChannels; // QUESTION: do I need a default here?
     var < numChannels; 
     var < defaultSource;
-    var < display; // LPDisplay
+    var < display; // changed < to <>. Does that fix things? Apparently not. Switch back to <
     var < processorLib; // LPProcessorLibrary
     var < ready; 
 
@@ -82,26 +83,33 @@ LPPedalboard : Object {
 
     *initClass {
         var text;
-        version = "v1.0.11";
+        version = "v1.0.11.1";
         text = "LPPedalboard " ++ version;
         text.postln;
     }
-    *new { arg disp = nil, aProcessorLib;
-        ^super.new.init(disp, );
+
+
+    *new { 
+        arg disp, aProcessorLib; // we get these from LPorchestrator
+        ^super.new.init(disp, aProcessorLib);
     }
 
 /* 
 --- 20251013-1924:new plan description: ---> moved to bottom of this file for tidiness <---
 */
-    init { arg argDisp, argProcessorLib;
+    init { arg argDisp, argProcessorLib; 
 
         var testSourceNdefSym; // FOR SANITY CHECKS
 
         var sinkFuncOBSOLETE; // OBSOLETE
 
+        display = argDisp;
+        processorLib = argProcessorLib;
+
         logger = MDMiniLogger.new();
-        display = argDisp;  // KEEP
-		processorLib = argProcessorLib; // KEEP
+        //display = argDisp;  // COMMENTED OUT v1.0.12 -- these are passed by LPOrchestrator
+		// processorLib = argProcessorLib; COMMENTED OUT v1.0.12 -- these are passed by LPOrchestrator
+
         numChannels = 2; // eventually hex // possibly inherit from defaultNumChannels?
 
         //TODO: Decide what we do here... we need a test source. Do we have a makeTestSource method or some such
@@ -113,6 +121,10 @@ LPPedalboard : Object {
         Ndef(\pulseNoise01, {SinOsc.ar(freq:3, mul: { PinkNoise.ar(0.1!2)})}); 
 
 //// </sanity checks>
+
+        // CAN I DISPLAY TO WINDOW?
+        //display.sendPaneText(\left, "DEBUG: in LPPedalboard init");
+
 
         // OBSOLETE: if needed use makepassthrough from NChains.sc
         sinkFuncOBSOLETE = {
@@ -128,8 +140,10 @@ LPPedalboard : Object {
         Ndef(pedalboardInSym.asSymbol) <<> Ndef(testSourceNdefSym);
 
         //<DEBUG>
-            display.sendPaneText(\left, "REACHED LEFT PANE");
-			display.sendPaneText(\right, "REACHED RIGHT PANE");
+            postln("============");
+            this.display.sendPaneText(\left, "REACHED LEFT PANE");
+			this.display.sendPaneText(\right, "REACHED RIGHT PANE");
+            postln("============");
         //</DEBUG>
 
         if(display.notNil) {

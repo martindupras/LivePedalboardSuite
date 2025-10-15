@@ -39,7 +39,7 @@ NChain {
 		text.postln;
 	}
 
-	*new  { |name| ^super.new.init(name) }
+	*new  { |name, argDisplay, argProcLib| ^super.new.init(name, argDisplay, argProcLib) }
 
     // REVIEW: work out what we need in init to make display and procLib work 
     // here. display could default to nil because we could conceivably have a chain
@@ -51,7 +51,7 @@ NChain {
 
 		logger = MDMiniLogger.new();
 
-		//<DEBUG>
+		//<DEBUG> 
 		postln("***** NChain.init *****");
 		postln(">>> NChain init: argDisplay = " ++ argDisplay.asString);
 		postln(">>> NChain init: argProcLib = " ++ argProcLib.asString);

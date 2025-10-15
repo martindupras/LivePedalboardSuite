@@ -1,5 +1,6 @@
 // LPOrchestrator.sc
 
+// v1.0.4.1 trying to correct what gets passed to pedalboard
 // v1.0.3 fixed printDiagMessages to actually display in LPDisplay and in console
 // v1.0.2 added waitForBoot in init; seems to be working fine
 // v1.0.1 removed dubious duplicate
@@ -18,8 +19,8 @@ LPOrchestrator : Object {
 
 	*initClass {
 		var text;
-		version = "v1.0.3";
-		text = "LPOrechestrator " ++ version;
+		version = "v1.0.4.1";
+		text = "LPOrchestrator " ++ version;
 		text.postln;
 	}
 
@@ -43,6 +44,8 @@ LPOrchestrator : Object {
 	postServerInit {
 		"*** Afterserver boot".postln;
 		lpDisplay = LPDisplay.new();  //pass 'this' if want control buttons on lpDisplay
+		//lpLibrary = LPProcessorLibrary.new();
+		lpLibrary = LPLibrary.new(); // I THINK THAT'S CORRECT
 		logger = MDMiniLogger.new();
 		commandManager = CommandManager.new(lpDisplay);
 		pedalboard = LPPedalboard.new(lpDisplay, lpLibrary);
