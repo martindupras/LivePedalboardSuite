@@ -1,5 +1,6 @@
 // LPLibrary.sc (renamed from MagicProcessLibrary.sc)
 
+// v1.0.3 fixed this.register.(   to   this.register(  
 // v1.0.2 added class version stuff
 // v1.0.1 add a listAvailable method
 
@@ -14,7 +15,7 @@ LPLibrary : Object {
 
 	*initClass {
 		var text;
-		version = "v1.0.2";
+		version = "v1.0.3";
 		text = "LPLibrary " ++ version;
 		text.postln;
 	}
@@ -83,19 +84,18 @@ LPLibrary : Object {
 		^this
 	}
 
-
 	////////////////////////////////
 	createNdefSpecs{
 
 		// Sources
-		this.register.(\ts0, {
+		this.register(\ts0, {
 			var inputSignal;
 			inputSignal = Silent.ar((0..1));
 			inputSignal * 1.0
 		});
 
 		// Effects – same as in bootstrap, or your refined versions
-		this.register.(\delay, {
+		this.register(\delay, {
 			var inputSignal, time, fb, mix, delayed;
 			inputSignal = \in.ar;
 			time = \time.kr(0.35).clip(0.01, 2.0);
@@ -105,7 +105,7 @@ LPLibrary : Object {
 			XFade2.ar(inputSignal, delayed, (mix * 2 - 1))
 		});
 
-		this.register.(\tremolo, {
+		this.register(\tremolo, {
 			var inputSignal, rate, depth;
 			inputSignal = \in.ar;
 			rate  = \rate.kr(5).clip(0.1, 20);
@@ -113,7 +113,7 @@ LPLibrary : Object {
 			inputSignal * SinOsc.kr(rate).range(1 - depth, 1)
 		});
 
-		this.register.(\reverb, {
+		this.register(\reverb, {
 			var inputSignal, mix, room, damp;
 			inputSignal = \in.ar;
 			mix  = \mix.kr(0.25).clip(0, 1);
@@ -122,7 +122,7 @@ LPLibrary : Object {
 			XFade2.ar(inputSignal, FreeVerb2.ar(inputSignal[0], inputSignal[1], mix, room, damp), 0)
 		});
 
-		this.register.(\chorus, {
+		this.register(\chorus, {
 			var inputSignal, rate, depth, baseDelay, modDelay;
 			inputSignal = \in.ar;
 			rate      = \rate.kr(0.8).clip(0.1, 5);
@@ -132,12 +132,11 @@ LPLibrary : Object {
 			DelayC.ar(inputSignal, 0.1, modDelay)
 		});
 
-		this.register.(\drive, {
+		this.register(\drive, {
 			var inputSignal, gain;
 			inputSignal = \in.ar;
 			gain = \gain.kr(2.5).clip(1, 10);
 			(inputSignal * gain).tanh
 		});
-
 	}
 }
