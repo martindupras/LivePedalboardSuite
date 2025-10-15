@@ -176,12 +176,14 @@ NChain {
 		
 		// trying in v0.4.7.8
 		var functionToInsert; // we will make this the function found in procLib
-
-		functionToInsert = procLib.getProcessorFunction.get(argName);
+		
+		functionToInsert = procLib.get(argName.asSymbol); // seems to work
+		
 		if (functionToInsert.isNil) {
 			("NChain insert: no processor function named '" ++ argName ++ "' found in library; skipping").postln;
 			^this;
 		};	
+
 		postln("NChain insert: got function from library for '" ++ argName ++ "'");
 		// end trying in v0.4.7.8
 
