@@ -165,7 +165,7 @@ NChain {
 		display.sendPaneText(
 			\left,
 			chainList.collect({ |sym| sym.asString }).join(Char.nl)
-			); //split with newline characters
+			); //split with newline characters; working now. Coudl be put in a separate method if needed. 
 
 		this.printChain;
 		^this;
