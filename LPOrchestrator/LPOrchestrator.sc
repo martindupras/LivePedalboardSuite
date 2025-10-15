@@ -49,7 +49,7 @@ LPOrchestrator : Object {
 
 
 
- cleanUp {   //SH_suggestion
+ 	cleanUp {   //SH_suggestion
 		     // pedalboard.cleanUp
 		     // commandManager.cleanUp
 		     lpDisplay.closeExistingLPDisplayWindows; // is this defined in lpdisplay?

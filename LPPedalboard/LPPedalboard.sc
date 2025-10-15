@@ -1,5 +1,6 @@
 // LPPedalboard.
 
+// v1.0.11 added metering to pedalboardOut Ndef
 // v1.0.10 renamed theNChain to theChain (because I kept messing that up)
 // v1.0.9 added display and processorlib args to NChain.new in setupStaticNdefs
 // v1.0.8 removed old commented out code; probably not needed; can be recovered from previous commits.
@@ -81,7 +82,7 @@ LPPedalboard : Object {
 
     *initClass {
         var text;
-        version = "v1.0.9";
+        version = "v1.0.11";
         text = "LPPedalboard " ++ version;
         text.postln;
     }
@@ -142,8 +143,17 @@ LPPedalboard : Object {
         this.ensureServerReady;
         logger.info("*** ensureServerReady called ***");
 
+        // INPUT: just a passthrough; add other things in due time (DIout for monitoring, enable test signal maybe?)
 		Ndef(pedalboardInSym.asSymbol).reshaping_(\elastic).source = {\in.ar(0 ! numChannels)   };
-		Ndef(pedalboardOutSym.asSymbol).reshaping_(\elastic).source = { \in.ar(0 ! numChannels)  };
+
+
+        // v0.1.11 add sendPeakRMS for metering;
+		Ndef(pedalboardOutSym.asSymbol).reshaping_(\elastic).source = { 
+            var inSig;
+            inSig = \in.ar(0 ! numChannels);
+            SendPeakRMS.kr(inSig, 24, 3, '/peakrmsA', 2001);
+            inSig;  // pass through
+        };
         
         logger.info("Created pedalboardIn and pedalboardOut Ndefs");
 

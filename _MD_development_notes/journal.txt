@@ -1,6 +1,4 @@
 
-
-
 20251011
 Forked SH branch to MD_Oct25. The intention is to do my changes from the "stable" known state that we had.
 
@@ -77,3 +75,13 @@ Next step:
   implement insertAt (dummy for now would do)
 
   change insertion with argument name of processor in processor library.
+
+
+=======================
+20251014
+
+Lots of successes. Now able to call up orchestrator, send commands to display; things are promising.
+
+=======================
+20251015-09:11
+Added metering to pedalboardout. Seems to work. Great!

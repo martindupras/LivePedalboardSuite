@@ -1,0 +1,8 @@
+Right now:
+
+- add meters to pedlaboardout; check that they display
+- turn on and off the test signal to source; probably should default to off, but be accessible all the time for testing
+- post to display when rewirechain (test)
+- post chain list to display when chain changes (if above succeeds)
+- implement inserting Ndefs created from processor library
+- collect all possible names from the methods and put in the spreadsheet
