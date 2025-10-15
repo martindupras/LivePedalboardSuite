@@ -1,5 +1,6 @@
 // NChain.sc
 
+// v0.4.7.6 make rewireChain post test message to LPDisplay
 // v0.4.7.5 add logger var and check method
 // v0.4.7.4 added comments and little formatting tidy
 // v0.4.7.3 added planning notes before init method.
@@ -28,7 +29,7 @@ NChain {
 
 	*initClass {
 		var text;
-		version = "v0.4.7.5";
+		version = "v0.4.7.6";
 		defaultNumChannels = 2; // Set a sensible default
 
 		text = "Nchains " ++ version;
@@ -138,6 +139,10 @@ NChain {
 
 		//postln("DEBUG---: rewireChain complete.");
 		//postln("DEBUG---: this.printChain: ");
+
+		// added v0.4.7.6 test message to LPDisplay
+		lpDisplay.sendPaneText(\eft,"TEST 20251015-1006");
+
 		this.printChain;
 		^this;
 	}
