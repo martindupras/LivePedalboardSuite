@@ -1,5 +1,5 @@
 // starter_MD_Oct25.scd
-// v0.5.2
+// v0.5.3
 
 // Start an LPOrchestrator
 //   it starts server, then creates lpDisplay, logger, commandManager and pedalboard internals:
@@ -28,7 +28,7 @@ Ndef(\pulseNoise).stop;
 
 ~orchestrator.pedalboard.theChain.insertTest("bob"); // works but no decrease in amplitude
 
-~orchestrator.printDiagMessages("well hello there"); // QUESTION doesn't display...
+~orchestrator.printDiagMessages("be-bop a lula"); // works now
 
 
 // these work though...
@@ -36,6 +36,7 @@ Ndef(\pulseNoise).stop;
 ~testDisplay.sendPaneText(\diag, '12343254645'); // works
 ~testDisplay.sendPaneText(\diag, "ertwertyu");   // works
 
-
-
 ~orchestrator.lpDisplay.postln;
+
+
+SendPeakRMS

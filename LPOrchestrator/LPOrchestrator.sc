@@ -1,5 +1,6 @@
 // LPOrchestrator.sc
 
+// v1.0.3 fixed printDiagMessages to actually display in LPDisplay and in console
 // v1.0.2 added waitForBoot in init; seems to be working fine
 // v1.0.1 removed dubious duplicate
 // v1
@@ -17,7 +18,7 @@ LPOrchestrator : Object {
 
 	*initClass {
 		var text;
-		version = "v1.0.1";
+		version = "v1.0.3";
 		text = "LPOrechestrator " ++ version;
 		text.postln;
 	}
@@ -82,15 +83,13 @@ LPOrchestrator : Object {
     }
 
 	printDiagMessages { | message |
-		// 16:01 25 Oct 2024: trying to get this working again
-		postln("..........");
-		postln("Orch printDiagMessages: " ++ message.asString);
-		postln("..........");
-		//
+
+		// UNCOMMENT FOR DEBUG:
+		//postln("Orch printDiagMessages: " ++ message.asString);
+
 		//this.lpDisplay.sendPaneText(\diag, 'Hello this is a diag'); // wny not printing
 		this.lpDisplay.sendPaneText(\diag, message); // wny not printing
-        postln("... did it show?");
-		postln("..........");
+  
 		^this
     }
 
