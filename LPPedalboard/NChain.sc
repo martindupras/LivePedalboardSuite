@@ -141,7 +141,6 @@ NChain {
 		postln("rewireChain: chainList = " ++ chainList.asString);
 
 
-
         // new list chainNameOut, chainList[0], chainList[1], ..., chainList[n], chainNameIn
 		fullchainList = [chainName ++ "Out"] ++ chainList ++ [chainName ++ "In"];
 		
@@ -162,6 +161,11 @@ NChain {
 		// REVIEW: for now only print the mutable chainList, not the fullchainList
 		display.sendPaneText(\left,chainList.asString);
 
+		// rework to list line by line:
+		display.sendPaneText(
+			\left,
+			chainList.collect({ |sym| sym.asString }).join(Char.nl)
+			); //split with newline characters
 
 		this.printChain;
 		^this;
