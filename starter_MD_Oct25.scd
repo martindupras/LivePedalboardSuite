@@ -21,6 +21,10 @@
 
 ~orchestrator.pedalboard.theChain.insertTest("rita"); // works but no decrease in amplitude
 
+// new v 0.4.7.8
+~orchestrator.pedalboard.theChain.insert("tremolo"); // try
+
+
 ~orchestrator.printDiagMessages("be-bop a lula"); // works now
 
 

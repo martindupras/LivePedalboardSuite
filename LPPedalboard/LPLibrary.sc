@@ -1,6 +1,10 @@
-/* LPLibrary.sc (renamed from MagicProcessLibrary.sc)
+// LPLibrary.sc (renamed from MagicProcessLibrary.sc)
+
+// v1.0.1 add a listAvailable method
+
+
+/*
    Holds a registry of processor/source functions and can ensure Ndefs exist.
-   MD 20250913
 */
 LPLibrary : Object {
     var < defs;           // IdentityDictionary: Symbol -> Function
