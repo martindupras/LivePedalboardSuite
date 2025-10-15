@@ -1,21 +1,34 @@
 // LPLibrary.sc (renamed from MagicProcessLibrary.sc)
 
+// v1.0.2 added class version stuff
 // v1.0.1 add a listAvailable method
-
 
 /*
    Holds a registry of processor/source functions and can ensure Ndefs exist.
 */
 LPLibrary : Object {
+    classvar version;
+
     var < defs;           // IdentityDictionary: Symbol -> Function
 	var < defaultNumChannels;
 
+    *initClass {
+		var text;
+		version = "v1.0.2";
+		text = "LPLibrary " ++ version;
+		text.postln;
+	}
 
     *new { ^super.new.init }
 
     init {
 		defs = IdentityDictionary.new;
 		defaultNumChannels = 2;
+
+        this.createNdefSpecs; // register all the processors
+
+        // Do the stuff here:
+        // register all the processors in the dictionary
 		^this
 
 	}

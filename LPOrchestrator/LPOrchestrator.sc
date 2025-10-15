@@ -7,7 +7,6 @@
 // v1.0.1 removed dubious duplicate
 // v1
 
-
 LPOrchestrator : Object {
 
 	classvar version;
@@ -64,10 +63,10 @@ LPOrchestrator : Object {
 		     // error manager.cleanUp
 		     // maybe shut down server? (not sure order of that one)
 
-		    //  this  method is not used at  present,
+		    // this  method is not used at  present,
 		    // but in the way the orchestrator is currently invoked in the stub
-		    //  it would not stick around long enough to listen oit for cleanUp messages
-		    //  since it  garbage collected immediately after init.
+		    // it would not stick around long enough to listen oit for cleanUp messages
+		    // since it  garbage collected immediately after init.
 		    // this is easily prevented by invoking  in stub like so: ~orch = LPOrchestrator.new;
 	}
 
