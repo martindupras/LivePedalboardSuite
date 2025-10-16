@@ -23,6 +23,7 @@
 // new v 0.4.7.8
 ~orchestrator.pedalboard.theChain.insert(\tremolo); // try
 
+~orchestrator.pedalboard.theChain.insert(\delay); // try
 
 ~orchestrator.printDiagMessages("be-bop a lula"); // works now
 
