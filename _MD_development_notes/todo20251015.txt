@@ -6,3 +6,9 @@ Right now:
 [DONE] post chain list to display when chain changes (if above succeeds)
 - implement inserting Ndefs created from processor library
 - collect all possible names from the methods and put in the spreadsheet
+
+
+NEXT:
+- change names of panes in LPDisplay
+- display chain in top down order (not bottom up as now
+- shim insertTest- become insertPassthrough, insertTest calls it

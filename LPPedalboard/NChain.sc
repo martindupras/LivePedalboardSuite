@@ -1,5 +1,6 @@
 // NChain.sc
 
+// v0.4.7.7 renamed insertTest to insertPassthrough and insertTestAt to insertPassthroughAt; compatibility methods added
 // v0.4.7.7 print chainList to LPDisplay from NChain.init -- working
 // v0.4.7.6 make rewireChain post test message to LPDisplay
 // v0.4.7.5 add logger var and check method
@@ -260,7 +261,11 @@ NChain {
         ^this;
     }
 
-    insertTestAt { |argName, index|
+	insertTestAt { |argName, index|
+		insertPassthroughAt(argName, index);
+	}
+
+    insertPassthroughAt { |argName, index|
         var newName, newSymbol, size, insertIndex, alreadyPresent, newList;
 
         // Ensure we have a list
@@ -311,7 +316,12 @@ NChain {
         ^this;
     }
 
+	// compatibility 
 	insertTest { |argName|
+		insertPassthrough(argName);
+	}
+
+	insertPassthrough { |argName|
 		var newName, newSymbol, insertIndex, alreadyPresent;
 
 		newName = chainName ++ argName.asString;
