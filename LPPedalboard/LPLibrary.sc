@@ -1,5 +1,6 @@
 // LPLibrary.sc (renamed from MagicProcessLibrary.sc)
 
+// V1.0.5 made all the definitions take numChannels; should probably plan to put fallback numChannels = 2.
 // V1.0.4 added libPassthrough for testing
 // v1.0.3 fixed this.register.(   to   this.register(
 // v1.0.2 added class version stuff
@@ -17,7 +18,7 @@ LPLibrary : Object {
 
 	*initClass {
 		var text;
-		version = "v1.0.4";
+		version = "v1.0.5";
 		text = "LPLibrary " ++ version;
 		text.postln;
 	}
@@ -100,7 +101,7 @@ LPLibrary : Object {
 		// Sources
 		this.register(\ts0, {
 			var inputSignal;
-			inputSignal = Silent.ar((0..1));
+			inputSignal = Silent.ar((0!numChannels)); // stereo silence
 			inputSignal * 1.0
 		});
 
@@ -112,14 +113,14 @@ LPLibrary : Object {
 
 		this.register(\TestPink, {
 			var inputSignal;
-			inputSignal = Silent.ar((0..1));
+			inputSignal = PinkNoise.ar((0.1)!numChannels);
 			inputSignal * 1.0
 		});
 
 		// Effects – same as in bootstrap, or your refined versions
 		this.register(\delay, {
 			var inputSignal, time, fb, mix, delayed;
-			inputSignal = \in.ar;
+			inputSignal = \in.ar(0 ! numChannels);
 			time = \time.kr(0.35).clip(0.01, 2.0);
 			fb   = \fb.kr(0.35).clip(0.0, 0.95);
 			mix  = \mix.kr(0.25).clip(0.0, 1.0);
@@ -129,7 +130,7 @@ LPLibrary : Object {
 
 		this.register(\tremolo, {
 			var inputSignal, rate, depth;
-			inputSignal = \in.ar;
+			inputSignal = \in.ar(0 ! numChannels);
 			rate  = \rate.kr(5).clip(0.1, 20);
 			depth = \depth.kr(0.5).clip(0, 1);
 			inputSignal * SinOsc.kr(rate).range(1 - depth, 1)
@@ -137,7 +138,7 @@ LPLibrary : Object {
 
 		this.register(\reverb, {
 			var inputSignal, mix, room, damp;
-			inputSignal = \in.ar;
+			inputSignal = \in.ar(0 ! numChannels);
 			mix  = \mix.kr(0.25).clip(0, 1);
 			room = \room.kr(0.5).clip(0, 1);
 			damp = \damp.kr(0.3).clip(0, 1);
@@ -146,7 +147,7 @@ LPLibrary : Object {
 
 		this.register(\chorus, {
 			var inputSignal, rate, depth, baseDelay, modDelay;
-			inputSignal = \in.ar;
+			inputSignal = \in.ar(0 ! numChannels);
 			rate      = \rate.kr(0.8).clip(0.1, 5);
 			depth     = \depth.kr(0.008).clip(0.0, 0.02);
 			baseDelay = \base.kr(0.020).clip(0.0, 0.05);
@@ -156,7 +157,7 @@ LPLibrary : Object {
 
 		this.register(\drive, {
 			var inputSignal, gain;
-			inputSignal = \in.ar;
+			inputSignal = \in.ar(0 ! numChannels);
 			gain = \gain.kr(2.5).clip(1, 10);
 			(inputSignal * gain).tanh
 		});
