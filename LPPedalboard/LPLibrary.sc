@@ -27,7 +27,7 @@ LPLibrary : Object {
 	init {
 		defs = IdentityDictionary.new;
 		defaultNumChannels = 2;
-		numChannels = 2 // for now, eventually six.
+		numChannels = 2; // for now, eventually six.
 
 		this.createNdefSpecs; // register all the processors
 
