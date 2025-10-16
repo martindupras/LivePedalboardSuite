@@ -1,5 +1,6 @@
 // NChain.sc
 
+// v0.4.7.8 adding makeAnNdef method and calling it from insert -- not sure it's working, need troublshooting
 // v0.4.7.7 renamed insertTest to insertPassthrough and insertTestAt to insertPassthroughAt; compatibility methods added
 // v0.4.7.7 print chainList to LPDisplay from NChain.init -- working
 // v0.4.7.6 make rewireChain post test message to LPDisplay
@@ -34,7 +35,7 @@ NChain {
 
 	*initClass {
 		var text;
-		version = "v0.4.7.6";
+		version = "v0.4.7.8";
 		defaultNumChannels = 2; // Set a sensible default
 
 		text = "Nchains " ++ version;
@@ -131,6 +132,20 @@ NChain {
 		};
 		^this
 	}
+	
+	    // used to make an Ndef in the chain using the defintion gathered in procLib
+
+		// At the minim we want to pass the key, seek the process in the lib, and if found make an Ndef. Put defensive cdoding once that's working (e.g. no key of that name)
+
+	makeAnNdef { |name |
+		var func;
+		// look up the function in the procLib
+		func = procLib.get(name.asSymbol);
+
+		Ndef(name.asSymbol).reshaping_(\elastic).source = func;
+
+		^this
+	}
 
 	rewireChain {
 		// CLARITY: It probably makes the most sense to copy the list into a new one, insert the out and in at the beginning and end, and connect everyone
@@ -203,7 +218,12 @@ NChain {
 			^this;
 		};
 
-		this.makePassthrough(newName);
+		// REPLACE THIS
+		//this.makePassthrough(newName);
+
+		// WITH 
+		this.makeAnNdef(newName); // make the Ndef using the function from the library
+
 
 		insertIndex = 0;
 		chainList = chainList.copy.insert(insertIndex, newSymbol);
@@ -318,7 +338,7 @@ NChain {
 
 	// compatibility 
 	insertTest { |argName|
-		insertPassthrough(argName);
+		this.insertPassthrough(argName);
 	}
 
 	insertPassthrough { |argName|
