@@ -1,5 +1,5 @@
 // starter_MD_Oct25.scd
-// v0.5.4
+// v0.5.5
 
 // Start an LPOrchestrator
 //   it starts server, then creates lpDisplay, logger, commandManager and pedalboard internals:
@@ -16,11 +16,20 @@
 ~orchestrator.pedalboard.check; //passes
 ~orchestrator.pedalboard.theChain; // passes
 
-~orchestrator.pedalboard.theChain.insertTest("bob"); // works but no decrease in amplitude
+~orchestrator.pedalboard.theChain.insertTest("bob"); // works
 
-~orchestrator.pedalboard.theChain.insertPassthrough("rita"); // works but no decrease in amplitude
-~orchestrator.pedalboard.theChain.insert("libPassthrough"); // try
+~orchestrator.pedalboard.theChain.insertPassthrough("rita"); // works
 
+~orchestrator.pedalboard.theChain.insert("libPassthrough"); // found but makes chain silent. WHY?
+
+
+~orchestrator.pedalboard.theChain.remove(); // works
+
+~orchestrator.pedalboard.theChain.insert("tremolo"); // not found in library - passing a string
+
+
+~orchestrator.pedalboard.theChain.insert(\libPassthrough); // try
+~orchestrator.pedalboard.theChain.remove(); // works
 
 // new v 0.4.7.8
 ~orchestrator.pedalboard.theChain.insert(\tremolo); // try
