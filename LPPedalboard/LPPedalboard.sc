@@ -1,5 +1,6 @@
 // LPPedalboard.
 
+// v1.1.12 add a method testInputSignal -- not implemented yet
 // v1.1.11.2 Got displpay messages working from here
 // v1.1.11.1 troubleshooting why I can't sent to display from here.
 // v1.0.11 added metering to pedalboardOut Ndef
@@ -72,6 +73,8 @@ LPPedalboard : Object {
     var < processorLib; // LPProcessorLibrary
     var < ready; 
 
+    var <> testInputSignalOn;  // new for v1.1.12
+
     // new for v1.0.2
     //var < theNChain;
     var < theChain;
@@ -81,7 +84,7 @@ LPPedalboard : Object {
 
     *initClass {
         var text;
-        version = "v1.0.11.1";
+        version = "v1.0.12";
         text = "LPPedalboard " ++ version;
         text.postln;
     }
@@ -107,7 +110,6 @@ LPPedalboard : Object {
 		//display.sendPaneText(\left, "REACHED from LPPedalboard.init");
 		//</DEBUG>
 
-
         processorLib = argProcessorLib;
 
         logger = MDMiniLogger.new();
@@ -129,7 +131,6 @@ LPPedalboard : Object {
         // CAN I DISPLAY TO WINDOW?
         //display.sendPaneText(\left, "DEBUG: in LPPedalboard init");
 
-
         // OBSOLETE: if needed use makepassthrough from NChains.sc
         sinkFuncOBSOLETE = {
             var inputSignal;
@@ -139,6 +140,7 @@ LPPedalboard : Object {
 
         // set up initial chains
         this.setupStaticNdefs;
+
 
         // Now plug test source into the pedalboard:
         Ndef(pedalboardInSym.asSymbol) <<> Ndef(testSourceNdefSym);
@@ -161,6 +163,15 @@ LPPedalboard : Object {
 
         ^this
     }
+
+    testInputSignal { | isOn = false|
+        if(isOn) {
+            Ndef(pedalboardInSym.asSymbol) <<> Ndef(\TestPink);
+        }{
+            Ndef(pedalboardInSym.asSymbol) <<> Ndef(defaultSource.asSymbol);
+        };  
+    }
+    |
 
     setupStaticNdefs {
 
