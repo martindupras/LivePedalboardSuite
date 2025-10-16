@@ -137,10 +137,10 @@ NChain {
 
 		// At the minim we want to pass the key, seek the process in the lib, and if found make an Ndef. Put defensive cdoding once that's working (e.g. no key of that name)
 
-	makeAnNdef { |name |
+	makeAnNdef { |name, key |
 		var func;
 		// look up the function in the procLib
-		func = procLib.get(name.asSymbol);
+		func = procLib.get(key.asSymbol);
 
 		Ndef(name.asSymbol).reshaping_(\elastic).source = func;
 
@@ -187,7 +187,7 @@ NChain {
 		^this;
 	}
 
-	insert { | argName |
+	insert { | argName | // string or symbol?
 		var newName, newSymbol, insertIndex, alreadyPresent;
 		
 		// trying in v0.4.7.8
@@ -222,7 +222,7 @@ NChain {
 		//this.makePassthrough(newName);
 
 		// WITH 
-		this.makeAnNdef(newName); // make the Ndef using the function from the library
+		this.makeAnNdef(newSymbol,newName.asSymbol); // make the Ndef using the function from the library
 
 
 		insertIndex = 0;

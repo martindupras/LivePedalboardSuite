@@ -1,6 +1,7 @@
 // LPLibrary.sc (renamed from MagicProcessLibrary.sc)
 
-// v1.0.3 fixed this.register.(   to   this.register(  
+// V1.0.4 added libPassthrough for testing
+// v1.0.3 fixed this.register.(   to   this.register(
 // v1.0.2 added class version stuff
 // v1.0.1 add a listAvailable method
 
@@ -12,10 +13,11 @@ LPLibrary : Object {
 
 	var < defs;           // IdentityDictionary: Symbol -> Function
 	var < defaultNumChannels;
+	var < numChannels;
 
 	*initClass {
 		var text;
-		version = "v1.0.3";
+		version = "v1.0.4";
 		text = "LPLibrary " ++ version;
 		text.postln;
 	}
@@ -25,13 +27,13 @@ LPLibrary : Object {
 	init {
 		defs = IdentityDictionary.new;
 		defaultNumChannels = 2;
+		numChannels = 2 // for now, eventually six.
 
 		this.createNdefSpecs; // register all the processors
 
 		// Do the stuff here:
 		// register all the processors in the dictionary
 		^this
-
 	}
 
 	register { arg key, func;
@@ -54,7 +56,7 @@ LPLibrary : Object {
 		var func, numCh, canRun;
 		func = defs[key];
 		if(func.isNil) { ^this }; // silently ignore if not registered
-		numCh = chans ? defaultNumChannels;
+		numCh = chans ? NumChannels;
 		canRun = Server.default.serverRunning;
 		if(canRun) {
 			Server.default.bind({
@@ -85,10 +87,30 @@ LPLibrary : Object {
 	}
 
 	////////////////////////////////
+
+	// MDNOTE: I'm rethinking this... since everything
+	// ends up as Ndef, and we can make elastic Ndefs,
+	// why not turn this into an Ndef maker? We define
+	// the whole Ndef; we just need to instantiate a
+	// new one with a new symbol every time.
+	// PROS: easier to test, easier to maintain.
+
 	createNdefSpecs{
 
 		// Sources
 		this.register(\ts0, {
+			var inputSignal;
+			inputSignal = Silent.ar((0..1));
+			inputSignal * 1.0
+		});
+
+		this.register(\libPassthrough, {
+			var sig;
+			sig = \in.ar(0 ! numChannels);
+			sig * 0.5
+		});
+
+		this.register(\TestPink, {
 			var inputSignal;
 			inputSignal = Silent.ar((0..1));
 			inputSignal * 1.0

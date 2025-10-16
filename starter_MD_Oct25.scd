@@ -18,7 +18,9 @@
 
 ~orchestrator.pedalboard.theChain.insertTest("bob"); // works but no decrease in amplitude
 
-~orchestrator.pedalboard.theChain.insertTest("rita"); // works but no decrease in amplitude
+~orchestrator.pedalboard.theChain.insertPassthrough("rita"); // works but no decrease in amplitude
+~orchestrator.pedalboard.theChain.insert("libPassthrough"); // try
+
 
 // new v 0.4.7.8
 ~orchestrator.pedalboard.theChain.insert(\tremolo); // try
