@@ -1,5 +1,6 @@
 // LPOrchestrator.sc
 
+// v1.0.6.2 pedalboard and orchestrator now use LPNdefMaker instead of LPLibrary
 // v1.0.6.1 reverted to previous server ready check -- the new one caused FAILURE IN SERVER errors.
 // v1.0.6 try modified server ready check. About to test. 
 // v1.0.5 move to use NdefMaker instead of LPLibrary
@@ -23,7 +24,7 @@ LPOrchestrator : Object {
 
 	*initClass {
 		var text;
-		version = "v1.0.5";
+		version = "v1.0.6.1";
 		text = "LPOrchestrator " ++ version;
 		text.postln;
 	}
@@ -55,7 +56,7 @@ LPOrchestrator : Object {
 
 		logger = MDMiniLogger.new();
 		commandManager = CommandManager.new(display);
-		pedalboard = LPPedalboard.new(display, library);
+		pedalboard = LPPedalboard.new(display, ndefMaker);
 	}
 
 
