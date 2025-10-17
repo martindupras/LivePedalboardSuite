@@ -1,5 +1,6 @@
 // NChain.sc
 
+// v0.4.7.9 move to use ndefMaker
 // v0.4.7.8 adding makeAnNdef method and calling it from insert -- not sure it's working, need troublshooting
 // v0.4.7.7 renamed insertTest to insertPassthrough and insertTestAt to insertPassthroughAt; compatibility methods added
 // v0.4.7.7 print chainList to LPDisplay from NChain.init -- working
@@ -32,10 +33,11 @@ NChain {
 
 	var <> display;
 	var <  procLib;
+	var <  ndefMaker; // added v0.4.7.9
 
 	*initClass {
 		var text;
-		version = "v0.4.7.8";
+		version = "v0.4.7.9";
 		defaultNumChannels = 2; // Set a sensible default
 
 		text = "Nchains " ++ version;
@@ -50,7 +52,7 @@ NChain {
     // procLib could in the absence of an argument default to LPProcessorLibrary
     // and load it up here with no argument reference. Consider my options.
 
-	init { |name = "defaultChain" , argDisplay = nil, argProcLib |
+	init { |name = "defaultChain" , argDisplay = nil, argNdefMaker |
 
 		logger = MDMiniLogger.new();
 
@@ -69,7 +71,8 @@ NChain {
 		//display.sendPaneText(\left, "REACHED from NChain.init");
 		//</DEBUG>
 
-		procLib = argProcLib;
+		procLib = argProcLib; // DEPREACATE in favour of ndefMaker
+		ndefMaker = argNdefMaker; // added v0.4.7.9
 
 		numChannels = defaultNumChannels; // could add as argument later
 		chainList = List.new; // start with an empty list
@@ -137,10 +140,13 @@ NChain {
 
 		// At the minim we want to pass the key, seek the process in the lib, and if found make an Ndef. Put defensive cdoding once that's working (e.g. no key of that name)
 
+
+	// REVIEW NOW; we don't need to use this method if we're using ndefMaker
 	makeAnNdef { |name, key |
 		var func;
 		// look up the function in the procLib
-		func = procLib.get(key.asSymbol);
+		//func = procLib.get(key.asSymbol);
+		//func = procLib.get(key.asSymbol);
 
 		Ndef(name.asSymbol).reshaping_(\elastic).source = func;
 
@@ -187,8 +193,17 @@ NChain {
 		^this;
 	}
 
+	// QUESTION HERE:
+	// previously we're doing 	
+	//insert { | argName | ...
+	//
+	// what we have to do here is request the processor that we want (key in ndefMaker) 
+	// and return a unique name for the Ndef which we need to store in chainList
+
+
 	insert { | argName | // string or symbol?
 		var newName, newSymbol, insertIndex, alreadyPresent;
+		vasr receivedNdefName; // added v0.4.7.9
 		
 		// trying in v0.4.7.8
 		var functionToInsert; // we will make this the function found in procLib
@@ -204,7 +219,7 @@ NChain {
 		// end trying in v0.4.7.8
 
 		newName = chainName ++ argName.asString;
-		newSymbol = newName.asSymbol;
+		//newSymbol = newName.asSymbol;
 
 		if (chainList.isNil or: { chainList.isEmpty }) {
 			chainList = List.new;
@@ -221,12 +236,14 @@ NChain {
 		// REPLACE THIS
 		//this.makePassthrough(newName);
 
-		// WITH 
-		this.makeAnNdef(newSymbol,newName.asSymbol); // make the Ndef using the function from the library
 
+		// OLD WAY
+		//this.makeAnNdef(newSymbol,newName.asSymbol); // make the Ndef using the function from the library
+		receivedNdefName = ndefMaker.create(argName.asSymbol, newSymbol); // returns actual name of Ndef created
 
 		insertIndex = 0;
-		chainList = chainList.copy.insert(insertIndex, newSymbol);
+		// chainList = chainList.copy.insert(insertIndex, newSymbol);
+		chainList = chainList.copy.insert(insertIndex, receivedNdefName);
 
 		this.rewireChain;
 

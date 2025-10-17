@@ -91,7 +91,7 @@ LPPedalboard : Object {
 
     *initClass {
         var text;
-        version = "v1.1.13.1";
+        version = "v1.1.14.1";
         text = "LPPedalboard " ++ version;
         text.postln;
     }
@@ -105,7 +105,7 @@ LPPedalboard : Object {
 /* 
 --- 20251013-1924:new plan description: ---> moved to bottom of this file for tidiness <---
 */
-    init { arg argDisp, argProcessorLib; 
+    init { arg argDisp, argNdefMaker; 
 
         var testSourceNdefSym; // FOR SANITY CHECKS
 
@@ -117,7 +117,8 @@ LPPedalboard : Object {
 		//display.sendPaneText(\left, "REACHED from LPPedalboard.init");
 		//</DEBUG>
 
-        processorLib = argProcessorLib;
+        //processorLib = argProcessorLib;
+        ndefMaker = argNdefMaker;
 
         logger = MDMiniLogger.new();
         //display = argDisp;  // COMMENTED OUT v1.0.12 -- these are passed by LPOrchestrator
@@ -274,10 +275,12 @@ LPPedalboard : Object {
         // and argProcLib (for LPProcessorLibrary)
 
         //theNChain = NChain.new(\pedalboardChainA);
-        theChain = NChain.new(\pedalboardChainA, display, processorLib);
-    
+        //theChain = NChain.new(\pedalboardChainA, display, processorLib);
+        theChain = NChain.new(\pedalboardChainA, display, ndefMaker);
 
-        logger.info("Created theNChain NChain instance with display and processorlib args");
+
+ //       logger.info("Created theNChain NChain instance with display and processorlib args");
+       logger.info("Created theNChain NChain instance with display and ndefMaker args");
 
         // connect them all 
         Ndef(pedalboardOutSym.asSymbol) <<> Ndef(\pedalboardChainAOut);
@@ -362,6 +365,12 @@ LPPedalboard : Object {
     setProcessorLib { arg lib;
         processorLib = lib;
     }
+
+    setNdefMaker    { arg argNdefMaker;
+        ndefMaker   = argNdefMaker;
+    }
+
+
     setDisplay { arg disp;
         var shouldShow;
         display = disp;
@@ -1006,6 +1015,8 @@ Design highlights
         api = IdentityDictionary[
             // construction & display
             \ctor         -> "MagicPedalboard.new(displayOrNil)",
+
+            //TO REVIEW (changed to ndefMaker)
             \display      -> "setDisplay(disp), setProcessorLib(lib), setDefaultSource(key)",
 
             // status & printing
