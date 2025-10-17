@@ -1,5 +1,6 @@
 // LPPedalboard.
 
+// v1.1.14 moving to use NdefMaker instead of LPLibrary
 // v1.1.13.1 reworked test signal switching -- working
 // v1.1.13 added test signal switching -- not yet working though
 // v1.1.12 add a method testInputSignal -- not implemented yet
@@ -72,7 +73,11 @@ LPPedalboard : Object {
     var < numChannels; 
     var < defaultSource;
     var < display; // changed < to <>. Does that fix things? Apparently not. Switch back to <
-    var < processorLib; // LPProcessorLibrary
+    
+
+    var < processorLib; // DEPRECATE LPProcessorLibrary
+    var < ndefMaker;
+
     var < ready; 
 
     var <> testInputSignalIsOn;  // new for v1.1.12
