@@ -1,5 +1,6 @@
 // NChain.sc
 
+// 0.4.9.1 fixed circular definition issue with ndefMaker that crashes scsynth
 // v0.4.9 rename and rationalise insert methods 
 // v0.4.8.1 insert just uses insertAt(argName, 0))
 // v0.4.8   chainList display now top down (newest at top) -- working
@@ -258,12 +259,12 @@ NChain {
 
 // === REVIEW: does this work?
 insert { | argName = "passthrough"| 
-		this.insertAt(argName, 0);
+		this.insertAtWithName(argName, 0);
 	}
 
 // === REVIEW: does this work?
 insertAt { |index|
-	this.insertAt("passthrough", index);
+	this.insertAtWithName("passthrough", index);
 }
 
 
