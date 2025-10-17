@@ -1,5 +1,6 @@
 // NChain.sc
 
+// v0.4.8.1 insert just uses insertAt(argName, 0))
 // v0.4.8   chainList display now top down (newest at top) -- working
 // v0.4.7.9 move to use ndefMaker
 // v0.4.7.8 adding makeAnNdef method and calling it from insert -- not sure it's working, need troublshooting
@@ -199,8 +200,11 @@ NChain {
 	// what we have to do here is request the processor that we want (key in ndefMaker) 
 	// and return a unique name for the Ndef which we need to store in chainList
 
+	insert { | argName| 
+		this.insertAt(argName, 0);
+	}
 
-	insert { | argName | 
+	oldinsert { | argName | 
 		var newName, newSymbol, insertIndex, alreadyPresent;
 		var receivedNdefName; // added v0.4.7.9
 		
