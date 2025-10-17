@@ -1,5 +1,6 @@
 // NChain.sc
 
+// v0.4.8   chainList display now top down (newest at top) -- working
 // v0.4.7.9 move to use ndefMaker
 // v0.4.7.8 adding makeAnNdef method and calling it from insert -- not sure it's working, need troublshooting
 // v0.4.7.7 renamed insertTest to insertPassthrough and insertTestAt to insertPassthroughAt; compatibility methods added
@@ -109,14 +110,16 @@ NChain {
 
 	// getters:
 
+	//===REVIEW: is this needed?
 	getChainName     { ^chainName }
 
+	//===REVIEW: is this needed?
 	getChainNameSym  { ^chainNameSym }
 
+	// Probably keep
 	getNumChannels   { ^numChannels }
 
-
-// v0.4.7.3 I don't think we need this method any longer
+	// ===REVIEW probably not needed
 	connectSource { |sourceSym|
 		var firstIntoChain;
 		if (chainList.notNil and: { chainList.notEmpty }) {
@@ -127,6 +130,7 @@ NChain {
 		^this
 	}
 
+	//===REVIEW probably no longer needed
     // used to make a passthrough Ndef
 	makePassthrough { |name = "defaultChain"|
 		Ndef(name.asSymbol).reshaping_(\elastic).source = {
@@ -182,12 +186,15 @@ NChain {
 
 		// working from v0.4.7.6
 		// REVIEW: for now only print the mutable chainList, not the fullchainList
+
+		//=================
+		//== check order ==
 		display.sendPaneText(\left,chainList.asString);
 
 		// rework to list line by line:
 		display.sendPaneText(
 			\left,
-			chainList.collect({ |sym| sym.asString }).join(Char.nl)
+			chainList.reverse.collect({ |sym| sym.asString }).join(Char.nl)
 			); //split with newline characters; working now. Coudl be put in a separate method if needed. 
 
 		this.printChain;
@@ -202,7 +209,7 @@ NChain {
 	// and return a unique name for the Ndef which we need to store in chainList
 
 
-	insert { | argName | // string or symbol?
+	insert { | argName | 
 		var newName, newSymbol, insertIndex, alreadyPresent;
 		var receivedNdefName; // added v0.4.7.9
 		
@@ -285,6 +292,7 @@ NChain {
                 ++ " (valid range 0.." ++ size ++ ")").postln;
         };
 
+		// ===REVIEW: replace this with ndefMaker usage
         // Define the stage as a passthrough (elastic width)
         this.makePassthrough(newName);
 
@@ -299,10 +307,12 @@ NChain {
         ^this;
     }
 
+	// ===REVIEW make this call insertAt with a passthrough definition
 	insertTestAt { |argName, index|
 		insertPassthroughAt(argName, index);
 	}
 
+	// ===REVIEW probably safe to remove soon
     insertPassthroughAt { |argName, index|
         var newName, newSymbol, size, insertIndex, alreadyPresent, newList;
 
@@ -354,11 +364,13 @@ NChain {
         ^this;
     }
 
+	//===REVIEW
 	// compatibility 
 	insertTest { |argName|
 		this.insertPassthrough(argName);
 	}
 
+	//===REVIEW
 	insertPassthrough { |argName|
 		var newName, newSymbol, insertIndex, alreadyPresent;
 
@@ -391,12 +403,13 @@ NChain {
 		^this;
 	}
 
+	// KEEP
 	remove {
         this.removeNewest;
         ^this
 	}
 
-
+	// ===REVIEW: test 
     removeAt { |index|
         var size, removedSym, newList;
 
@@ -433,6 +446,7 @@ NChain {
         ^this;
     }
 
+	//===REVIEW: newest is not tracked at the moment; keep in an instance var
     removeNewest {
         var removedSym, newList;
 
