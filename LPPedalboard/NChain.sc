@@ -1,5 +1,6 @@
 // NChain.sc
 
+// v0.4.9 rename and rationalise insert methods 
 // v0.4.8.1 insert just uses insertAt(argName, 0))
 // v0.4.8   chainList display now top down (newest at top) -- working
 // v0.4.7.9 move to use ndefMaker
@@ -200,7 +201,7 @@ NChain {
 	// what we have to do here is request the processor that we want (key in ndefMaker) 
 	// and return a unique name for the Ndef which we need to store in chainList
 
-	insert { | argName| 
+	insert { | argName = "passthrough"| 
 		this.insertAt(argName, 0);
 	}
 
