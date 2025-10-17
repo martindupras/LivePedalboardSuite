@@ -1,5 +1,6 @@
 // LPNdefMaker.sc
-// v0.6.3 configurable prefix for recipe keys; keeps original names in register()
+
+// v0.6.3 configurable prefix for recipe keys; not using it right now
 // v0.6.2 add prefix-stripping for recipe keys during symbol creation
 // v0.6.1 keep track of created symbols and create unique symbols. Working!
 // v0.6.0.1 tidy (removed commented-out code))
@@ -54,7 +55,8 @@ LPNdefMaker : Object {
         createdSymbols = Array.new;
         symbolCounts = IdentityDictionary.new;
 
-        recipePrefix = "fxdef"; // default prefix
+        // added v0.6.3 configurable prefix; but we're not using for now
+        recipePrefix = ""; // default prefix
 
         this.createNdefSpecs; // put the recipes in the dictionary
 
@@ -77,21 +79,22 @@ LPNdefMaker : Object {
     keys { ^defs.keys }
 
     create { | recipeKey |
-        var audioFunction, count, baseName, newSymbol;
+        var baseKey, audioFunction, count, newSymbol;
 
-        audioFunction = defs[recipeKey];
+        // strip prefix from incoming key
+        baseKey = recipeKey.asString.replace(recipePrefix, "").asSymbol;
+
+        audioFunction = defs[baseKey];
         if (audioFunction.isNil) {
-            ("Recipe not found: " ++ recipeKey).warn;
+            ("Recipe not found: " ++ baseKey).warn;
             ^nil;
         };
 
-        baseName = recipeKey.asString.replace(recipePrefix, "");
-
-        count = symbolCounts[recipeKey] ? 0;
+        count = symbolCounts[baseKey] ? 0;
         count = count + 1;
-        symbolCounts[recipeKey] = count;
+        symbolCounts[baseKey] = count;
 
-        newSymbol = (baseName ++ count.asString.padLeft(3, "0")).asSymbol;
+        newSymbol = (baseKey.asString ++ count.asString.padLeft(3, "0")).asSymbol;
 
         if (Server.default.serverRunning) {
             Server.default.bind({
@@ -102,6 +105,61 @@ LPNdefMaker : Object {
         createdSymbols = createdSymbols.add(newSymbol);
         ^newSymbol
     }
+
+    // create { | recipeKey |
+    //     var fullKey, audioFunction, count, newSymbol;
+
+    //     // prepend prefix to get full recipe key
+    //     fullKey = (recipePrefix ++ recipeKey.asString).asSymbol;
+
+    //     audioFunction = defs[fullKey];
+    //     if (audioFunction.isNil) {
+    //         ("Recipe not found: " ++ fullKey).warn;
+    //         ^nil;
+    //     };
+
+    //     count = symbolCounts[fullKey] ? 0;
+    //     count = count + 1;
+    //     symbolCounts[fullKey] = count;
+
+    //     newSymbol = (recipeKey.asString ++ count.asString.padLeft(3, "0")).asSymbol;
+
+    //     if (Server.default.serverRunning) {
+    //         Server.default.bind({
+    //             Ndef(newSymbol, audioFunction);
+    //         });
+    //     };
+
+    //     createdSymbols = createdSymbols.add(newSymbol);
+    //     ^newSymbol
+    // }
+
+    // create { | recipeKey |
+    //     var audioFunction, count, baseName, newSymbol;
+
+    //     audioFunction = defs[recipeKey];
+    //     if (audioFunction.isNil) {
+    //         ("Recipe not found: " ++ recipeKey).warn;
+    //         ^nil;
+    //     };
+
+    //     baseName = recipeKey.asString.replace(recipePrefix, "");
+
+    //     count = symbolCounts[recipeKey] ? 0;
+    //     count = count + 1;
+    //     symbolCounts[recipeKey] = count;
+
+    //     newSymbol = (baseName ++ count.asString.padLeft(3, "0")).asSymbol;
+
+    //     if (Server.default.serverRunning) {
+    //         Server.default.bind({
+    //             Ndef(newSymbol, audioFunction);
+    //         });
+    //     };
+
+    //     createdSymbols = createdSymbols.add(newSymbol);
+    //     ^newSymbol
+    // }
 
     clear { arg instanceKey;
         Ndef(instanceKey).clear;
