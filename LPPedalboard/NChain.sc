@@ -201,9 +201,7 @@ NChain {
 	// what we have to do here is request the processor that we want (key in ndefMaker) 
 	// and return a unique name for the Ndef which we need to store in chainList
 
-	insert { | argName = "passthrough"| 
-		this.insertAt(argName, 0);
-	}
+
 
 	oldinsert { | argName | 
 		var newName, newSymbol, insertIndex, alreadyPresent;
@@ -255,7 +253,21 @@ NChain {
 		^this;
 	}
 
-insertAt { | argName = "passthrough", index |
+
+// These should be all that's needed for insertion
+
+// === REVIEW: does this work?
+insert { | argName = "passthrough"| 
+		this.insertAt(argName, 0);
+	}
+
+// === REVIEW: does this work?
+insertAt { |index|
+	this.insertAt("passthrough", index);
+}
+
+
+insertAtWithName { | argName = "passthrough", index |
 
     var newName, newSymbol, insertIndex, alreadyPresent;
     var receivedNdefName; // added v0.4.7.9
