@@ -1,5 +1,6 @@
 // LPOrchestrator.sc
 
+// v1.0.6.1 reverted to previous server ready check -- the new one caused FAILURE IN SERVER errors.
 // v1.0.6 try modified server ready check. About to test. 
 // v1.0.5 move to use NdefMaker instead of LPLibrary
 // v1.0.4.2 figured out how to get orchestrator to send to display
@@ -75,10 +76,10 @@ LPOrchestrator : Object {
 
 	ensureServerReady{
         ~serv = Server.local;
-        // if (~serv.serverRunning.not) {
-		if (Server.default.serverRunning) { 
-            //~serv.boot;
-            //~serv.waitForBoot; // allowed in your safe-reset pattern
+        if (~serv.serverRunning.not) {
+		//if (Server.default.serverRunning) { 
+            ~serv.boot;
+            ~serv.waitForBoot; // allowed in your safe-reset pattern
             ~serv.bind({
                 ~serv.initTree;
                 ~serv.defaultGroup.freeAll;
