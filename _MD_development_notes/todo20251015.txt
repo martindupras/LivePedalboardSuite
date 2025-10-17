@@ -4,8 +4,11 @@ Right now:
 [NEXT] turn on and off the test signal to source; probably should default to off, but be accessible all the time for testing
 [DONE] post to display when rewirechain in NChain (test)
 [DONE] post chain list to display when chain changes (if above succeeds)
-- implement inserting Ndefs created from processor library
-- collect all possible names from the methods and put in the spreadsheet
+[DONE - ndefMaker] implement inserting Ndefs created from processor library
+[IP] collect all possible names from the methods and put in the spreadsheet
+- remove the server starts and ensureserver. Probably best done with doing a git "point" so that I try all that and just revert back if it doesn't work. 
+- review where I need to do error checking: certainly in the creation of things like ndefs and mutations of the chain and such. 
+
 
 
 NEXT:
