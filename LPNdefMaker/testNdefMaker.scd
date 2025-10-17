@@ -1,5 +1,5 @@
 // testNdefMaker.scd
-// for v0.5
+// for v0.6 -- seems to be working
 
 // Create the maker
 ~maker = LPNdefMaker.new;
