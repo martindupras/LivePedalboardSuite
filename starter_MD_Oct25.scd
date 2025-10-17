@@ -23,6 +23,10 @@
 ~orchestrator.pedalboard.theChain.insert("libPassthrough"); // found but makes chain silent. WHY?
 
 
+//new
+~orchestrator.pedalboard.testInputSignalBeOn;  // works v1.1.13.1
+~orchestrator.pedalboard.testInputSignalBeOff; // works v.1.1.13.1
+
 ~orchestrator.pedalboard.theChain.remove(); // works
 
 ~orchestrator.pedalboard.theChain.insert("tremolo"); // not found in library - passing a string

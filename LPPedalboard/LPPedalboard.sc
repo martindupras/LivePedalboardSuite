@@ -1,6 +1,6 @@
 // LPPedalboard.
 
-// v1.1.13.1 reworked test signal switching -- about to test
+// v1.1.13.1 reworked test signal switching -- working
 // v1.1.13 added test signal switching -- not yet working though
 // v1.1.12 add a method testInputSignal -- not implemented yet
 // v1.1.11.2 Got displpay messages working from here
