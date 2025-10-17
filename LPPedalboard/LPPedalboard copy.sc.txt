@@ -1,6 +1,5 @@
 // LPPedalboard.
 
-// v1.1.13.1 reworked test signal switching -- about to test
 // v1.1.13 added test signal switching -- not yet working though
 // v1.1.12 add a method testInputSignal -- not implemented yet
 // v1.1.11.2 Got displpay messages working from here
@@ -86,7 +85,7 @@ LPPedalboard : Object {
 
     *initClass {
         var text;
-        version = "v1.1.13.1";
+        version = "v1.1.13";
         text = "LPPedalboard " ++ version;
         text.postln;
     }
@@ -161,11 +160,7 @@ LPPedalboard : Object {
 
 
         // Now plug test source into the pedalboard:
-        //Ndef(pedalboardInSym.asSymbol) <<> Ndef(testSourceNdefSym);
-
-        
-        testInputSignalIsOn = true; // turn on test signal for now
-        this.testInputSignalBeOn;    // will wire via testInputSignalSwitch
+        Ndef(pedalboardInSym.asSymbol) <<> Ndef(testSourceNdefSym);
 
         //<DEBUG>
             postln("============");
@@ -188,7 +183,7 @@ LPPedalboard : Object {
 
 
     // added in v1.1.13
-    testInputSignalSwitchOLDER{ | testInputSignalIsOn|
+    testInputSignalSwitch{ | testInputSignalIsOn|
         if(testInputSignalIsOn) {
             Ndef(pedalboardInSym.asSymbol) <<> Ndef(\TestPink); //try for now, and then switch to \pulseNoise01
         }{
@@ -196,51 +191,10 @@ LPPedalboard : Object {
         };  
         ^this
     }
-
-
-    // added in v1.1.13 - better version
-    testInputSignalSwitch {
-        var chosenSourceSym;
-
-        // Ensure a simple built-in test source exists (rename as you prefer)
-        Ndef(\testpink, {
-            var sig;
-            // stereo-friendly, level-safe test source
-            sig = WhiteNoise.ar(0.1 ! numChannels) * SinOsc.kr(1).range(0, 1);
-            sig
-        });
-
-        // Choose which source to feed into pedalboardIn
-        chosenSourceSym = if(testInputSignalIsOn) { \testpink } { defaultSource.asSymbol };
-
-        // Route: pedalboardIn <<> chosen source
-        Ndef(pedalboardInSym.asSymbol) <<> Ndef(chosenSourceSym);
-
-        ^this
-    }
-
-
-
     
     // added in v1.1.13
-   // testInputSignalBeOn { this.testInputSignalIsOn = true; postln("Test signal ON"); ^this }
-   // testInputSignalBeOff { this.testInputSignalIsOn = false; postln("Test signal OFF"); ^this }
-
-// better versions:
-// added in v1.1.13  — corrected and unified
-    testInputSignalBeOn {
-        this.testInputSignalIsOn_(true);
-        this.testInputSignalSwitch;
-        "Test signal ON".postln;
-        ^this
-    }
-
-    testInputSignalBeOff {
-        this.testInputSignalIsOn_(false);
-        this.testInputSignalSwitch;
-        "Test signal OFF".postln;
-        ^this
-    }
+    testInputSignalBeOn { this.testInputSignalOn = true; postln("Test signal ON"); ^this }
+    testInputSignalBeOff { this.testInputSignalOn = false; postln("Test signal OFF"); ^this }
 
 
     setupStaticNdefs {
