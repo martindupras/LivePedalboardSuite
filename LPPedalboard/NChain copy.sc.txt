@@ -5,6 +5,15 @@
 // v0.4.7.8 adding makeAnNdef method and calling it from insert -- not sure it's working, need troublshooting
 // v0.4.7.7 renamed insertTest to insertPassthrough and insertTestAt to insertPassthroughAt; compatibility methods added
 // v0.4.7.7 print chainList to LPDisplay from NChain.init -- working
+// v0.4.7.6 make rewireChain post test message to LPDisplay
+// v0.4.7.5 add logger var and check method
+// v0.4.7.4 added comments and little formatting tidy
+// v0.4.7.3 added planning notes before init method.
+// v0.4.7.2 add insertAt method - works!
+// v0.4.7.1 add removeAt method - works!
+// v0.4.7.0 added remove method that calls removeNewest
+// v0.4.6.9 add removeNewest method - works!
+// v0.4.6.8 remove commented out and tidy
 // ...
 
 // MD 20251013 (Older header comments deleted - version history on GH)
@@ -250,91 +259,53 @@ NChain {
 		^this;
 	}
 
-insertAt { | argName, index |
+    insertAt { |argName, index|
+        var newName, newSymbol, size, insertIndex, alreadyPresent, newList;
 
-    var newName, newSymbol, insertIndex, alreadyPresent;
-    var receivedNdefName; // added v0.4.7.9
-    var functionToInsert;
+        // Ensure we have a list to work with
+        if (chainList.isNil) {
+            chainList = List.new;
+        };
 
-    functionToInsert = procLib.get(argName.asSymbol); // seems to work
-    if (functionToInsert.isNil) {
-        ("NChain insertAt: no processor function named '" ++ argName ++ "' found in library; skipping").postln;
+        // Index must be an Integer
+        if (index.isKindOf(Integer).not) {
+            ("NChain insertAt: index must be an Integer (got: " ++ index.class.name ++ ").").postln;
+            ^this;
+        };
+
+        // Compose per-chain unique symbol (e.g., "chaintestalpha" -> \chaintestalpha)
+        newName = chainName ++ argName.asString;
+        newSymbol = newName.asSymbol;
+
+        // Avoid duplicates
+        alreadyPresent = chainList.includes(newSymbol);
+        if (alreadyPresent) {
+            ("NChain insertAt: '" ++ newSymbol ++ "' is already in the chain; skipping").postln;
+            ^this;
+        };
+
+        // Clamp index to valid insertion range [0, size]
+        size = chainList.size;
+        insertIndex = index.clip(0, size);
+        if (insertIndex != index) {
+            ("NChain insertAt: clamped index " ++ index ++ " -> " ++ insertIndex
+                ++ " (valid range 0.." ++ size ++ ")").postln;
+        };
+
+		// ===REVIEW: replace this with ndefMaker usage
+        // Define the stage as a passthrough (elastic width)
+        this.makePassthrough(newName);
+
+        // Insert at position and commit
+        newList = chainList.copy;
+        newList.insert(insertIndex, newSymbol);
+        chainList = newList;
+
+        // Rewire and report
+        this.rewireChain;
+        ("NChain insertAt: added " ++ newSymbol ++ " at index " ++ insertIndex).postln;
         ^this;
-    };
-    postln("NChain insertAt: got function from library for '" ++ argName ++ "'");
-
-    newName = chainName ++ argName.asString;
-    newSymbol = newName.asSymbol;
-
-    if (chainList.isNil or: { chainList.isEmpty }) {
-        chainList = List.new;
-    };
-
-    alreadyPresent = chainList.includes(newSymbol);
-    if (alreadyPresent) {
-        ("NChain insertAt: '" ++ newSymbol ++ "' is already in the chain; skipping").postln;
-        ^this;
-    };
-
-    receivedNdefName = ndefMaker.create(argName.asSymbol, newSymbol); // returns actual name of Ndef created
-
-    insertIndex = index.clip(0, chainList.size); // clamp to valid range
-    chainList = chainList.copy.insert(insertIndex, receivedNdefName);
-
-    this.rewireChain;
-    ("NChain insertAt: added " ++ receivedNdefName ++ " at index " ++ insertIndex).postln;
-    ^this;
-}
-
-
-	// OLDER INSERT AT METHOD; KEEP FOR REFERENCE for now
-    // insertAt { |argName, index|
-    //     var newName, newSymbol, size, insertIndex, alreadyPresent, newList;
-
-    //     // Ensure we have a list to work with
-    //     if (chainList.isNil) {
-    //         chainList = List.new;
-    //     };
-
-    //     // Index must be an Integer
-    //     if (index.isKindOf(Integer).not) {
-    //         ("NChain insertAt: index must be an Integer (got: " ++ index.class.name ++ ").").postln;
-    //         ^this;
-    //     };
-
-    //     // Compose per-chain unique symbol (e.g., "chaintestalpha" -> \chaintestalpha)
-    //     newName = chainName ++ argName.asString;
-    //     newSymbol = newName.asSymbol;
-
-    //     // Avoid duplicates
-    //     alreadyPresent = chainList.includes(newSymbol);
-    //     if (alreadyPresent) {
-    //         ("NChain insertAt: '" ++ newSymbol ++ "' is already in the chain; skipping").postln;
-    //         ^this;
-    //     };
-
-    //     // Clamp index to valid insertion range [0, size]
-    //     size = chainList.size;
-    //     insertIndex = index.clip(0, size);
-    //     if (insertIndex != index) {
-    //         ("NChain insertAt: clamped index " ++ index ++ " -> " ++ insertIndex
-    //             ++ " (valid range 0.." ++ size ++ ")").postln;
-    //     };
-
-	// 	// ===REVIEW: replace this with ndefMaker usage
-    //     // Define the stage as a passthrough (elastic width)
-    //     this.makePassthrough(newName);
-
-    //     // Insert at position and commit
-    //     newList = chainList.copy;
-    //     newList.insert(insertIndex, newSymbol);
-    //     chainList = newList;
-
-    //     // Rewire and report
-    //     this.rewireChain;
-    //     ("NChain insertAt: added " ++ newSymbol ++ " at index " ++ insertIndex).postln;
-    //     ^this;
-    // }
+    }
 
 	// ===REVIEW make this call insertAt with a passthrough definition
 	insertTestAt { |argName, index|

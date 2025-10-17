@@ -1,5 +1,6 @@
 // LPNdefMaker.sc
 
+// v0.6.4 added \silence Ndef recipe, tweaked names of definitions
 // v0.6.3 configurable prefix for recipe keys; not using it right now
 // v0.6.2 add prefix-stripping for recipe keys during symbol creation
 // v0.6.1 keep track of created symbols and create unique symbols. Working!
@@ -227,13 +228,13 @@ LPNdefMaker : Object {
             inputSignal * 1.0
         });
 
-        this.register(\libpassthrough, {
+        this.register(\passthrough, {
             var sig;
             sig = \in.ar(0 ! numChannels);
             sig * 0.5
         });
 
-        this.register(\ts0, {
+        this.register(\silence, {
             var inputSignal;
             inputSignal = Silent.ar((0!numChannels)); // stereo silence
             inputSignal * 1.0
