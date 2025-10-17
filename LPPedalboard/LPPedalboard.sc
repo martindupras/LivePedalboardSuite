@@ -1,5 +1,6 @@
 // LPPedalboard.
 
+// v1.1.13 added test signal switching -- not yet working though
 // v1.1.12 add a method testInputSignal -- not implemented yet
 // v1.1.11.2 Got displpay messages working from here
 // v1.1.11.1 troubleshooting why I can't sent to display from here.
@@ -73,7 +74,7 @@ LPPedalboard : Object {
     var < processorLib; // LPProcessorLibrary
     var < ready; 
 
-    var <> testInputSignalOn;  // new for v1.1.12
+    var <> testInputSignalIsOn;  // new for v1.1.12
 
     // new for v1.0.2
     //var < theNChain;
@@ -84,7 +85,7 @@ LPPedalboard : Object {
 
     *initClass {
         var text;
-        version = "v1.0.12";
+        version = "v1.1.13";
         text = "LPPedalboard " ++ version;
         text.postln;
     }
@@ -118,13 +119,29 @@ LPPedalboard : Object {
 
         numChannels = 2; // eventually hex // possibly inherit from defaultNumChannels?
 
-        //TODO: Decide what we do here... we need a test source. Do we have a makeTestSource method or some such
-        defaultSource = \ts0; // silence as source
 
+
+
+/* 
+  FOR NOW: keep this ON so that we can hear the chain transformations
+  */
+
+        testInputSignalIsOn = true;
+        this.testInputSignalBeOn;
+
+        //TODO: Once test sources are tested and working, make the default external audio, ie. an Ndef that listens to SoundIn.ar six-channels.
+        defaultSource = \ts0; // silence as source
 //// <sanity checks>
         //make a source Ndef
-        testSourceNdefSym = \pulseNoise01; // don't use, just remind me
-        Ndef(\pulseNoise01, {SinOsc.ar(freq:3, mul: { PinkNoise.ar(0.1!2)})}); 
+        //<DEBUG> commented out for testing in v.1.1.13
+        //testSourceNdefSym = \pulseNoise01; // don't use, just remind me
+        //Ndef(\pulseNoise01, {SinOsc.ar(freq:3, mul: { PinkNoise.ar(0.1!2)})}); 
+        //</DEBUG>
+
+
+
+
+
 
 //// </sanity checks>
 
@@ -164,14 +181,21 @@ LPPedalboard : Object {
         ^this
     }
 
-    testInputSignal { | isOn = false|
-        if(isOn) {
-            Ndef(pedalboardInSym.asSymbol) <<> Ndef(\TestPink);
+
+    // added in v1.1.13
+    testInputSignalSwitch{ | testInputSignalIsOn|
+        if(testInputSignalIsOn) {
+            Ndef(pedalboardInSym.asSymbol) <<> Ndef(\TestPink); //try for now, and then switch to \pulseNoise01
         }{
-            Ndef(pedalboardInSym.asSymbol) <<> Ndef(defaultSource.asSymbol);
+            Ndef(pedalboardInSym.asSymbol) <<> Ndef(defaultSource.asSymbol); // which will eventually be an Ndef that listens to external audio
         };  
+        ^this
     }
-    |
+    
+    // added in v1.1.13
+    testInputSignalBeOn { this.testInputSignalOn = true; postln("Test signal ON"); ^this }
+    testInputSignalBeOff { this.testInputSignalOn = false; postln("Test signal OFF"); ^this }
+
 
     setupStaticNdefs {
 
