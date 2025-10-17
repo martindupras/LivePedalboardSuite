@@ -1,5 +1,11 @@
 // LPLibrary.sc (renamed from MagicProcessLibrary.sc)
 
+//////////////////////////////////////
+// SOON DEPRECATED:
+//    move to use LPNdefMaker instead
+//////////////////////////////////////
+
+// v1.0.6 deprecation warning added
 // V1.0.5 made all the definitions take numChannels; should probably plan to put fallback numChannels = 2.
 // V1.0.4 added libPassthrough for testing
 // v1.0.3 fixed this.register.(   to   this.register(
