@@ -1,5 +1,6 @@
 // LPNdefMaker.sc
 
+// v0.6.1 keep track of created symbols and create unique symbols. Working!
 // v0.6.0.1 tidy (removed commented-out code))
 // v0.6 new version, simpler -- seems to work!
 // v0.1 starting from LPLibrary as base
@@ -33,18 +34,24 @@ LPNdefMaker : Object {
     // var <defaultNumChannels; not sure we need this now
     var < numChannels;
 
+	// added v0.6.1 to keep track of created Ndef symbols
+	var < createdSymbols; // Array of all created Ndef symbols
+	var < symbolCounts;   // IdentityDictionary: recipeKey -> count
+
     *initClass {
-        version = "v0.6";
+        version = "v0.6.1";
         ("LPNdefMaker " ++ version).postln;
     }
 
     *new { ^super.new.init }
 
     init {
-
 		numChannels = 2;  // Eventually we want the numChannels to come from LPOrchestrator; pass as argument?
-
         defs = IdentityDictionary.new; // keep the Ndef "recipes"
+
+		// added v0.6.1
+		createdSymbols = Array.new;
+		symbolCounts = IdentityDictionary.new;
 
         this.createNdefSpecs; // put the recipes in the dictionary
 
@@ -66,21 +73,34 @@ LPNdefMaker : Object {
 
     keys { ^defs.keys }
 
-    create { arg recipeKey, instanceKey;
-        var audioFunction;
+    create { | recipeKey|
+        var audioFunction, count, newSymbol;
+
         audioFunction = defs[recipeKey];
         if (audioFunction.isNil) {
             ("Recipe not found: " ++ recipeKey).warn;
             ^nil;
         };
 
+		count = symbolCounts[recipeKey] ? 0;
+		count = count + 1;
+		symbolCounts[recipeKey] = count;
+
+
+		newSymbol = (recipeKey.asString ++ count.asString.padLeft(3, "0")).asSymbol;
+
+
 		// WHY WOULD WE NEED THIS HERE?
         if (Server.default.serverRunning) { // if server is running...
             Server.default.bind({ // then safely invoke Ndef creation on server thread; not entirely sure this is needed but probably doesn't hurt.
-                Ndef(instanceKey, audioFunction);
+                Ndef(newSymbol, audioFunction);
             });
         };
-        ^instanceKey // should do for now -- but want to keep internal register with unique names
+
+		createdSymbols = createdSymbols.add(newSymbol);
+		^newSymbol
+
+        //^instanceKey // should do for now -- but want to keep internal register with unique names
     }
 
     clear { arg instanceKey;
@@ -88,6 +108,14 @@ LPNdefMaker : Object {
         Ndef(instanceKey).clear;
         ^this
     }
+
+	createdKeys {
+		^createdSymbols.copy
+	}
+
+	hasCreated { arg symbol;
+		^createdSymbols.includes(symbol)
+	}
 
     createNdefSpecs {
 
