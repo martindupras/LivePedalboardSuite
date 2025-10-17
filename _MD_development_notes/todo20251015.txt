@@ -8,10 +8,9 @@ Right now:
 [IP] collect all possible names from the methods and put in the spreadsheet
 - remove the server starts and ensureserver. Probably best done with doing a git "point" so that I try all that and just revert back if it doesn't work. 
 - review where I need to do error checking: certainly in the creation of things like ndefs and mutations of the chain and such. 
-- review insert, insertAt, insertTest, insertTestAt -- three should call insert with args
-
+[NEXT 2] review insert, insertAt, insertTest, insertTestAt -- three should call insert with args
+[NEXT 1] do a milestone or tag or whatever. "First system that works" sort of thing.
 
 NEXT:
-- change names of panes in LPDisplay
-- display chain in top down order (not bottom up as now
-- shim insertTest- become insertPassthrough, insertTest calls it
+[NEXT 3] change names of panes in LPDisplay
+[NEXT 1] display chain in top down order (not bottom up as now
