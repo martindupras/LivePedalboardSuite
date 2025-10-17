@@ -254,11 +254,13 @@ NChain {
 		^this;
 	}
 
-insertAt { | argName, index |
+insertAt { | argName = "passthrough", index |
 
     var newName, newSymbol, insertIndex, alreadyPresent;
     var receivedNdefName; // added v0.4.7.9
     var functionToInsert;
+
+	postln("%%% NChain insertAt called with argName: " ++ argName ++ " index: " ++ index);
 
     functionToInsert = procLib.get(argName.asSymbol); // seems to work
     if (functionToInsert.isNil) {
