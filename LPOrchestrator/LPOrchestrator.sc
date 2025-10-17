@@ -1,5 +1,6 @@
 // LPOrchestrator.sc
 
+// v1.0.6 try modified server ready check. About to test. 
 // v1.0.5 move to use NdefMaker instead of LPLibrary
 // v1.0.4.2 figured out how to get orchestrator to send to display
 // v1.0.4.1 trying to correct what gets passed to pedalboard
@@ -38,8 +39,6 @@ LPOrchestrator : Object {
 
 		// Seems a betterway to do this AFTER server is up -- working
 		 ~serv.waitForBoot( {this.postServerInit;})	
-	
-	
 	}
 
 
@@ -50,7 +49,9 @@ LPOrchestrator : Object {
 		// checked: working in v1.0.4.2
 		//display.sendPaneText(\left, "REACHED from LPorchestrator.postServerInit");
 		//</DEBUG>
-		library = LPLibrary.new(); // I THINK THAT'S CORRECT
+		library = LPLibrary.new(); // DEPRECATE in favour of ndefMaker
+		ndefMaker = LPNdefMaker.new;
+
 		logger = MDMiniLogger.new();
 		commandManager = CommandManager.new(display);
 		pedalboard = LPPedalboard.new(display, library);
@@ -74,9 +75,10 @@ LPOrchestrator : Object {
 
 	ensureServerReady{
         ~serv = Server.local;
-        if (~serv.serverRunning.not) {
-            ~serv.boot;
-            ~serv.waitForBoot; // allowed in your safe-reset pattern
+        // if (~serv.serverRunning.not) {
+		if (Server.default.serverRunning) { 
+            //~serv.boot;
+            //~serv.waitForBoot; // allowed in your safe-reset pattern
             ~serv.bind({
                 ~serv.initTree;
                 ~serv.defaultGroup.freeAll;
