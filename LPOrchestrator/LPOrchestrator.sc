@@ -1,5 +1,6 @@
 // LPOrchestrator.sc
 
+// v1.0.5 move to use NdefMaker instead of LPLibrary
 // v1.0.4.2 figured out how to get orchestrator to send to display
 // v1.0.4.1 trying to correct what gets passed to pedalboard
 // v1.0.3 fixed printDiagMessages to actually display in LPDisplay and in console
@@ -15,11 +16,12 @@ LPOrchestrator : Object {
     var <> commandManager;
     var <> display;
     var <> logger;
-	var <> library;  // LPLibrary
+	var <> library;  // LPLibrary <-- deprecate in favour of ndefMaker
+	var <> ndefMaker;
 
 	*initClass {
 		var text;
-		version = "v1.0.4.2";
+		version = "v1.0.5";
 		text = "LPOrchestrator " ++ version;
 		text.postln;
 	}
