@@ -70,7 +70,7 @@ LPNdefMaker : Object {
         audioFunction = defs[recipeKey];
         if (audioFunction.isNil) {
             ("Recipe not found: " ++ recipeKey).warn;
-            ^this;
+            ^nil;
         };
 
 		// WHY WOULD WE NEED THIS HERE?
@@ -79,7 +79,7 @@ LPNdefMaker : Object {
                 Ndef(instanceKey, audioFunction);
             });
         };
-        ^this
+        ^instanceKey // should do for now -- but want to keep internal register with unique names
     }
 
     clear { arg instanceKey;

@@ -32,7 +32,7 @@ NChain {
 	var < chainList; // this will be a list of the Ndef symbols in the chain in order
 
 	var <> display;
-	var <  procLib;
+	var <  procLib; // DEPRECATE in favour of ndefMaker
 	var <  ndefMaker; // added v0.4.7.9
 
 	*initClass {
@@ -59,7 +59,8 @@ NChain {
 		//<DEBUG> 
 		postln("***** NChain.init *****");
 		postln(">>> NChain init: argDisplay = " ++ argDisplay.asString);
-		postln(">>> NChain init: argProcLib = " ++ argProcLib.asString);
+		// postln(">>> NChain init: argProcLib = " ++ argProcLib.asString);
+		postln(">>> NChain init: argNdefMaker = " ++ argNdefMaker.asString);
 		//</DEBUG>
 
 		chainName = name.asString; // store the name as String
@@ -71,7 +72,7 @@ NChain {
 		//display.sendPaneText(\left, "REACHED from NChain.init");
 		//</DEBUG>
 
-		procLib = argProcLib; // DEPREACATE in favour of ndefMaker
+		//procLib = argProcLib; // DEPRECATE in favour of ndefMaker
 		ndefMaker = argNdefMaker; // added v0.4.7.9
 
 		numChannels = defaultNumChannels; // could add as argument later
@@ -203,7 +204,7 @@ NChain {
 
 	insert { | argName | // string or symbol?
 		var newName, newSymbol, insertIndex, alreadyPresent;
-		vasr receivedNdefName; // added v0.4.7.9
+		var receivedNdefName; // added v0.4.7.9
 		
 		// trying in v0.4.7.8
 		var functionToInsert; // we will make this the function found in procLib
@@ -219,7 +220,7 @@ NChain {
 		// end trying in v0.4.7.8
 
 		newName = chainName ++ argName.asString;
-		//newSymbol = newName.asSymbol;
+		newSymbol = newName.asSymbol;
 
 		if (chainList.isNil or: { chainList.isEmpty }) {
 			chainList = List.new;
